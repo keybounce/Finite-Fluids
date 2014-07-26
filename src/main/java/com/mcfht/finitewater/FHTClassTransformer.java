@@ -7,16 +7,26 @@ import static org.objectweb.asm.tree.AbstractInsnNode.METHOD_INSN;
 import java.util.Iterator;
 import java.util.Map;
 
+//import net.minecraft.block.Block;
+
+
+
+
+
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.IntInsnNode;
 import org.objectweb.asm.tree.LabelNode;
+import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
+import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
 
@@ -25,8 +35,9 @@ public class FHTClassTransformer implements net.minecraft.launchwrapper.IClassTr
 
 	static enum Target
 	{
-		Door,
-		Water
+		DOOR,
+		WATER,
+		FLUIDS
 	}
 	@Override
 	public byte[] transform(String className, String arg1, byte[] classBytes) {
@@ -38,24 +49,34 @@ public class FHTClassTransformer implements net.minecraft.launchwrapper.IClassTr
 			return patchClassASM(arg0, arg2, true);
 		}
 		*/
+		//net.minecraft.world.gen.ChunkProviderHell
+		if (    className.equals("net.minecraft.world.gen.ChunkProviderHell")
+			  ||className.equals("net.minecraft.world.gen.ChunkProviderGenerate")
+			  ||className.equals("net.minecraft.world.gen.MapGenRavine")
+		){
+			System.out.println(className);
+			return patchASM(className, classBytes, false, Target.FLUIDS);
+		}
+		
+		
 		
 		if (className.equals("net.minecraft.block.BlockDynamicLiquid"))
 		{
-			return patchASM(className, classBytes, false, Target.Water);
+			return patchASM(className, classBytes, false, Target.WATER);
 		}
 		if (className.equals("akr"))
 		{
 			
-			return patchASM(className, classBytes, true, Target.Water);
+			return patchASM(className, classBytes, true, Target.WATER);
 		}
 		
 		if ((className.equals("net.minecraft.block.BlockDoor") || className.equals("net.minecraft.block.BlockTrapDoor")))
 		{
-			return patchASM(className, classBytes, false, Target.Door);
+			return patchASM(className, classBytes, false, Target.DOOR);
 		}
 		if ((className.equals("akn") || className.equals("aoe")))
 		{
-			return patchASM(className, classBytes, true, Target.Door);
+			return patchASM(className, classBytes, true, Target.DOOR);
 		}
 		//System.out.println("*** Obfuscated MC environment detected! patching class:  (classname = " + arg0 + ")");
 		//return patchClassASM(arg0, arg2, true);
@@ -67,13 +88,17 @@ public class FHTClassTransformer implements net.minecraft.launchwrapper.IClassTr
 	{
 		String targetMethodName = "";
 		
-		if (target == Target.Water)
+		if (target == Target.WATER)
 		{
 			if(obfuscated == true)
 				targetMethodName ="a";
 			else
 				targetMethodName ="updateTick";
 		}
+
+		//func_147419_a
+		
+		
 		
 		ClassNode classNode = new ClassNode();
 		ClassReader classReader = new ClassReader(bytes);
@@ -81,31 +106,34 @@ public class FHTClassTransformer implements net.minecraft.launchwrapper.IClassTr
 		
 		@SuppressWarnings("unchecked")
 		Iterator<MethodNode> methods = classNode.methods.iterator();
+		
 		while(methods.hasNext())
 		{
 			MethodNode m = methods.next();
 			int fdiv_index = -1;
+			System.out.println(m.name + " : " + targetMethodName);
 			
-			if ((target == Target.Door) || m.name.equals(targetMethodName))
+			if ((target == Target.DOOR || target == Target.FLUIDS) || m.name.equals(targetMethodName))
 			{
 			
 				AbstractInsnNode node0 = null;
 		
 				@SuppressWarnings("unchecked")
 				Iterator<AbstractInsnNode> iter = m.instructions.iterator();
-				//int index = -1;
+				int index = -1;
 				
 				while (iter.hasNext())
 				{
-					//index++;
+					index++;
 					node0 = iter.next();
+					
 					
 					switch(target)
 					{
-					case Door:
+					case DOOR:
 						if (node0.getOpcode() == org.objectweb.asm.Opcodes.ICONST_2 && iter.hasNext())
 						{
-							//index++;
+							index++;
 							if (iter.next().getOpcode()  == org.objectweb.asm.Opcodes.INVOKEVIRTUAL)
 							{
 								m.instructions.set(node0, new InsnNode(org.objectweb.asm.Opcodes.ICONST_3));
@@ -115,20 +143,66 @@ public class FHTClassTransformer implements net.minecraft.launchwrapper.IClassTr
 						}
 						break;
 						
-					case Water:
+					case WATER:
 						if (node0.getOpcode() == org.objectweb.asm.Opcodes.GETFIELD && iter.hasNext())
 						{
+							index++;
 							node0 = iter.next();
 							if (node0.getOpcode() == org.objectweb.asm.Opcodes.ICONST_2)
 							{
 								m.instructions.set(node0, new InsnNode(org.objectweb.asm.Opcodes.ICONST_5));
 								System.out.println("Patched water!");
-								//index++;
+								
 								continue;
 							}
 						}
 						break;
 						
+						
+					case FLUIDS:
+						
+						if (node0.getOpcode() == org.objectweb.asm.Opcodes.GETSTATIC)
+						{
+							System.out.println("Found a thingy! " + ((FieldInsnNode)m.instructions.get(index)).name);
+							
+							if (((FieldInsnNode)m.instructions.get(index)).name.equals("lava"))
+							{
+								
+								((FieldInsnNode)m.instructions.get(index)).name = "finiteLava";
+								((FieldInsnNode)m.instructions.get(index)).owner = "com/mcfht/finitewater/FiniteWater";
+								System.out.println("Patched to : " + ((FieldInsnNode)m.instructions.get(index)).name);
+							}
+							
+							
+							if (((FieldInsnNode)m.instructions.get(index)).name.equals("DEPflowing_lava"))
+							{
+								
+								((FieldInsnNode)m.instructions.get(index)).name = "finiteLava";
+								((FieldInsnNode)m.instructions.get(index)).owner = "com/mcfht/finitewater/FiniteWater";
+								((FieldInsnNode)m.instructions.get(index)).desc = "Lnet/minecraft/block/Block";
+								System.out.println("Patched to : " + ((FieldInsnNode)m.instructions.get(index)).name);
+							}
+							
+							
+							if (((FieldInsnNode)m.instructions.get(index)).name.equals("water"))
+							{
+								((FieldInsnNode)m.instructions.get(index)).name = "finiteWater";
+								((FieldInsnNode)m.instructions.get(index)).owner = "com/mcfht/finitewater/FiniteWater";
+								//((FieldInsnNode)m.instructions.get(index)).desc = "Lnet/minecraft/block/Block";
+								
+								
+								System.out.println("Patched to : " + ((FieldInsnNode)m.instructions.get(index)).name);
+							}
+							if (((FieldInsnNode)m.instructions.get(index)).name.equals("DEPflowing_water"))
+							{
+								((FieldInsnNode)m.instructions.get(index)).name = "finiteWater";
+								((FieldInsnNode)m.instructions.get(index)).owner = "com/mcfht/finitewater/FiniteWater";
+								System.out.println("Patched to : " + ((FieldInsnNode)m.instructions.get(index)).name);
+							}
+							
+						}
+						break;
+							
 					default:
 						break;
 					}
@@ -145,6 +219,8 @@ public class FHTClassTransformer implements net.minecraft.launchwrapper.IClassTr
 		System.out.println("*** DONE!");
 		return writer.toByteArray();
 	}
+	
+
 	
 	
 	

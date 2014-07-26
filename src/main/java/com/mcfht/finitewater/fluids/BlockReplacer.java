@@ -23,21 +23,23 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  */
 public class BlockReplacer extends Block
 {
-	protected BlockReplacer() {
-		super(Material.rock);
+	public BlockReplacer(Material m) {
+		super(m);
 	}
 
+	
+	
+	
 	@Override
 	public void onBlockAdded(World world, int x, int y, int z)
 	{
 		
 		BiomeGenBase biome = world.getBiomeGenForCoords(x, z);
 		
-		if (biome == biome.beach || biome == biome.coldBeach || biome == biome.deepOcean || biome == biome.frozenOcean ||
-			biome == biome.river || biome == biome.ocean || biome == biome.frozenRiver)
-			world.setBlock(x, y, z, Blocks.water);
-		
-		//TODO Set block to my finite water yardieHarHar
+		if (y < 50)
+		{
+			world.setBlock(x,y,z,Blocks.water);
+		}
 		
 		world.setBlock(x, y, z, FiniteWater.finiteWater);
 	}

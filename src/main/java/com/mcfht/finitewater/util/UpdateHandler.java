@@ -5,12 +5,14 @@ import java.util.Map.Entry;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
+import net.minecraftforge.event.terraingen.ChunkProviderEvent;
 import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.event.world.WorldEvent;
 
@@ -55,6 +57,8 @@ public class UpdateHandler {
 	public int tickCounter = 0;
 	
 	public static final UpdateHandler INSTANCE = new UpdateHandler();
+	
+
 	
 	/**
 	 * Clean up after ourselves when a chunk is unloaded.
@@ -107,96 +111,101 @@ public class UpdateHandler {
 			//Leave a minimum number of ticks per world per player (should cover a couple of chunks)
 			//Not sure how well this works with hundreds of players lol
 			tickQuota = Math.max(48, 300/Math.max(1, MinecraftServer.getServer().getCurrentPlayerCount()));
-			
-			for (Object p : MinecraftServer.getServer().getEntityWorld().playerEntities)
+			for (World world : MinecraftServer.getServer().worldServers)
 			{
-				EntityPlayer player = (EntityPlayer) p;
-				ChunkMap map = ChunkCache.worldCache.get(player.worldObj);
-				if (map == null) continue;
+				if (world.playerEntities == null || world.playerEntities.size() == 0) continue;
 				
-				int ticksLeft = tickQuota; //Give ourselves a tick quota
-				
-				//iterate over all flagged chunks
-				for (Entry<Chunk, ChunkCache> c : map.waterCache.entrySet())
+				for (Object p : world.playerEntities)
 				{
-					//Just to be safe;
-					if (!c.getKey().isChunkLoaded) continue;
-					//Get all the relative coordinates of each chunk for distance testing
-					int x = c.getKey().xPosition - (((int)player.posX) >> 4); 
-					int z = c.getKey().zPosition - (((int)player.posZ) >> 4); 
-					int y;
+					EntityPlayer player = (EntityPlayer) p;
+					ChunkMap map = ChunkCache.worldCache.get(world);
+					//System.out.println("We are in " + world.provider.dimensionId + ", is registered? " + map != null);
+					if (map == null) continue;
 					
-					//Update all nearby chunks, along with some occasional random updates in other close chunks
-					//Extreme hax lol
-					if ((x * x + z * z <= FiniteWater.UPDATE_RANGE) || (player.getRNG().nextInt(32) == 0 && (x * x + z * z <= 16 * 16) ))
+					int ticksLeft = tickQuota; //Give ourselves a tick quota
+					
+					//iterate over all flagged chunks
+					for (Entry<Chunk, ChunkCache> c : map.waterCache.entrySet())
 					{
-						//Iterate over each 
-						for (int i = 0; i < 16; i++)
+						//Just to be safe;
+						if (!c.getKey().isChunkLoaded) continue;
+						//Get all the relative coordinates of each chunk for distance testing
+						int x = c.getKey().xPosition - (((int)player.posX) >> 4); 
+						int z = c.getKey().zPosition - (((int)player.posZ) >> 4); 
+						int y;
+						
+						//Update all nearby chunks, along with some occasional random updates in other close chunks
+						//Extreme hax lol
+						if ((x * x + z * z <= FiniteWater.UPDATE_RANGE) || (world.rand.nextInt(32) == 0 && (x * x + z * z <= 16 * 16) ))
 						{
-							//Perform our own update tick on some random blocks
-							///////////////////////////////////////////////////////////////////////////////
-							for (int j = 0; j < 5; j++)
+							//Iterate over each 
+							for (int i = 0; i < 16; i++)
 							{
-								
-								x = player.getRNG().nextInt(16);
-								y = player.getRNG().nextInt(16);
-								z = player.getRNG().nextInt(16) + (i << 4);
-								Block b = c.getKey().getBlock(x, y, z);
-								
-								//Only bother updating it if it is a fluid
-								if (b instanceof BlockFFluid)
+								//Perform our own update tick on some random blocks
+								///////////////////////////////////////////////////////////////////////////////
+								for (int j = 0; j < 5; j++)
 								{
-									int level = c.getValue().getWaterLevel(player.worldObj, c.getKey(), x, y, z);
-									if (level < BlockFFluid.maxWater - (BlockFFluid.maxWater >> 3))
-									{
-										((BlockFFluid) b).equalize(player.worldObj, 
-												(c.getKey().xPosition << 4) + x, y,
-												(c.getKey().zPosition << 4) + z, 8);
-									}
-								}
-							}
-							////////////////////////////////////////////////////////////////////////////////////
-							
-							//No updates, exit
-							if (c.getValue().updateCounter[i] == 0)
-								continue;
-	
-							if (ticksLeft <= 0) //prevent excessive update spamming
-								//TODO: Ensure all updates occur eventually
-								break;
-
-							//System.out.println(i + " =======> Performing : " + c.getValue().updateCounter[i] + " Block Updates");
-							//Use some tick quota, but maintain some minimum number of global updates
-							ticksLeft -= Math.max(4, c.getValue().updateCounter[i] >> 8);
-							//Reset the counter
-							c.getValue().updateCounter[i] = 0;;
-							
-							/////////////////////////////////////////////////////////////////////////////////////
-							for (int j = 0; j < 4096; j++)
-							{
-								if (c.getValue().updateFlags[i][j])
-								{
-									//Un-flag this block
-									c.getValue().updateFlags[i][j] = false;
-							
-									x = c.getKey().xPosition << 4;
-									z = c.getKey().zPosition << 4;
 									
-									y = i << 4;
-																		
-									x +=  j 		& 0xF;
-									y += (j >> 4) 	& 0xF;
-									z += (j >> 8) 	& 0xF;
+									x = world.rand.nextInt(16);
+									y = world.rand.nextInt(16);
+									z = world.rand.nextInt(16) + (i << 4);
+									Block b = c.getKey().getBlock(x, y, z);
 									
-									Block b = player.worldObj.getBlock(x, y, z);
+									//Only bother updating it if it is a fluid
 									if (b instanceof BlockFFluid)
 									{
-										//System.out.println("Ticking...");
-										b.updateTick(player.worldObj, x, y, z, player.worldObj.rand);
+										int level = c.getValue().getWaterLevel(world, c.getKey(), x, y, z);
+										if (level < BlockFFluid.maxWater - (BlockFFluid.maxWater >> 3))
+										{
+											((BlockFFluid) b).equalize(world, 
+													(c.getKey().xPosition << 4) + x, y,
+													(c.getKey().zPosition << 4) + z, 8);
+										}
 									}
 								}
+								////////////////////////////////////////////////////////////////////////////////////
+								
+								//No updates, exit
+								if (c.getValue().updateCounter[i] == 0)
+									continue;
+		
+								if (ticksLeft <= 0) //prevent excessive update spamming
+									//TODO: Ensure all updates occur eventually
+									break;
+	
+								//System.out.println(i + " =======> Performing : " + c.getValue().updateCounter[i] + " Block Updates");
+								//Use some tick quota, but maintain some minimum number of global updates
+								ticksLeft -= Math.max(4, c.getValue().updateCounter[i] >> 8);
+								//Reset the counter
+								c.getValue().updateCounter[i] = 0;;
+								
+								/////////////////////////////////////////////////////////////////////////////////////
+								for (int j = 0; j < 4096; j++)
+								{
+									if (c.getValue().updateFlags[i][j])
+									{
+										//Un-flag this block
+										c.getValue().updateFlags[i][j] = false;
+								
+										x = c.getKey().xPosition << 4;
+										z = c.getKey().zPosition << 4;
+										
+										y = i << 4;
+																			
+										x +=  j 		& 0xF;
+										y += (j >> 4) 	& 0xF;
+										z += (j >> 8) 	& 0xF;
+										
+										Block b = world.getBlock(x, y, z);
+										if (b instanceof BlockFFluid)
+										{
+											//System.out.println("Ticking...");
+											b.updateTick(world, x, y, z, world.rand);
+										}
+									}
+								}
+								////////////////////////////////////////////////////////////////////////////////////////////
 							}
-							////////////////////////////////////////////////////////////////////////////////////////////
 						}
 					}
 				}

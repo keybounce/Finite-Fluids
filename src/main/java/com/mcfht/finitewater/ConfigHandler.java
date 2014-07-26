@@ -22,11 +22,16 @@ public class ConfigHandler {
 		
 		FiniteWater.WATER_UPDATE = config.getInt("waterUpdateSpeed", "2 - Fluids", 1, 1, 999, "The flow rate of water (relative to global update rate). Higher values will allow greater volumes of water, at the cost of the water flowing slowly");
 		FiniteWater.LAVA_UPDATE = config.getInt("lavaUpdateSpeed", "2 - Fluids", 5, 1, 999, "The relative update rate of Lava. Higher values = slower flow, but allow greater volumes");
-		FiniteWater.LAVA_NETHER = config.getInt("lavaUpdateSpeedNether", "2 - Fluids", 3, 1, 999, "The relative update rate of Lava. Higher values = slower flow, but allow greater volumes");
+		FiniteWater.LAVA_NETHER = config.getInt("lavaUpdateSpeedNether", "2 - Fluids", 2, 1, 999, "The relative update rate of Lava. Higher values = slower flow, but allow greater volumes");
 		
 		int min =  (Math.min(FiniteWater.GLOBAL_UPDATE_RATE, Math.min(FiniteWater.LAVA_UPDATE, Math.min(FiniteWater.LAVA_NETHER, FiniteWater.WATER_UPDATE))));
 		
+		//Simplify the flow rates. If the user say, doubles all of them, then we 
+		//can tick them twice as much, half as often 
+		//(for example, if the user sets the tick rate to 3 and then makes water tick every 2nd time,
+		//We can piss on their efforts and simply tick once every 6 ticks because who cares.
 		FiniteWater.GLOBAL_UPDATE_RATE *= min;
+		
 		FiniteWater.WATER_UPDATE = Math.max(1, FiniteWater.WATER_UPDATE / min);
 		FiniteWater.LAVA_UPDATE = Math.max(1, FiniteWater.LAVA_UPDATE / min);
 		FiniteWater.LAVA_NETHER = Math.max(1, FiniteWater.LAVA_NETHER / min);

@@ -11,6 +11,7 @@ import net.minecraftforge.common.config.Configuration;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.mcfht.finitewater.fluids.BlockFFluid;
+import com.mcfht.finitewater.fluids.BlockReplacer;
 import com.mcfht.finitewater.fluids.BlockSourceD;
 import com.mcfht.finitewater.util.UpdateHandler;
 
@@ -82,17 +83,19 @@ public class FiniteWater extends DummyModContainer
      */
     public static Block finiteLava;
     
-    
+    public static Block replaceWater = new BlockReplacer(Material.water);
     
     @Subscribe
     public void preInit(FMLPreInitializationEvent event)
     {
     	ConfigHandler.handleConfigs(new Configuration(event.getSuggestedConfigurationFile()));
+    
     }
     
     @Subscribe
     public void initEvent(FMLInitializationEvent event)
     {
+    	
     	
     	finiteWater = new BlockFFluid(Material.water, 4, WATER_UPDATE).setCreativeTab(CreativeTabs.tabMisc);
     	finiteLava = new BlockFFluid(Material.lava, 3, LAVA_UPDATE).setCreativeTab(CreativeTabs.tabMisc);
@@ -100,6 +103,7 @@ public class FiniteWater extends DummyModContainer
     	GameRegistry.registerBlock(finiteWater, "UninfiniteWater");
     	GameRegistry.registerBlock(finiteLava, "UninfiniteLava");
     	GameRegistry.registerBlock(debugSource, "debugSource");
+    	GameRegistry.registerBlock(replaceWater, "replaceWater");
     	
     	//Register event handlers
     	FMLCommonHandler.instance().bus().register(UpdateHandler.INSTANCE);

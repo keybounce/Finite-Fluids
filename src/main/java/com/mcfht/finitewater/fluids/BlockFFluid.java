@@ -100,24 +100,29 @@ public class BlockFFluid extends BlockLiquid{
 	{
 		//Factor in flow rate and viscosity;
 		//We tick once every 5, but we only need to update once every n*5;
-		if (flowRate != 1)
+		testFlowRate:
 		{
-			if ( world.provider.dimensionId == -1 && this.blockMaterial == Material.lava)
+			if (flowRate != 1)
 			{
-				if (UpdateHandler.INSTANCE.tickCounter % (FiniteWater.LAVA_NETHER * 5) != 0)
+				if ( world.provider.dimensionId == -1 && this.blockMaterial == Material.lava)
+				{
+					//System.out.println("LAVA IS IN THA NETHER!?  rate: " + FiniteWater.LAVA_NETHER );
+					if (UpdateHandler.INSTANCE.tickCounter % (FiniteWater.LAVA_NETHER*FiniteWater.GLOBAL_UPDATE_RATE) != 0)
+					{
+						ChunkCache.markBlockForUpdate(world, x, y, z); //Mark ourselves to be updated next cycle
+						return;
+					}
+					break testFlowRate;
+				}
+			
+				if (UpdateHandler.INSTANCE.tickCounter % (FiniteWater.GLOBAL_UPDATE_RATE*flowRate) != 0)
 				{
 					ChunkCache.markBlockForUpdate(world, x, y, z); //Mark ourselves to be updated next cycle
-					return;
+					return;	
 				}
 			}
-		
-			if (UpdateHandler.INSTANCE.tickCounter % (5*flowRate) != 0)
-			{
-				ChunkCache.markBlockForUpdate(world, x, y, z); //Mark ourselves to be updated next cycle
-				return;	
-			}
 		}
-		
+	
 		//System.out.println("Block is being tickered! " + x + ", " + y + ", " + z);
 		int l0 = getLevel(world,x,y,z);
 		int _l0 = l0;
@@ -128,7 +133,7 @@ public class BlockFFluid extends BlockLiquid{
 			int y1 = y + dy;
 			
 			//Ensure we do not flow out of the world
-			if (y1 < 0 || y > 255)
+			if (y1 < 0 || y1 > 255)
 			{
 				setLevel(world, x, y, z, 0, true);
 				return;
@@ -256,44 +261,44 @@ public class BlockFFluid extends BlockLiquid{
 			return 0;
 		}
 		
-        if (block == Blocks.wooden_door || block == Blocks.iron_door) {
-           
-        	if ((dy != 0) || (dx != 0 && dz != 0)) return 0;
-        	
-        	if (meta == 8) //We need to go down and check the base of the door
-        	{
-        		meta = world.getBlockMetadata(x + dx, y + dy - 1, z + dz);
-        	}
-        	
-        	//We are flowing along the X axis
-        	//FIXME this is buggy for some reason
-        	if (dx != 0)
-        	{
-        		if (meta == 0 || meta == 2 || meta == 5 || meta == 7) return 0;
-        		
-        		block = world.getBlock(x + 2*dx, y + 2*dy, z + 2*dz);
-        		if (y + 2*dy > 0 && block == Blocks.air || block == this)
-        		{
-        			ChunkCache.markBlockForUpdate(world, x, y, z);
-        			return 2;
-        		}
-        			
-        		
-        		return 0;
-        	}else //We are flowing along the Z axis
-        		//FIXME this is buggy
-        	{
-        		if (meta == 1 || meta == 3 || meta == 4 || meta == 6) return 0;
-        		
-        		block = world.getBlock(x + 2*dx, y + 2*dy, z + 2*dz);
-        		if (y + 2*dy > 0 && block == Blocks.air || block == this)
-        		{
-        			ChunkCache.markBlockForUpdate(world, x, y, z);
-        			return 2;
-        		}
-        		return 0;
-        	}
-        }
+		if (block == Blocks.wooden_door || block == Blocks.iron_door) 
+		{
+			if ((dy != 0) || (dx != 0 && dz != 0)) return 0;
+			
+			if (meta == 8) //We need to go down and check the base of the door
+			{
+				meta = world.getBlockMetadata(x + dx, y + dy - 1, z + dz);
+			}
+		
+			//We are flowing along the X axis
+			//FIXME this is buggy for some reason
+			if (dx != 0)
+			{
+				if (meta == 0 || meta == 2 || meta == 5 || meta == 7) return 0;
+			
+				block = world.getBlock(x + 2*dx, y + 2*dy, z + 2*dz);
+				if (y + 2*dy > 0 && block == Blocks.air || block == this)
+				{
+					ChunkCache.markBlockForUpdate(world, x, y, z);
+					return 2;
+				}
+				
+			
+				return 0;
+			}else //We are flowing along the Z axis
+			//FIXME this is buggy
+			{
+				if (meta == 1 || meta == 3 || meta == 4 || meta == 6) return 0;
+				
+				block = world.getBlock(x + 2*dx, y + 2*dy, z + 2*dz);
+				if (y + 2*dy > 0 && block == Blocks.air || block == this)
+				{
+					ChunkCache.markBlockForUpdate(world, x, y, z);
+					return 2;
+				}
+				return 0;
+			}
+		}
         
         //If we are flowing into a trap door
         if (block == Blocks.trapdoor)
