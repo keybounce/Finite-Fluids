@@ -34,16 +34,16 @@ import cpw.mods.fml.common.registry.GameRegistry;
 public class FiniteWater extends DummyModContainer 
 {
 
-	public static int MAX_UPDATES;
-	public static int FORCE_UPDATES;
-	public static int GLOBAL_UPDATE_RATE;
+	public static int MAX_UPDATES = 300;
+	public static int FORCE_UPDATES = 48;
+	public static int GLOBAL_UPDATE_RATE = 5;
 	
-	public static int MAX_WATER;
-	public static int WATER_UPDATE;
-	public static int LAVA_UPDATE;
-	public static int LAVA_NETHER;
+	public static int MAX_WATER = 65536;
+	public static int WATER_UPDATE = 1;
+	public static int LAVA_UPDATE = 5;
+	public static int LAVA_NETHER = 3;
 	
-	
+	public static int UPDATE_RANGE = 16;
 	
 	public static boolean PATCH_WATER_DUPLICATION = true;
 	public static boolean PATCH_DOOR_UPDATES = true;

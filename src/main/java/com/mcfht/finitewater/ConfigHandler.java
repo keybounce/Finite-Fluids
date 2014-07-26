@@ -12,6 +12,9 @@ public class ConfigHandler {
 		FiniteWater.MAX_UPDATES = config.getInt("globalMaxUpdates", "1 - General", 300, 16, 2048, "A factor determining the max number of updates.");
 		FiniteWater.FORCE_UPDATES = config.getInt("globalMinUpdates", "1 - General", 48, 16, 2048, "Forced update factor. Lower values benefit large numbers of players.");
 		
+		FiniteWater.UPDATE_RANGE =  config.getInt("globalUpdateRange", "1 - General", 4, 1, 16, "Distance in which to prioritize updates.");
+		FiniteWater.UPDATE_RANGE *= FiniteWater.UPDATE_RANGE;
+		
 		FiniteWater.PATCH_DOOR_UPDATES = config.getBoolean("patchVanillaDoors", "1 - General", true, "Force vanilla doors to throw block updates when opened (allowing water to flow through them)");
 		FiniteWater.PATCH_WATER_DUPLICATION = config.getBoolean("patchWaterDuplication", "1 - General", true, "Prevents duplication of infinite water source blocks!");
 		
@@ -27,6 +30,9 @@ public class ConfigHandler {
 		FiniteWater.WATER_UPDATE = Math.max(1, FiniteWater.WATER_UPDATE / min);
 		FiniteWater.LAVA_UPDATE = Math.max(1, FiniteWater.LAVA_UPDATE / min);
 		FiniteWater.LAVA_NETHER = Math.max(1, FiniteWater.LAVA_NETHER / min);
+		
+		
+		
 		
 		config.save();
 	}

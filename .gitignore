@@ -1,5 +1,6 @@
 .settings/
 eclipse/
+bin/
 .classpath
 .project
 CREDITS-fml.txt

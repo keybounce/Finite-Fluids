@@ -14,6 +14,7 @@ import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.event.world.WorldEvent;
 
+import com.mcfht.finitewater.FiniteWater;
 import com.mcfht.finitewater.fluids.BlockFFluid;
 import com.mcfht.finitewater.fluids.BlockSourceD;
 import com.mcfht.finitewater.util.ChunkCache.ChunkMap;
@@ -100,7 +101,7 @@ public class UpdateHandler {
 		if (event.phase != Phase.END) return;
 		
 		tickCounter++;
-		if ((tickCounter % 5) == 0)
+		if ((tickCounter % FiniteWater.GLOBAL_UPDATE_RATE) == 0)
 		{
 			int tickQuota;
 			//Leave a minimum number of ticks per world per player (should cover a couple of chunks)
@@ -127,7 +128,7 @@ public class UpdateHandler {
 					
 					//Update all nearby chunks, along with some occasional random updates in other close chunks
 					//Extreme hax lol
-					if ((x * x + z * z <= 4 * 4) || (player.getRNG().nextInt(32) == 0 && (x * x + z * z <= 12 * 12) ))
+					if ((x * x + z * z <= FiniteWater.UPDATE_RANGE) || (player.getRNG().nextInt(32) == 0 && (x * x + z * z <= 16 * 16) ))
 					{
 						//Iterate over each 
 						for (int i = 0; i < 16; i++)
