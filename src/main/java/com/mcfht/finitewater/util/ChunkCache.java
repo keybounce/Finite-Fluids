@@ -53,7 +53,7 @@ public class ChunkCache {
 	{
 		//First ensure the target chunk is loaded and mapped
 		//TODO shift this to chunk loading?
-		Chunk c = world.getChunkFromBlockCoords(x, z);
+		Chunk c = world.getChunkFromChunkCoords(x >> 4, z >> 4);
 		if (!c.isChunkLoaded)
 		{
 			c = world.getChunkProvider().provideChunk(x >> 4, z >> 4); //Force chunk to load
@@ -73,13 +73,17 @@ public class ChunkCache {
 		}
 		
 		//Register the update
-		y = y < 0 ? 0 : y;
-		boolean p =  cc.updateFlags[y >> 4][(x & 0xF) + ((y & 0xF) << 4) + ((z & 0xF) << 8)];
+		int _y = y < 0 ? 0 : y >> 4;
+		int xx = x & 0xF;
+		int yy = y & 0xF;
+		int zz = z & 0xF;
+		
+		boolean p =  cc.updateFlags[_y][xx + (yy << 4) + (zz << 8)];
 		
 		if (p == false)
-			++cc.updateCounter[y >> 4];
+			++cc.updateCounter[_y];
 		
-		cc.updateFlags[y >> 4][(x & 0xF) + ((y & 0xF) << 4) + ((z & 0xF) << 8)] = true;
+		cc.updateFlags[_y][xx + (yy << 4) + (zz << 8)] = true;
 		//++cc.updateCounter[y >> 4];
 	}
 	

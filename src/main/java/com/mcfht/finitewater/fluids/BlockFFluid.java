@@ -47,15 +47,13 @@ public class BlockFFluid extends BlockLiquid{
 		this.flowRate = flowRate;
 	}
 
+	
 	@Override
 	public void onBlockAdded(World world, int x, int y, int z)
 	{
 		ChunkCache.markBlockForUpdate(world, x, y, z);
 		
-		if (world.provider.dimensionId == -1 && blockMaterial == Material.lava)
-		{
-			this.flowRate = FiniteWater.LAVA_NETHER;
-		}
+		
 		
 	}
 	
@@ -102,10 +100,22 @@ public class BlockFFluid extends BlockLiquid{
 	{
 		//Factor in flow rate and viscosity;
 		//We tick once every 5, but we only need to update once every n*5;
-		if (flowRate != 1 && (UpdateHandler.INSTANCE.tickCounter % (flowRate * 5)) != 0)
+		if (flowRate != 1)
 		{
-			ChunkCache.markBlockForUpdate(world, x, y, z); //Mark ourselves to be updated next cycle
-			return;	
+			if ( world.provider.dimensionId == -1 && this.blockMaterial == Material.lava)
+			{
+				if (UpdateHandler.INSTANCE.tickCounter % (FiniteWater.LAVA_NETHER * 5) != 0)
+				{
+					ChunkCache.markBlockForUpdate(world, x, y, z); //Mark ourselves to be updated next cycle
+					return;
+				}
+			}
+		
+			if (UpdateHandler.INSTANCE.tickCounter % (5*flowRate) != 0)
+			{
+				ChunkCache.markBlockForUpdate(world, x, y, z); //Mark ourselves to be updated next cycle
+				return;	
+			}
 		}
 		
 		//System.out.println("Block is being tickered! " + x + ", " + y + ", " + z);

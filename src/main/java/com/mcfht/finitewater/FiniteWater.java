@@ -6,6 +6,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.common.config.Configuration;
 
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
@@ -21,6 +22,7 @@ import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.ModMetadata;
 import cpw.mods.fml.common.event.FMLConstructionEvent;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
+import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
 
 /**
@@ -32,11 +34,16 @@ import cpw.mods.fml.common.registry.GameRegistry;
 public class FiniteWater extends DummyModContainer 
 {
 
-	public static final int MAX_WATER = 65536;
-	public static final int GLOBAL_UPDATE_RATE = 5;
-	public static final int WATER_UPDATE = 1;
-	public static final int LAVA_UPDATE = 5;
-	public static final int LAVA_NETHER = 3;
+	public static int MAX_UPDATES;
+	public static int FORCE_UPDATES;
+	public static int GLOBAL_UPDATE_RATE;
+	
+	public static int MAX_WATER;
+	public static int WATER_UPDATE;
+	public static int LAVA_UPDATE;
+	public static int LAVA_NETHER;
+	
+	
 	
 	public static boolean PATCH_WATER_DUPLICATION = true;
 	public static boolean PATCH_DOOR_UPDATES = true;
@@ -65,7 +72,7 @@ public class FiniteWater extends DummyModContainer
 	/**
 	* Finite Water Blocks
 	*/
-	public static Block finiteWater = new BlockFFluid(Material.water, 4, WATER_UPDATE).setCreativeTab(CreativeTabs.tabMisc);
+	public static Block finiteWater;
 	/**
 	* Infinite Source block (redstone trigger)
 	*/
@@ -73,11 +80,23 @@ public class FiniteWater extends DummyModContainer
     /**
      * Finite Lava blocks
      */
-    public static Block finiteLava = new BlockFFluid(Material.lava, 3, LAVA_UPDATE).setCreativeTab(CreativeTabs.tabMisc);
+    public static Block finiteLava;
+    
+    
+    
+    @Subscribe
+    public void preInit(FMLPreInitializationEvent event)
+    {
+    	ConfigHandler.handleConfigs(new Configuration(event.getSuggestedConfigurationFile()));
+    }
     
     @Subscribe
     public void initEvent(FMLInitializationEvent event)
     {
+    	
+    	finiteWater = new BlockFFluid(Material.water, 4, WATER_UPDATE).setCreativeTab(CreativeTabs.tabMisc);
+    	finiteLava = new BlockFFluid(Material.lava, 3, LAVA_UPDATE).setCreativeTab(CreativeTabs.tabMisc);
+    	
     	GameRegistry.registerBlock(finiteWater, "UninfiniteWater");
     	GameRegistry.registerBlock(finiteLava, "UninfiniteLava");
     	GameRegistry.registerBlock(debugSource, "debugSource");

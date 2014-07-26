@@ -39,21 +39,21 @@ public class FHTClassTransformer implements net.minecraft.launchwrapper.IClassTr
 		}
 		*/
 		
-		if (FiniteWater.PATCH_WATER_DUPLICATION && className.equals("net.minecraft.block.BlockDynamicLiquid"))
+		if (className.equals("net.minecraft.block.BlockDynamicLiquid"))
 		{
 			return patchASM(className, classBytes, false, Target.Water);
 		}
-		if (FiniteWater.PATCH_WATER_DUPLICATION && className.equals("akr"))
+		if (className.equals("akr"))
 		{
 			
 			return patchASM(className, classBytes, true, Target.Water);
 		}
 		
-		if (FiniteWater.PATCH_DOOR_UPDATES && (className.equals("net.minecraft.block.BlockDoor") || className.equals("net.minecraft.block.BlockTrapDoor")))
+		if ((className.equals("net.minecraft.block.BlockDoor") || className.equals("net.minecraft.block.BlockTrapDoor")))
 		{
 			return patchASM(className, classBytes, false, Target.Door);
 		}
-		if (FiniteWater.PATCH_DOOR_UPDATES && (className.equals("akn") || className.equals("aoe")))
+		if ((className.equals("akn") || className.equals("aoe")))
 		{
 			return patchASM(className, classBytes, true, Target.Door);
 		}

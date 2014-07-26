@@ -1,2 +1,2 @@
 Manifest-Version: 1.0
-FMLCorePlugin: com.mcfht.finitewater.FiniteWater
+FMLCorePlugin: com.mcfht.finitewater.FiniteWaterLauncher

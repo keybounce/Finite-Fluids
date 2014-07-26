@@ -1,0 +1,16 @@
+[
+{
+  "modid": "finitewaterpatch",
+  "name": "Finite Water Patch",
+  "description": "Water Overhaul",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "",
+  "updateUrl": "",
+  "authorList": ["FHT"],
+  "credits": "FHT",
+  "logoFile": "",
+  "screenshots": [],
+  "dependencies": []
+}
+]
