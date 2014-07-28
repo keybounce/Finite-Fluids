@@ -8,12 +8,16 @@ public class ConfigHandler {
 	{
 		config.load();
 
-		FiniteWater.GLOBAL_UPDATE_RATE = config.getInt("globalUpdateRate", "1 - General", 5, 3, 64, "The number of ticks between each update sweep, min of 3");
-		FiniteWater.MAX_UPDATES = config.getInt("globalMaxUpdates", "1 - General", 300, 16, 2048, "A factor determining the max number of updates.");
-		FiniteWater.FORCE_UPDATES = config.getInt("globalMinUpdates", "1 - General", 48, 16, 2048, "Forced update factor. Lower values benefit large numbers of players.");
+		FiniteWater.GLOBAL_UPDATE_RATE = config.getInt("globalUpdateRate", "1 - General", 5, 3, 64, "The number of ticks between each update sweep, !!!WIP: CHANGING COULD SERIOUSLY BREAK THINGS!!!");
+		FiniteWater.MAX_UPDATES = config.getInt("globalNearUpdates", "1 - General", 1024, 16, 100000, "Immediate update Factor. Currently has no effect on performance, but left over quota is given to distant chunks");
+		FiniteWater.FORCE_UPDATES = config.getInt("globalFarUpdates", "1 - General", 256, 16, 100000, "Distant update factor - Forces updates in distant chunks. Higher values give more updates to distant chunks, lower values benefit performance");
 		
-		FiniteWater.UPDATE_RANGE =  config.getInt("globalUpdateRange", "1 - General", 4, 1, 16, "Distance in which to prioritize updates.");
+		FiniteWater.UPDATE_RANGE =  config.getInt("globalUpdateRange", "1 - General", 4, 1, 32, "Range of high priority updates");
+		FiniteWater.UPDATE_RANGE_FAR =  config.getInt("globalUpdateRange", "1 - General", 6, 1, 32, "Range of low priority updates");
+
+		//Convert to guassian distance to save doing it later
 		FiniteWater.UPDATE_RANGE *= FiniteWater.UPDATE_RANGE;
+		FiniteWater.UPDATE_RANGE_FAR *= FiniteWater.UPDATE_RANGE_FAR;
 		
 		FiniteWater.PATCH_DOOR_UPDATES = config.getBoolean("patchVanillaDoors", "1 - General", true, "Force vanilla doors to throw block updates when opened (allowing water to flow through them)");
 		FiniteWater.PATCH_WATER_DUPLICATION = config.getBoolean("patchWaterDuplication", "1 - General", true, "Prevents duplication of infinite water source blocks!");

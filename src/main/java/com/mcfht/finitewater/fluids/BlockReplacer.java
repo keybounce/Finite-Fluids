@@ -55,25 +55,15 @@ public class BlockReplacer extends BlockFFluid
 		}
 		 */
 
-		if (world.getBlock(x, y-1, z) == Blocks.air)
+		if (world.getBlock(x,y-1,z).getMaterial() == Material.water)
 		{
-			world.setBlock(x, y, z, Blocks.dirt);
-			return;
+			world.setBlock(x, y, z, FiniteWater.finiteWater);
+		}else
+		{
+			world.setBlock(x, y, z, Blocks.water);
 		}
 		
-		int[][] directions = { {0,1}, {0,-1}, {1,0}, {-1,0}, {1,1} , {-1,-1}, {-1,1}, {1,-1} }; 
-		for (int i = 0; i < 8; i++)
-		{
-			
-			if (world.getBlock(x + directions[i][0], y, z + directions[i][1]) == Blocks.air)
-			{
-				world.setBlock(x, y, z, Blocks.dirt);
-				return;
-
-			}
-		}
 		
-		world.setBlock(x, y, z, FiniteWater.finiteWater);
 		
 	}
 

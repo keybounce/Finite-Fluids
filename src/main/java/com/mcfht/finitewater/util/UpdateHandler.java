@@ -3,6 +3,7 @@ package com.mcfht.finitewater.util;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
@@ -80,6 +81,73 @@ public class UpdateHandler {
 		}
 	}
 	
+	public static ConcurrentLinkedQueue<BlockTask> blockTasks = new ConcurrentLinkedQueue<BlockTask>();
+	
+	/**
+	 * Schedules setting of a block in world coordinates
+	 * @param world
+	 * @param x
+	 * @param y
+	 * @param z
+	 * @param block
+	 * @param meta
+	 * @param flag
+	 */
+	public void scheduleSetBlock(World world, int x, int y, int z, Block block, int meta, int flag)
+	{
+		blockTasks.add(new BlockTask(world, world.getChunkFromChunkCoords(x >> 4, z >> 4), x, y, z, block, meta, flag));
+	}
+	
+	/**
+	 * Schedules setting of a block in chunk coordinates
+	 * @param world
+	 * @param chunk
+	 * @param x
+	 * @param y
+	 * @param z
+	 * @param block
+	 * @param meta
+	 * @param flag
+	 */
+	public void scheduleSetBlock(World world, Chunk chunk, int x, int y, int z, Block block, int meta, int flag)
+	{
+		blockTasks.add(new BlockTask(world, chunk, x, y, z, block, meta, flag));
+	}
+	
+	/**
+	 * Used to queue updates outside of the main thread
+	 * @author FHT
+	 *
+	 */
+	static class BlockTask
+	{
+		World world;Chunk chunk;int x; int y; int z;Block block; int meta;int flag;
+		public BlockTask(World world, Chunk chunk, int x, int y, int z, Block block, int meta, int flag)
+		{this.world = world; this.chunk = chunk; this.x = x; this.y = y; this.z = z; this.block = block; this.meta=meta; this.flag = flag;}
+	
+		public boolean setBlock()
+		{
+			if (!chunk.isChunkLoaded)
+			{
+				chunk = world.getChunkProvider().provideChunk(chunk.xPosition, chunk.zPosition);
+			}
+			if (!chunk.func_150807_a(x, y, z & 15, block, meta)) return false;
+			if (flag == 1)
+			{
+				world.markBlockForUpdate(x + (chunk.xPosition << 4), y, z + (chunk.zPosition << 4));
+				return true;
+			}
+			if (flag == 2)
+			{
+				world.markBlockForUpdate(x + (chunk.xPosition << 4), y, z + (chunk.zPosition << 4));
+				world.notifyBlocksOfNeighborChange(x + (chunk.xPosition << 4), y, z + (chunk.zPosition << 4), block);
+				return true;
+			}
+		return true;
+		}
+	}
+	
+	
 	/**
 	 * Clean up after ourselves when a chunk is unloaded.
 	 * @param event
@@ -127,68 +195,48 @@ public class UpdateHandler {
 		
 		long time = System.currentTimeMillis();
 		tickCounter++;
-		
-		//Perform equalization tasks for a certain amount of time per tick, fires at n = 2
-		if (tickCounter % FiniteWater.GLOBAL_UPDATE_RATE == (FiniteWater.GLOBAL_UPDATE_RATE/2) - 1)
-		{
-			while (equalizationTask.tasks.size() > 0 && System.currentTimeMillis() - time < 20)
-			{
-				equalizationTask.doTask(0);
-			}
-		}
-		
+				
 		//Schedule chunks, fires at n = 4
 		if (tickCounter % FiniteWater.GLOBAL_UPDATE_RATE == (FiniteWater.GLOBAL_UPDATE_RATE - 1))
 		{
-			
-			//int tickQuota = Math.max(48, 300/Math.max(1, MinecraftServer.getServer().getCurrentPlayerCount()));
-			
 			for (World world : MinecraftServer.getServer().worldServers)
 			{
 				if (world.playerEntities == null || world.playerEntities.size() == 0) continue;
-				
 				for (Object p : world.playerEntities)
 				{
 					EntityPlayer player = (EntityPlayer) p;
 					ChunkMap map = ChunkCache.worldCache.get(world);
-					//System.out.println("We are in " + world.provider.dimensionId + ", is registered? " + map != null);
 					if (map == null) continue;
 					
 					//iterate over all flagged chunks
 					for (Chunk c : map.waterCache.keySet())
-					{
-						//Just to be safe;
-						if (!c.isChunkLoaded) continue;
-						
-						//Get all the relative coordinates of each chunk for distance testing
+					{	
+						if (!c.isChunkLoaded) continue;//Just to be safe;
+					
 						int x = c.xPosition - (((int)player.posX) >> 4); 
 						int z = c.zPosition - (((int)player.posZ) >> 4); 
 						int y;
 						
-						int dist = x * x + z * z;
+						int dist = x * x + z * z; //Distance for distance testing
 						
-						if (dist <= FiniteWater.UPDATE_RANGE)
-							map.priority.add(c);
+						if (dist <= FiniteWater.UPDATE_RANGE) map.priority.add(c);
+						else if (dist <= FiniteWater.UPDATE_RANGE_FAR) map.random.add(c);
 						
-						else if (dist <= 2 * FiniteWater.UPDATE_RANGE)
-							map.random.add(c);
 						
 						}
+					//Do some block setting
+
 					}
 				}	
 			return;
 		}
 		
-		//Fires at n = 5
-		if (tickCounter % FiniteWater.GLOBAL_UPDATE_RATE == 0)
+		else if ((tickCounter % FiniteWater.GLOBAL_UPDATE_RATE)  == 0)
 		{
-			//System.out.println("*********************************UPDATE TICKING!");
-			
-			
 			int tickQuota;
+			
 			//Leave a minimum number of ticks per world per player (should cover a couple of chunks)
-			//Not sure how well this works with hundreds of players lol
-			tickQuota = 300/Math.max(1, MinecraftServer.getServer().getCurrentPlayerCount());
+			tickQuota = FiniteWater.MAX_UPDATES/Math.max(1, MinecraftServer.getServer().getCurrentPlayerCount());
 			for (World world : MinecraftServer.getServer().worldServers)
 			{
 				
@@ -197,10 +245,7 @@ public class UpdateHandler {
 
 				ChunkMap map = ChunkCache.worldCache.get(world);
 				if (map == null) continue;
-				
 				if (map.priority.size() <= 0) continue;
-				
-				//System.out.println("World: " + world.provider.getDimensionName() + ", " + map.priority.size());
 				
 				int ticksLeft = tickQuota + FiniteWater.FORCE_UPDATES; //Give ourselves a tick quota
 				
@@ -213,13 +258,14 @@ public class UpdateHandler {
 				}
 				map.priority.clear();
 				
-				//Exit if we are under load
+				//Exit if we are under too much strain
 				if (System.currentTimeMillis() - time > 40) return;
-				if (ticksLeft <= 0 && FiniteWater.FORCE_UPDATES <= 0) break; //screw this world lol
+				
+				//if (FiniteWater.FORCE_UPDATES <= 0) break; //screw this world lol
 
 				//Now we are going to update some pseudo-random distant chunks
 				//Give ourselves a certain number of random ticks
-				ticksLeft =  FiniteWater.FORCE_UPDATES > ticksLeft ? FiniteWater.FORCE_UPDATES : ticksLeft;
+				ticksLeft =  FiniteWater.FORCE_UPDATES + Math.max(0, ticksLeft);
 			
 				while (map.random.size() > 0 && (ticksLeft > 0 || System.currentTimeMillis() - time < 10))
 				{
@@ -235,7 +281,33 @@ public class UpdateHandler {
 				}
 			}
 		}
-		
+		//We have ticks left, equalize!
+		else
+		{
+			//Prevent overflowing the queue by using dynamic update quota
+			int toPerform =  blockTasks.size()/16;
+				toPerform = toPerform < 8 ? 8 : toPerform;
+
+			boolean flagout = false;
+			
+			//Prevent lagging the system by allocating only a small amount of time
+			while (System.currentTimeMillis() - time < 10)
+			{
+				flagout = true;
+				if (equalizationTask.tasks.size() > 0)
+				{
+					flagout = false;
+					equalizationTask.doTask(0);
+				}
+				//Using thread safe queue, we can force blocks to be set whenever we want from any thread
+				for (int i = 0; i < Math.min(32, blockTasks.size()); i++)
+				{
+					flagout = false;
+					blockTasks.remove().setBlock();
+				}
+				if (flagout) break;
+			}
+		}
 	}
 	
 	/**
@@ -248,14 +320,24 @@ public class UpdateHandler {
 	 */
 	public int doTask(World world, Chunk c, ChunkCache t, boolean flag)
 	{
+		int interval = (tickCounter % FiniteWater.GLOBAL_UPDATE_RATE);
 		int cost = 0;
 		int x,y,z;
 		//Iterate over each 
 		for (int i = 0; i < 16; i++)
 		{
+			
 			//Perform our own update tick on some random blocks
 			///////////////////////////////////////////////////////////////////////////////
-			int rem = flag ? 4 : 1; //equalize more in distant chunks since it is ugly
+			
+			/* Do more equalization in distant chunks.
+			 * This is for 2 reasons. First and foremost, distant chunks get updated less, so we
+			 * need to dry and suck up as much water from them as we can.
+			 * 
+			 * Secondly, equalization can look a little bit fugly, so we should run it less on closer chunks.
+			 * 
+			 */
+			int rem = flag ? 16 : 4; 
 			for (int j = 0; j < 3; j++)
 			{
 				x = world.rand.nextInt(16);
@@ -267,9 +349,9 @@ public class UpdateHandler {
 				//Only bother updating it if it is a fluid
 				if (b instanceof BlockFFluid)
 				{
-					//DO SOME OTHHER STUFF?
+					//INSERT STUFF FOR EVAPORATION AND RAIN HERE?
 					
-					//Now equalize
+					//Now equalize if we have quota
 					if (rem-- <= 0) continue;
 					
 					//Now try to move towards surface a little bit
@@ -280,8 +362,14 @@ public class UpdateHandler {
 					}
 					
 					int level = t.getWaterLevel(world, c, x, y, z);
-					if (level < BlockFFluid.maxWater - (BlockFFluid.maxWater >> 3))
+					if (level < BlockFFluid.maxWater - (BlockFFluid.maxWater >> 3)) 
 					{
+						//Prevent leaking if we are too slow
+						if (equalizationTask.tasks.size() > 512)
+						{
+							System.out.println("The water equalizer is lagging!");
+						}
+						else
 						//Queue this block to be equalized (spread some load to other ticks)
 						equalizationTask.tasks.add(new equalizationTask(world,(c.xPosition << 4) + x, y,
 								(c.zPosition << 4) + z, (BlockFFluid) b));
@@ -296,8 +384,8 @@ public class UpdateHandler {
 				continue;
 
 			//System.out.println(i + " =======> Performing : " + c.getValue().updateCounter[i] + " Block Updates");
-			//Use some tick quota, but maintain some minimum number of global updates
-			cost += Math.max(4, t.updateCounter[i] >> 8);
+			//Use some of our quota, but maintain some minimum number of global updates
+			cost += Math.max(16, t.updateCounter[i] >> 6);
 			//Reset the counter
 			t.updateCounter[i] = 0;;
 			
@@ -323,15 +411,19 @@ public class UpdateHandler {
 					{
 						//System.out.println("Ticking...");
 						//TODO thread pool?
-						b.updateTick(world, x, y, z, world.rand);
+						((BlockFFluid) b).doUpdate(world, x, y, z, world.rand, interval);
 					}
 				}
 			}
 			////////////////////////////////////////////////////////////////////////////////////////////
 		}
 	
-		
-		return 0;
+		//c.needsSaving(true);
+		//world.markBlockForUpdate((c.xPosition <<  4) + 1, 1, (c.zPosition <<  4) + 1);
+		return cost;
 	}
+	
+	
+	
 	
 }

@@ -53,6 +53,7 @@ public class FiniteWater extends DummyModContainer
 	
 	/** The number of chunks in which to prioritize updates*/
 	public static int UPDATE_RANGE = 4*4;
+	public static int UPDATE_RANGE_FAR = 12*12;
 	
 		public static boolean PATCH_WATER_DUPLICATION = true;
 	public static boolean PATCH_DOOR_UPDATES = true;
@@ -103,6 +104,12 @@ public class FiniteWater extends DummyModContainer
     {
     	ConfigHandler.handleConfigs(new Configuration(event.getSuggestedConfigurationFile()));
     
+    	
+    	//Time to thingimy stuff and thingimy!
+    	
+    	
+    	
+    	
     }
     
     @Subscribe

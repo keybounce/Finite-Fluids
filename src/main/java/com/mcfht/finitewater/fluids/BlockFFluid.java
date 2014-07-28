@@ -99,6 +99,11 @@ public class BlockFFluid extends BlockLiquid{
 	
 	public void updateTick(World world, int x, int y, int z, Random rand)
 	{
+	
+	}
+	
+	public void doUpdate(World world, int x, int y, int z, Random rand, int interval)
+	{
 		//Factor in flow rate and viscosity;
 		//We tick once every 5, but we only need to update once every n*5;
 		testFlowRate:
@@ -107,7 +112,7 @@ public class BlockFFluid extends BlockLiquid{
 			{
 				if ( world.provider.dimensionId == -1 && this.blockMaterial == Material.lava)
 				{
-					if (UpdateHandler.INSTANCE.tickCounter % (FiniteWater.GLOBAL_UPDATE_RATE * FiniteWater.LAVA_NETHER) != 0)
+					if (UpdateHandler.INSTANCE.tickCounter % (FiniteWater.GLOBAL_UPDATE_RATE * FiniteWater.LAVA_NETHER) != interval)
 					{
 						ChunkCache.markBlockForUpdate(world, x, y, z); //Mark ourselves to be updated next cycle
 						return;
@@ -115,7 +120,7 @@ public class BlockFFluid extends BlockLiquid{
 					break testFlowRate;
 				}
 			
-				if (UpdateHandler.INSTANCE.tickCounter % (FiniteWater.GLOBAL_UPDATE_RATE * flowRate) != 0)
+				if (UpdateHandler.INSTANCE.tickCounter % (FiniteWater.GLOBAL_UPDATE_RATE * flowRate) != interval)
 				{
 					ChunkCache.markBlockForUpdate(world, x, y, z); //Mark ourselves to be updated next cycle
 					return;	
@@ -525,7 +530,7 @@ public class BlockFFluid extends BlockLiquid{
 			}
 			
 			//Prevent the algorithm from creating new blocks with too little viscosity
-			dist = (Math.min(dist, Math.max(1, (sum / viscosity))));
+			dist = (Math.min(dist, Math.max(1, 2*(sum / (viscosity)))));
 			
 			//Don't bother equalizing in this direction if we cannot equalize over a reasonable distance
 			if (dist < 8) continue;
@@ -535,7 +540,17 @@ public class BlockFFluid extends BlockLiquid{
 			{
 				int x1 = x0 + i * dx;
 				int z1 = z0 + i * dz;
-				setLevel(world, x1, y0, z1, sum / dist, true);
+				
+				if (world.getBlock(x1,y0-1,z1) == this)
+				{
+					int l1 = getLevel(world, x1, y0-1, z1);
+					//Now flatten the water betweeen this block and the one below (make it prettier, and save a calculation
+					//total waterto move = sum/dist
+					setLevel(world, x1, y0-1, z1, Math.min(maxWater, l1 + sum/dist ), true);
+					setLevel(world, x1, y0, z1, Math.max(0, l1 + sum/dist - maxWater), true);
+				}
+				else
+					setLevel(world, x1, y0, z1, sum / dist, true);
 			}
 		}
 	}

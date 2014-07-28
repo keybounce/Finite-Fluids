@@ -2,10 +2,9 @@ package com.mcfht.finitewater;
 
 import java.util.Map;
 
-import net.minecraft.init.Blocks;
-import cpw.mods.fml.common.Mod;
-import cpw.mods.fml.common.Mod.EventHandler;
-import cpw.mods.fml.common.event.FMLInitializationEvent;
+import com.mcfht.finitewater.asm.FHTClassTransformer;
+import com.mcfht.finitewater.asm.FHTClassTransformer.StringComp;
+
 import cpw.mods.fml.relauncher.IFMLLoadingPlugin.MCVersion;
 
 /**
@@ -23,6 +22,17 @@ public class FiniteWaterLauncher implements cpw.mods.fml.relauncher.IFMLLoadingP
     @Override
 	public String[] getASMTransformerClass() 
     {
+    	
+    	for (String s : FHTClassTransformer.names)
+    	{
+    		System.out.println(s + " : -"+s.split(" ")[0] + "-");
+    		//Construct the list of targets for replacing water in
+    		FHTClassTransformer.replaceCache.add(new StringComp(
+    				s.split(" ")[0],
+    				s.split(" ")[1]));
+    				
+    	}
+    	
 		return new String[]{
 				FHTClassTransformer.class.getName()
 				};
