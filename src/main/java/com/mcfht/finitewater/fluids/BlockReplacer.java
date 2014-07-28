@@ -21,14 +21,62 @@ import cpw.mods.fml.common.eventhandler.SubscribeEvent;
  * @author FHT
  *
  */
-public class BlockReplacer extends Block
+public class BlockReplacer extends BlockFFluid
 {
 	public BlockReplacer(Material m) {
-		super(m);
+		super(m, 2, 2);
 	}
 
 	
-	
+	@Override
+	public void updateTick(World world, int x, int y, int z, Random rand)
+	{
+		//Test directions, see if we can flow, then change to a different block
+		//setLevel(world, x, y, z, FiniteWater.MAX_WATER, false);
+		/*
+		if (world.getBlock(x, y-1, z) == Blocks.air)
+		{
+			world.setBlock(x, y-1, z, Blocks.dirt);
+		}
+		
+		if (world.getBlock(x, y-2, z) == Blocks.air)
+		{
+			world.setBlock(x, y-2, z, Blocks.stone);
+		}
+		
+		int[][] directions = { {0,1}, {0,-1}, {1,0}, {-1,0}, {1,1} , {-1,-1}, {-1,1}, {1,-1} }; 
+		for (int i = 0; i < 8; i++)
+		{
+			
+			if (world.getBlock(x + directions[i][0], y, z + directions[i][2]) == Blocks.air)
+			{
+				world.setBlock(x + directions[i][0], y, z + directions[i][2], Blocks.dirt);
+			}
+		}
+		 */
+
+		if (world.getBlock(x, y-1, z) == Blocks.air)
+		{
+			world.setBlock(x, y, z, Blocks.dirt);
+			return;
+		}
+		
+		int[][] directions = { {0,1}, {0,-1}, {1,0}, {-1,0}, {1,1} , {-1,-1}, {-1,1}, {1,-1} }; 
+		for (int i = 0; i < 8; i++)
+		{
+			
+			if (world.getBlock(x + directions[i][0], y, z + directions[i][1]) == Blocks.air)
+			{
+				world.setBlock(x, y, z, Blocks.dirt);
+				return;
+
+			}
+		}
+		
+		world.setBlock(x, y, z, FiniteWater.finiteWater);
+		
+	}
+
 	
 	@Override
 	public void onBlockAdded(World world, int x, int y, int z)
@@ -43,4 +91,5 @@ public class BlockReplacer extends Block
 		
 		world.setBlock(x, y, z, FiniteWater.finiteWater);
 	}
+	
 }

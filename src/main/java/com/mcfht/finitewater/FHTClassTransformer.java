@@ -186,6 +186,7 @@ public class FHTClassTransformer implements net.minecraft.launchwrapper.IClassTr
 							
 							if (((FieldInsnNode)m.instructions.get(index)).name.equals("water"))
 							{
+								//((FieldInsnNode)m.instructions.get(index)).name = "finiteWater";
 								((FieldInsnNode)m.instructions.get(index)).name = "finiteWater";
 								((FieldInsnNode)m.instructions.get(index)).owner = "com/mcfht/finitewater/FiniteWater";
 								//((FieldInsnNode)m.instructions.get(index)).desc = "Lnet/minecraft/block/Block";

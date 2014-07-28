@@ -29,10 +29,14 @@ public class BlockFFluid extends BlockLiquid{
 
 	
 	public static final int maxWater = FiniteWater.MAX_WATER;
+	
+	/** Tendency of this liquid to flow */
 	public final int viscosity;
 	public int flowRate;
+	
+	/** Amount of fluid needed to break things*/
 	public final int flowBreak = maxWater >> 2;
-	private static final int[][] directions = { {0,1}, {1,0}, {0,-1}, {-1,0}, {-1,1}, {1,1}, {1,-1}, {-1,-1} };
+	public static final int[][] directions = { {0,1}, {1,0}, {0,-1}, {-1,0}, {-1,1}, {1,1}, {1,-1}, {-1,-1} };
 	
 	/**
 	 * Initialize a new fluid.
@@ -52,16 +56,13 @@ public class BlockFFluid extends BlockLiquid{
 	public void onBlockAdded(World world, int x, int y, int z)
 	{
 		ChunkCache.markBlockForUpdate(world, x, y, z);
-		
-		
-		
 	}
 	
 	@Override
     public int onBlockPlaced(World world, int x, int y, int z, int side, float px, float py, float pz, int meta)
 	{
 		ChunkCache.markBlockForUpdate(world, x, y, z);
-		world.setBlockMetadataWithNotify(x,y, z, 0, 2);
+		world.setBlockMetadataWithNotify(x, y, z, 0, 3);
 		setLevel(world, x, y, z, maxWater, true, this);
 		return side;
 	}
@@ -85,14 +86,14 @@ public class BlockFFluid extends BlockLiquid{
 		for (int i = 0; i < 4; i++)
 		{
 			//TEST is this necessary?
-			if (world.getBlock(x + directions[i][0], y, z + directions[i][1]) instanceof BlockFFluid)
+			//if (world.getBlock(x + directions[i][0], y, z + directions[i][1]) instanceof BlockFFluid)
 				ChunkCache.markBlockForUpdate(world, (x + directions[i][0]), y, (z + directions[i][1]));
 		}
 		//TEST is this necessary?
-		if (world.getBlock(x, y + 1, z) instanceof BlockFFluid)
+		//if (world.getBlock(x, y + 1, z) instanceof BlockFFluid)
 			ChunkCache.markBlockForUpdate(world, x, y + 1, z);
 		//TEST is this necessary
-		if (world.getBlock(x, y - 1, z) instanceof BlockFFluid)
+		//if (world.getBlock(x, y - 1, z) instanceof BlockFFluid)
 			ChunkCache.markBlockForUpdate(world, x, y - 1, z);
 	}
 	
@@ -106,8 +107,7 @@ public class BlockFFluid extends BlockLiquid{
 			{
 				if ( world.provider.dimensionId == -1 && this.blockMaterial == Material.lava)
 				{
-					//System.out.println("LAVA IS IN THA NETHER!?  rate: " + FiniteWater.LAVA_NETHER );
-					if (UpdateHandler.INSTANCE.tickCounter % (FiniteWater.LAVA_NETHER*FiniteWater.GLOBAL_UPDATE_RATE) != 0)
+					if (UpdateHandler.INSTANCE.tickCounter % (FiniteWater.GLOBAL_UPDATE_RATE * FiniteWater.LAVA_NETHER) != 0)
 					{
 						ChunkCache.markBlockForUpdate(world, x, y, z); //Mark ourselves to be updated next cycle
 						return;
@@ -115,7 +115,7 @@ public class BlockFFluid extends BlockLiquid{
 					break testFlowRate;
 				}
 			
-				if (UpdateHandler.INSTANCE.tickCounter % (FiniteWater.GLOBAL_UPDATE_RATE*flowRate) != 0)
+				if (UpdateHandler.INSTANCE.tickCounter % (FiniteWater.GLOBAL_UPDATE_RATE * flowRate) != 0)
 				{
 					ChunkCache.markBlockForUpdate(world, x, y, z); //Mark ourselves to be updated next cycle
 					return;	
@@ -123,11 +123,10 @@ public class BlockFFluid extends BlockLiquid{
 			}
 		}
 	
-		//System.out.println("Block is being tickered! " + x + ", " + y + ", " + z);
 		int l0 = getLevel(world,x,y,z);
 		int _l0 = l0;
-		//System.out.println("Flowing! " + l0);
 		try{
+			
 			//First, try to flow downwards
 			int dy = -1;
 			int y1 = y + dy;
@@ -138,11 +137,11 @@ public class BlockFFluid extends BlockLiquid{
 				setLevel(world, x, y, z, 0, true);
 				return;
 			}
+			
 			//Now check if we can flow into the block below, etcetera
 			Block b1 = world.getBlock(x, y1, z);
 			int l1 = getLevel(world, x, y1, z);
 			byte b = checkFlow(world, x, y, z, 0, -1, 0, b1, world.getBlockMetadata(x, y1, z), l0);
-						
 			if (b != 0)
 			{
 				y1 = y + b * dy;
@@ -155,6 +154,7 @@ public class BlockFFluid extends BlockLiquid{
 					setLevel(world, x, y1, z, l1, true);
 				}
 			}
+			
 			boolean flag = false;
 			if (l0 < viscosity*2) //Since 2 blocks SHARE the content!!!
 				flag = true;
@@ -176,7 +176,7 @@ public class BlockFFluid extends BlockLiquid{
 				z1 = z + dz;
 				
 				l1 = getLevel(world, x1, y, z1);
-				b1 = world.getBlock(x1,y,z1);
+				b1 = world.getBlock(x1, y, z1);
 				
 				b = checkFlow(world, x, y, z, dx, 0, dz, b1, world.getBlockMetadata(x1, y, z1), l0);
 				if (b != 0)
@@ -197,23 +197,19 @@ public class BlockFFluid extends BlockLiquid{
 							}
 						}
 					} else 
-					{ //Prevent water from getting stuck on ledges
-						if (b1 == Blocks.air || b1 == this)
+					{ 
+						//Prevent water from getting stuck on ledges
+						if (getLevel(world, x, y-1, z) == 0)
 						{
-							Block b2 = world.getBlock(x1,y-1,z1); 
-							if (b2 == Blocks.air || b2 == this)
+							Block b2 = world.getBlock(x1, y-1, z1);
+							if (b1 == Blocks.air)
 							{
-								l1 = getLevel(world, x1, y, z1);
-								int l2 = getLevel(world, x1, y - 1 , z1);
-								
-								if (l2 >= maxWater || l1 > l0)
-									continue;
-								
-								setLevel(world, x1, y-1, z1, Math.min(maxWater, l0 + l1 + l2), true);
-								setLevel(world, x1, y, z1, Math.max(0, l0 + l1 + l2 - maxWater), true);
-								
-								l0 = Math.max(0, l0 + l1 + l1 - (maxWater << 1));
-								if (l0 == 0) return;
+								if (b2 == Blocks.air || b2 == this)
+								{
+									setLevel(world, x1, y, z1, l0, true);
+									l0 = 0;
+									return;
+								}
 							}
 						}
 					}
@@ -223,7 +219,7 @@ public class BlockFFluid extends BlockLiquid{
 		{
 			if (l0 != _l0)
 			{
-				setLevel(world, x, y, z, l0, Math.abs(l0 - _l0) > maxWater >> 7);
+				setLevel(world, x, y, z, l0, Math.abs(l0 - _l0) > maxWater >> 10); //Only bother to update if a significant amount of water has passed
 			}
 		}
 	}
@@ -235,39 +231,36 @@ public class BlockFFluid extends BlockLiquid{
 	 * @param Meta
 	 * @return
 	 */
-	public byte checkFlow(World world,  int x, int y, int z, int dx, int dy, int dz, Block block, int meta, int level0)
+	public byte checkFlow(World world, int x0, int y0, int z0, int dx, int dy, int dz, Block block, int meta, int level0)
 	{
 		if (block == Blocks.air || block == this){
 			return 1;
 		}
-		//TODO check torches, redstone dust, etcetera
-		if (block instanceof IPlantable)
-		{
-			//If there is enough water ~or~ we flow down onto it
-			if (level0 >= flowBreak || dy != 0)
-			{
-				if (block != Blocks.snow_layer) block.dropBlockAsItem(world, x, y, z, meta, meta);
-				world.setBlockToAir(x + dx, y + dy, z + dz);
-				return 1;
-			}
-			return  0;
-		}
+		
+		int x1 = x0 + dx;
+		int y1 = y0 + dy;
+		int z1 = z0 + dz;
+
 		//We can flow through fences
-		if (block == Blocks.fence || block == Blocks.nether_brick_fence || block == Blocks.iron_bars)
+		if ((block == Blocks.fence || block == Blocks.nether_brick_fence || block == Blocks.iron_bars))
 		{
-    		block = world.getBlock(x + 2*dx, y + 2*dy, z + 2*dz);
-    		if (y + 2*dy > 0 && block == Blocks.air || block == this)
+			if (dx != 0 && dz != 0) return 0;
+			
+    		block = world.getBlock(x1 + dx, y1 + dy, z1 + dz);
+    		if (y1 > -dy && block == Blocks.air || block == this)
+    		{
+    			ChunkCache.markBlockForUpdate(world, x0, y0, z0);
     			return 2;
+    		}
 			return 0;
 		}
 		
 		if (block == Blocks.wooden_door || block == Blocks.iron_door) 
 		{
 			if ((dy != 0) || (dx != 0 && dz != 0)) return 0;
-			
 			if (meta == 8) //We need to go down and check the base of the door
 			{
-				meta = world.getBlockMetadata(x + dx, y + dy - 1, z + dz);
+				meta = world.getBlockMetadata(x1, y1 - 1, z1);
 			}
 		
 			//We are flowing along the X axis
@@ -275,25 +268,22 @@ public class BlockFFluid extends BlockLiquid{
 			if (dx != 0)
 			{
 				if (meta == 0 || meta == 2 || meta == 5 || meta == 7) return 0;
-			
-				block = world.getBlock(x + 2*dx, y + 2*dy, z + 2*dz);
-				if (y + 2*dy > 0 && block == Blocks.air || block == this)
+				block = world.getBlock(x1 + dx, y1 + dy, z1 + dz);
+				if (y1 > -dy && block == Blocks.air || block == this)
 				{
-					ChunkCache.markBlockForUpdate(world, x, y, z);
+					ChunkCache.markBlockForUpdate(world, x0, y0, z0);
 					return 2;
 				}
-				
-			
 				return 0;
 			}else //We are flowing along the Z axis
 			//FIXME this is buggy
 			{
 				if (meta == 1 || meta == 3 || meta == 4 || meta == 6) return 0;
 				
-				block = world.getBlock(x + 2*dx, y + 2*dy, z + 2*dz);
-				if (y + 2*dy > 0 && block == Blocks.air || block == this)
+				block = world.getBlock(x1 + dx, y1 + dy, z1 + dz);
+				if (y1 > -dy && block == Blocks.air || block == this)
 				{
-					ChunkCache.markBlockForUpdate(world, x, y, z);
+					ChunkCache.markBlockForUpdate(world, x0, y0, z0);
 					return 2;
 				}
 				return 0;
@@ -309,83 +299,60 @@ public class BlockFFluid extends BlockLiquid{
         	
         	if ((meta >= 4 && meta <= 7) || meta >= 12) 
         	{
-        		if (y + 2*dy < 0 )
+        		if (y1 < -dy )
         		{
-        			setLevel(world, x, y, z, 0, true);
+        			setLevel(world, x0, y0, z0, 0, true);
         			return 0;
         		}
         		
-	        	block = world.getBlock(x + 2*dx, y + 2*dy, z + 2*dz);
+	        	block = world.getBlock(x1 + dx, y1 + dy, z1 + dz);
 	    		if (block == Blocks.air || block == this)
 	    		{
-	    			ChunkCache.markBlockForUpdate(world, x, y, z);
+	    			ChunkCache.markBlockForUpdate(world, x0, y0, z0);
 	    			return 2;
 	    		}
         	}
         	return 0;
         }
         
+        //Check for torches, plants, etc. Behaves like vanilla water
+		if (block instanceof IPlantable || block == Blocks.torch || block == Blocks.redstone_wire)
+		{
+			if (level0 >= flowBreak || dy != 0)
+			{
+				//if (block != Blocks.snow_layer)
+				block.dropBlockAsItem(world, x0, y0, z0, meta, meta);
+				world.setBlockToAir(x1, y1, z1);
+				return 1;
+			}
+			return  0;
+		}
+		
+        
         //The other block is a different fluid
 		if (block instanceof BlockFFluid && block.getMaterial() != this.blockMaterial)
 		{
-			//TODO write proper interaction handling methods
-			int level1 = getLevel(world, x + dx, y + dy, z + dz);
-			int mass;
+			int level1 = getLevel(world, x1, y1, z1);
+			if (this.blockMaterial == Material.water && block.getMaterial() == Material.lava)
+			{
+				lavaWaterInteraction(world, x0, y0, z0, level0, x1, y1, z1, level1);
+				if (getLevel(world,x0,y0,z0) <= 0) return 0;
+				return (byte) ((world.getBlock(x1, y1, z1) == Blocks.air || world.getBlock(x1, y1, z1) == this) ? 1 : 0);
+			}
 			
-			int a, b;
-			if (this.blockMaterial == Material.lava && block.getMaterial() == Material.water) //we are lava flowing into water
+			if (this.blockMaterial == Material.lava && block.getMaterial() == Material.water)
 			{
-				//Evaporate all the water
-				setLevel(world, x + dx, y + dy, z + dz, 0, true, block);
-				world.setBlockToAir( x + dx, y + dy, z + dz);
-				
-				//If there was a significant amount of water
-				if (level1 > maxWater/3)
-				{
-					if (level0 > 3*maxWater/2)
-					{
-						setLevel(world, x, y, z, Math.max(0, level0 - 5*maxWater/6), true);
-						world.setBlock(x + dx, y + dy, z + dz, Blocks.obsidian);
-						return 0;
-					}
-					
-					if (world.rand.nextInt(maxWater) >= (3*level0/2) )
-					{
-						setLevel(world, x, y, z, 0, true);
-						world.setBlock(x + dx, y + dy, z + dz, world.rand.nextBoolean() ? Blocks.stone : Blocks.cobblestone);
-						return 0;
-					}
-				}
-				return 1;
-				
+				lavaWaterInteraction(world, x0, y0, z0, level1, x1, y1, z1, level0);
+				if (getLevel(world,x0,y0,z0) <= 0) return 0;
+				return (byte) ((world.getBlock(x1, y1, z1) == Blocks.air || world.getBlock(x1, y1, z1) == this) ? 1 : 0);
 			}
-			else if (this.blockMaterial == Material.water  && block.getMaterial() == Material.lava)
-			{
-				//evaporate all of the water
-				setLevel(world, x, y, z, 0, true);
-				//If there was enough water
-				if (level0 > maxWater/3)
-				{
-					if (level1 > maxWater/2)
-					{
-						setLevel(world, x + dx, y + dy, z + dz, 0, true, block);
-						world.setBlock(x + dx, y + dy, z + dz, Blocks.obsidian);
-						return 0;
-					}
-					
-					if (world.rand.nextInt(maxWater) >= (2 * (level1 + (level0/3))) )
-					{
-						setLevel(world, x + dx, y + dy, z + dz, 0, true, block);
-						world.setBlock(x + dx, y + dy, z + dz, world.rand.nextBoolean() ? Blocks.stone : Blocks.cobblestone);
-						return 0;
-					}
-				}
-				setLevel(world, x + dx, y + dy, z + dz, Math.max(0, level1 - (level0 / 2)), true, block);
-				return (byte) (world.getBlock(x + dx, y + dy, z + dz) == Blocks.air ? 1 : 0);
-			}
-			//return (byte) (world.getBlock(x1,y1,z1) == Blocks.air || world.getBlock(x1, y1, z1) == this ? 0 : 1);
 		}
 		return 0;
+	}
+	
+	public boolean canBreak(Block block)
+	{
+	    return block != Blocks.wooden_door && block != Blocks.iron_door && block != Blocks.standing_sign && block != Blocks.ladder && block != Blocks.reeds ? (block.getMaterial() == Material.portal ? true : block.getMaterial().blocksMovement()) : true;
 	}
 	
 	/**
@@ -406,7 +373,7 @@ public class BlockFFluid extends BlockLiquid{
 			if (a == 0) 
 			{
 				a = (8 - world.getBlockMetadata(x, y, z))  * (maxWater >> 3);
-				if (a ==  (maxWater >> 3))
+				if (a <=  (maxWater >> 3))
 				{
 					a = viscosity;
 				}
@@ -443,11 +410,14 @@ public class BlockFFluid extends BlockLiquid{
 	{		
 		Block block1 = world.getBlock(x, y, z);
 		int level0 = getLevel(world, x, y, z);
-
+		level = level > maxWater ? maxWater : level;
+		
 		//Sledgehammer fix: prevent excessive equalization calculations
-		if (Math.abs(level0 - level) <= 4) update = false;
+		if (update && Math.abs(level0 - level) <= 4) update = false;
+		
 		//Ensure that we not change the content of the wrong block by mistake
 		if (block1 != Blocks.air && block1.getMaterial() != block.getMaterial()) return;
+		
 		//Empty empty blocks
 		if (level <= 0)
 		{	
@@ -455,7 +425,6 @@ public class BlockFFluid extends BlockLiquid{
 			return;
 		}
 		
-		//The target cell is valid
 		//There is no need to update meta if the meta doesn't change
 		int meta0 = world.getBlockMetadata(x, y, z);
 		int meta1 = (maxWater - level) / (maxWater >> 3);
@@ -465,18 +434,19 @@ public class BlockFFluid extends BlockLiquid{
 		if (block1 instanceof BlockFFluid){
 			if (meta0 != meta1)
 			{
-				//TEST: Whether or not we can get away with no block update
+				//Don't throw update, it's pointless
 				world.setBlockMetadataWithNotify(x, y, z, meta1, 2);
-				//Already flagging update, so skip the flag here
 				//world.getChunkFromChunkCoords(x << 4,  z << 4).getBlockStorageArray()[y >> 4].setExtBlockMetadata(x  & 0xF, y  & 0xF, z  & 0xF, meta1);
 			}
 			
 			if (!update) return;
+			
 			//Mark neighboring fluid blocks for update
 			scheduleNeighbors(world, x, y, z);
 			return;		
 		}
 		
+		//It was empty, so set it to our block (the onAdded will throw an update)
 		world.setBlock(x, y, z, block, meta1, 2);
 	}
 	
@@ -509,7 +479,7 @@ public class BlockFFluid extends BlockLiquid{
 		//setLevel(world, x0, y0, z0, 0, true); //Debugs
 		int level0;
 		
-		if (world.getBlock(x0, y0 + 1,  z0) != Blocks.air)
+		if (distance > 0 && world.getBlock(x0, y0 + 1,  z0) != Blocks.air)
 			return;
 		
 		int sum;
@@ -525,32 +495,40 @@ public class BlockFFluid extends BlockLiquid{
 			int dz = directions[r][1];
 			int dist = 1;
 			
-			//We are next to an equal block, so there is no point testing in this direction?
-			if (getLevel(world, x0 + dx, y0, z0 + dz) == level0 ) continue;
-			
-			for (dist = 1; dist < ((dx != 0 && dz != 0) ? 24 : 32); dist++)
+			//We are next to a roughly equal block, so skip the equalization
+			if (Math.abs(getLevel(world, x0 + dx, y0, z0 + dz) - level0) < maxWater >> 6 ) continue;
+		
+			for (dist = 1; dist < 32; dist++)
 			{
-		        //if (level0 <= viscosity) return;
+
 				int x1 = x0 + dist * dx;
 				int z1 = z0 + dist * dz;
-				//We can only flow into ourselves, or empty blocks which do not have air below them
-				if ((world.getBlock(x1,y0,z1) == this || (world.getBlock(x1,y0,z1) == Blocks.air ) && world.getBlock(x1,y0-1,z1) == this) /* && world.getBlock(x1, y0-1, z1) == this*/)
+				
+				Block b1 = world.getBlock(x1, y0, z1);
+				Block b2 = world.getBlock(x1, y0 - 1, z1);
+
+				//Make sure we don't flow illegally
+				if ((b1 == this || b1 == Blocks.air ) && b2 == this )
 				{
 					sum += getLevel(world,x1,y0,z1);
 				}
 				else //We can't flow any further in this direction
 				{
+					//Carry some water over the edge
+					if (b2 == Blocks.air)
+					{
+						dist += 1;
+					}
 					break;
 				}
 			//}
 			}
-		
+			
 			//Prevent the algorithm from creating new blocks with too little viscosity
-			dist = (Math.min(dist, Math.max(1, (2 * sum / viscosity)/3)));
+			dist = (Math.min(dist, Math.max(1, (sum / viscosity))));
 			
 			//Don't bother equalizing in this direction if we cannot equalize over a reasonable distance
 			if (dist < 8) continue;
-			if (dist > 16) System.out.println("Equalizating! (scope: " + dist + ")");
 			
 			//Equalize all of the blocks in this direction
 			for (int i = 0; i <= dist; i++)	
@@ -559,10 +537,44 @@ public class BlockFFluid extends BlockLiquid{
 				int z1 = z0 + i * dz;
 				setLevel(world, x1, y0, z1, sum / dist, true);
 			}
-				
 		}
 	}
 		
-
+	/**
+	 * Handles interaction of lava and water. 0 = water, 1 = lava
+	 * @param world
+	 * @param x0
+	 * @param y0
+	 * @param z0
+	 * @param l0
+	 * @param x1
+	 * @param y1
+	 * @param z1
+	 * @param l1
+	 */
+	public void lavaWaterInteraction(World world, int x0, int y0, int z0, int l0, int x1, int y1, int z1, int l1)
+	{
+		//Basically, if there is enough water, solidify the lava block
+		//Water is enough if and only if it is larger than half of the amount of lava
+		//Or the amount of lava is smaller than 1/3 of a block
+		
+		if (l0 > l1/2 || l1 - (3*l0/2) < maxWater/4)
+		{
+			setLevel(world, x0, y0, z0, 0, false, FiniteWater.finiteWater);
+			setLevel(world, x1, y1, z1, 0, false, FiniteWater.finiteLava);
+			
+			if (l1 > (3*maxWater)/4)
+			{
+				world.setBlock(x1, y1, z1, Blocks.obsidian);
+				return;
+			}
+			world.setBlock(x1, y1, z1, world.rand.nextBoolean() ? Blocks.stone : Blocks.cobblestone);
+			return;
+		}
+		
+		setLevel(world, x0, y0, z0, Math.max(0, l0 - (2*l1)/3), false, FiniteWater.finiteWater);
+		setLevel(world, x1, y1, z1, Math.max(0, l1 - (3*l0)/2), false, FiniteWater.finiteLava);
+		
+	}
 		
 }

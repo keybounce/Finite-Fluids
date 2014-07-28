@@ -34,20 +34,33 @@ import cpw.mods.fml.common.registry.GameRegistry;
  */
 public class FiniteWater extends DummyModContainer 
 {
-
+	/** Max update quota */
 	public static int MAX_UPDATES = 300;
+	/** Force this much update quota */
 	public static int FORCE_UPDATES = 48;
+	
+	/** Number of ticks between update sweeps*/
 	public static int GLOBAL_UPDATE_RATE = 5;
 	
-	public static int MAX_WATER = 65536;
+	/** The number of fluid levels for each cell*/
+	public static short MAX_WATER = 16384;
+	/** Relative update rate of water (n sweeps) */
 	public static int WATER_UPDATE = 1;
+	/** Relative update rate of lava in the overworld (n sweeps) */
 	public static int LAVA_UPDATE = 5;
+	/** Relative update rate of lava in the nether (n sweeps) */
 	public static int LAVA_NETHER = 3;
 	
-	public static int UPDATE_RANGE = 16;
+	/** The number of chunks in which to prioritize updates*/
+	public static int UPDATE_RANGE = 4*4;
 	
-	public static boolean PATCH_WATER_DUPLICATION = true;
+		public static boolean PATCH_WATER_DUPLICATION = true;
 	public static boolean PATCH_DOOR_UPDATES = true;
+	
+	/** Runniness of water*/
+	public static final int waterVisc = 4;
+	/** Runniness of lava*/
+	public static final int lavaVisc = 3;
 	
 	public FiniteWater() {
 		super(new ModMetadata());
@@ -97,8 +110,8 @@ public class FiniteWater extends DummyModContainer
     {
     	
     	
-    	finiteWater = new BlockFFluid(Material.water, 4, WATER_UPDATE).setCreativeTab(CreativeTabs.tabMisc);
-    	finiteLava = new BlockFFluid(Material.lava, 3, LAVA_UPDATE).setCreativeTab(CreativeTabs.tabMisc);
+    	finiteWater = new BlockFFluid(Material.water, waterVisc, WATER_UPDATE).setCreativeTab(CreativeTabs.tabMisc);
+    	finiteLava = new BlockFFluid(Material.lava, lavaVisc, LAVA_UPDATE).setCreativeTab(CreativeTabs.tabMisc);
     	
     	GameRegistry.registerBlock(finiteWater, "UninfiniteWater");
     	GameRegistry.registerBlock(finiteLava, "UninfiniteLava");

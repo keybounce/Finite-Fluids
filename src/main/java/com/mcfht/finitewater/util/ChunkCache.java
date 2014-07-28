@@ -1,9 +1,13 @@
 package com.mcfht.finitewater.util;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import scala.reflect.internal.util.Set;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 
@@ -11,7 +15,7 @@ public class ChunkCache {
 
 	public static ConcurrentHashMap<World, ChunkMap> worldCache = new  ConcurrentHashMap<World, ChunkMap>(16);
 	
-	public int[] waterArray = new int[65536];
+	public short[] waterArray = new short[65536];
 	
 	//Should we do update tasks like this, or with a map?
 	//Eff it, just use a boolean flag
@@ -135,7 +139,7 @@ public class ChunkCache {
 			worldCache.get(world).waterCache.put(chunk, new ChunkCache(world,chunk));
 		}
 			
-		worldCache.get(world).waterCache.get(chunk).waterArray[cx + (cz << 4) + (cy << 8)] = level;
+		worldCache.get(world).waterCache.get(chunk).waterArray[cx + (cz << 4) + (cy << 8)] = (short) level;
 
 	}
 	
@@ -180,6 +184,12 @@ public class ChunkCache {
 	static class ChunkMap
 	{
 		public ConcurrentHashMap<Chunk, ChunkCache> waterCache;
+		
+		public HashSet<Chunk> priority = new HashSet<Chunk>();
+		public HashSet<Chunk> random = new HashSet<Chunk>();
+		
+		public List<Chunk> a = new ArrayList<Chunk>();
+		public List<Chunk> b = new ArrayList<Chunk>();
 		
 		public ChunkMap()
 		{
