@@ -1,4 +1,4 @@
-package com.mcfht.finitewater.asm;
+package com.mcfht.realisticfluids.asm;
 
 public enum PatchTypes {
 	

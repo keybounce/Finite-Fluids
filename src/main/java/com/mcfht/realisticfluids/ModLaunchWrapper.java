@@ -1,20 +1,20 @@
-package com.mcfht.finitewater;
+package com.mcfht.realisticfluids;
 
 import java.util.Map;
 
-import com.mcfht.finitewater.asm.FHTClassTransformer;
-import com.mcfht.finitewater.asm.FHTClassTransformer.StringComp;
+import com.mcfht.realisticfluids.asm.ASMTransformer;
+import com.mcfht.realisticfluids.asm.ASMTransformer.StringComp;
 
 import cpw.mods.fml.relauncher.IFMLLoadingPlugin.MCVersion;
 
 /**
- * The Launch Class for the mod. Required by the build in Forge ASM stuffs.
+ * The Launch Class for the mod. Required by the built in Forge ASM stuffs.
  * 
  * @author FHT
  *
  */
 @MCVersion(value = "1.7.10")
-public class FiniteWaterLauncher implements cpw.mods.fml.relauncher.IFMLLoadingPlugin
+public class ModLaunchWrapper implements cpw.mods.fml.relauncher.IFMLLoadingPlugin
 {
     public static final String MODID = "finitewater";
     public static final String VERSION = "0.2";
@@ -23,25 +23,25 @@ public class FiniteWaterLauncher implements cpw.mods.fml.relauncher.IFMLLoadingP
 	public String[] getASMTransformerClass() 
     {
     	
-    	for (String s : FHTClassTransformer.names)
+    	for (String s : ASMTransformer.names)
     	{
     		System.out.println(s + " : -"+s.split(" ")[0] + "-");
     		//Construct the list of targets for replacing water in
-    		FHTClassTransformer.replaceCache.add(new StringComp(
+    		ASMTransformer.replaceCache.add(new StringComp(
     				s.split(" ")[0],
     				s.split(" ")[1]));
     				
     	}
     	
 		return new String[]{
-				FHTClassTransformer.class.getName()
+				ASMTransformer.class.getName()
 				};
 	}
 
 	@Override
 	public String getModContainerClass() 
 	{		
-		return FiniteWater.class.getName();
+		return RealisticFluids.class.getName();
 	}
 
 	@Override

@@ -1,4 +1,4 @@
-package com.mcfht.finitewater.asm;
+package com.mcfht.realisticfluids.asm;
 
 import java.util.Iterator;
 
@@ -11,11 +11,13 @@ import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
-public class ReplaceWorldFluids implements FHTPatchTask{
+import com.mcfht.realisticfluids.RealisticFluids;
+
+public class ReplaceWorldFluids implements ASMPatchTask{
 
 	//public static final String waterReplacer = "finite";
 	public static final String blockDesc = "Lnet/minecraft/block/Block;";
-	public static final String blockOwner = "com/mcfht/finitewater/FiniteWater";
+	public static final String blockOwner = "com/mcfht/realisticfluids/RealisticFluids";
 	
 	public static final String blockWater = "finiteWater";
 	public static final String blockLava = "finiteLava";

@@ -1,4 +1,4 @@
-package com.mcfht.finitewater.asm;
+package com.mcfht.realisticfluids.asm;
 
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.ClassNode;
@@ -7,7 +7,7 @@ import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.MethodInsnNode;
 
 
-public interface FHTPatchTask {
+public interface ASMPatchTask {
 	
 	/**
 	 * Perform patching task. Defers to the doPatch method.

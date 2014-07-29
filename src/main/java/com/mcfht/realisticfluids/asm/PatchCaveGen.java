@@ -1,4 +1,4 @@
-package com.mcfht.finitewater.asm;
+package com.mcfht.realisticfluids.asm;
 
 import java.util.Iterator;
 
@@ -7,11 +7,13 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.objectweb.asm.tree.FieldInsnNode;
+import org.objectweb.asm.tree.InsnList;
 import org.objectweb.asm.tree.InsnNode;
+import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
-public class PatchWaterDuplication implements FHTPatchTask{
+public class PatchCaveGen implements ASMPatchTask{
 
 	@Override
 	public ClassNode doPatch(String name, byte[] bytes, boolean obfuscated) 
@@ -26,35 +28,46 @@ public class PatchWaterDuplication implements FHTPatchTask{
 		while(methods.hasNext())
 		{
 			MethodNode m = methods.next();
-			if (m.name.equals(obfuscated ? "a" : "updateTick"))
-			{
+			
 				AbstractInsnNode node0 = null;
 				@SuppressWarnings("unchecked")
 				Iterator<AbstractInsnNode> iter = m.instructions.iterator();
 				int index = -1;
+				
 				while (iter.hasNext())
 				{
 					index++;
 					node0 = iter.next();
-					if (node0.getOpcode() == org.objectweb.asm.Opcodes.GETFIELD && iter.hasNext())
+					if (node0.getOpcode() == org.objectweb.asm.Opcodes.ICONST_1 && iter.hasNext())
 					{
 						index++;
-						node0 = iter.next();
-						if (node0.getOpcode() == org.objectweb.asm.Opcodes.ICONST_2)
+						AbstractInsnNode node1 = iter.next();
+						if (node1.getOpcode() == org.objectweb.asm.Opcodes.ISTORE)
 						{
-							m.instructions.set(node0, new InsnNode(org.objectweb.asm.Opcodes.ICONST_5));
-							continue;
+							//Make sure it is the correct node (FIXME THIS ~WILL~ BREAK WITH UPDATES
+							if (((VarInsnNode)node1).var == 57)
+							{
+								//Inject a set block call to turn the lower block to stone
+								//This will prevent lots of caves from being exposed
+								
+								InsnList toAdd = new InsnList();
+								toAdd.add(new FieldInsnNode(org.objectweb.asm.Opcodes.GETSTATIC, "net/minecraft/init/Blocks", "stone", "Lnet/minecraft/block/Block;"));
+								toAdd.add( new MethodInsnNode(org.objectweb.asm.Opcodes.INVOKEVIRTUAL, "net/minecraft/world/World", "setBlock", "IIILnet/minecraft/block/Block;)Z"));
+								
+								
+								m.instructions.insert(node1, toAdd);
+								
+								
+							}
 						}
 					}
 				}
 			}
-		}
 		
-		System.out.println("Patched water!");
+		System.out.println("Patched Caves!");
 		return classNode;
 	}
-	
-	@Override
+
 	public byte[] startPatch(String name, byte[] bytes, boolean obfuscated) {
 		ClassWriter writer = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
 		ClassNode c = doPatch(name, bytes, obfuscated);
@@ -64,6 +77,7 @@ public class PatchWaterDuplication implements FHTPatchTask{
 		c.accept(writer);
 		return writer.toByteArray();
 	}
-	
+
+
 	
 }

@@ -1,4 +1,4 @@
-package com.mcfht.finitewater.asm;
+package com.mcfht.realisticfluids.asm;
 
 import java.util.Iterator;
 
@@ -11,7 +11,7 @@ import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
-public class PatchDoorUpdates implements FHTPatchTask{
+public class PatchDoorUpdates implements ASMPatchTask{
 
 	public ClassNode doPatch(String name, byte[] bytes, boolean obfuscated) 
 	{

@@ -1,4 +1,4 @@
-package com.mcfht.finitewater.asm;
+package com.mcfht.realisticfluids.asm;
 
 import static org.objectweb.asm.Opcodes.FDIV;
 import static org.objectweb.asm.Opcodes.INVOKEVIRTUAL;
@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 //import net.minecraft.block.Block;
+
 
 
 
@@ -35,28 +36,17 @@ import org.objectweb.asm.tree.MethodNode;
 import org.objectweb.asm.tree.TypeInsnNode;
 import org.objectweb.asm.tree.VarInsnNode;
 
-import com.mcfht.finitewater.FiniteWater;
+import com.mcfht.realisticfluids.RealisticFluids;
 
 
-public class FHTClassTransformer implements net.minecraft.launchwrapper.IClassTransformer 
+public class ASMTransformer implements net.minecraft.launchwrapper.IClassTransformer 
 {
-	public static final String waterReplacer = "finite";
-	
-	
-	/*
-	 net/minecraft/world/gen/ChunkProviderGenerate aqz
-	 net/minecraft/world/gen/MapGenCaves aqw
-	 net/minecraft/world/gen/ChunkProviderHell aqv
-	 net/minecraft/world/gen/MapGenRavine aqs
-	 net/minecraft/world/gen/feature/WorldGenLiquids asm
-	 net/minecraft/world/gen/feature/WorldGenHellLava ars
-	 net/minecraft/world/gen/MapGenCavesHell aqy
-	 net/minecraft/world/gen/structure/StructureVillagePieces$Well awf
-	 net/minecraft/world/gen/feature/WorldGenDesertWells arl
-
-	 
+	/**Toggle "finite" for regular finite blocks, "replace" for the conditional block.
+	 * 
+	 * <p> Unfortunately the conditional block is not very fast, will investigate skipping light calcs
+	 * and not sending block updates for that.
 	 */
-	
+	public static final String waterReplacer = "finite";
 	public static final String[] names = 
 		{
 		 "net.minecraft.world.gen.ChunkProviderGenerate aqz",
@@ -70,8 +60,8 @@ public class FHTClassTransformer implements net.minecraft.launchwrapper.IClassTr
 		 "net.minecraft.world.gen.feature.WorldGenDesertWells arl",
 		};
 	
+	/** Cache of target class names to replace (with obf and not obf mappings as above)*/
 	public static final List<StringComp> replaceCache = new ArrayList<StringComp>();
-
 	
 	public static class StringComp	{
 		String a; String b;
@@ -119,28 +109,24 @@ public class FHTClassTransformer implements net.minecraft.launchwrapper.IClassTr
 			this.obfuscated = obfuscated;
 			this.patcher = patcher;
 		}
-		
 	}
-	
 
 	@Override
-	public byte[] transform(String className, String arg1, byte[] classBytes) {
-		
-		
-		if (className.contains("mcfht")) return classBytes;
+	public byte[] transform(String className, String arg1, byte[] classBytes) 
+	{
+		//if (className.contains("mcfht")) return classBytes;
 		//Patch initial tasks
 		for (PatchTask t : taskList)
 		{
 			if (t.className.equals(className))
 			{
-				classBytes = ((FHTPatchTask)t.patcher).startPatch(className, classBytes, t.obfuscated);
+				classBytes = ((ASMPatchTask)t.patcher).startPatch(className, classBytes, t.obfuscated);
 			}
 		}
 	
 		//Patch the heftier task list
 		//ReplaceWorldFluids replacer = new ReplaceWorldFluids();
-		//FIXME THIS METHOD IS FUCKING SHIT
-		
+		//FIXME THIS METHOD IS REALLY FUCKING SHIT
 		for (StringComp t : replaceCache)
 		{
 			if (t.a.equals(className))
@@ -152,21 +138,6 @@ public class FHTClassTransformer implements net.minecraft.launchwrapper.IClassTr
 				return new ReplaceWorldFluids().startPatch(className, classBytes, true);
 			}
 		}
-		/*
-		try
-		{
-			//System.out.println(className);
-			return new ReplaceWorldFluids().startPatch(className, classBytes, true);
-		}
-		catch (Exception e)
-		{
-			return classBytes;
-		}*/
-		
-		
 		return classBytes;
-		
-		
 	}
-	
 }
