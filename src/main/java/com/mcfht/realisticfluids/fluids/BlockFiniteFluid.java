@@ -190,7 +190,11 @@ public class BlockFiniteFluid extends BlockLiquid{
 			byte b = checkFlow(w, x, y, z, 0, -1, 0, b1, w.getBlockMetadata(x, y1, z), l0);
 			if (b != 0)
 			{
-				y1 = y + b * dy;
+				if (b > 1 ) 
+				{
+					y1 = y + b * dy;
+					l1 = getLevel(w, x, y1, z);
+				}
 				if (l1 < maxFluid)
 				{
 					//Flow down
@@ -229,8 +233,12 @@ public class BlockFiniteFluid extends BlockLiquid{
 				{	
 					if (!flag)
 					{
-						x1 = x + b * dx;
-						z1 = z + b * dz;
+						if (b > 1)
+						{
+							x1 = x + b * dx;
+							z1 = z + b * dz;
+							l1 = getLevel(w, x1, y, z1);
+						}
 						if (l0 > l1)
 						{
 							int flow = (l0 - l1)/2;
@@ -507,7 +515,7 @@ public class BlockFiniteFluid extends BlockLiquid{
 		UpdateHandler.setBlock(w, x, y, z, b1, m1, 2, true);
 	}
 
-	
+	//TESTME
 	public void velocityToAddToEntity(World w, int x, int y, int z, Entity e, Vec3 vec)
     {
 		//Copy the flow of the above blocks
@@ -515,7 +523,6 @@ public class BlockFiniteFluid extends BlockLiquid{
 		{
 			y++;
 		}
-		
 		
 		Vec3 vec1 = this.getFlowVector(w, x, y, z);
 
@@ -538,7 +545,7 @@ public class BlockFiniteFluid extends BlockLiquid{
             x1 = x + directions[i][0];
             z1 = z + directions[i][1];
             
-            int l1 = w.getBlockMetadata(x1, y, z1);
+            int l1 = this.getEffectiveFlowDecay(w, x1, y, z1);
             int i2;
 
             if (l1 < 0)
@@ -557,7 +564,7 @@ public class BlockFiniteFluid extends BlockLiquid{
             else if (l1 >= 0)
             {
                 i2 = l1 - l;
-                vec3 = vec3.addVector((double)((x1 - x) * i2), (double)((y - y) * i2), (double)((z1 - z) * i2));
+                vec3 = vec3.addVector((double)((directions[i][0]) * i2), (double)((y - y) * i2), (double)((directions[i][0]) * i2));
             }
         }
 
