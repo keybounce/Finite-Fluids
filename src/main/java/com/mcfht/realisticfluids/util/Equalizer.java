@@ -7,6 +7,7 @@
 package com.mcfht.realisticfluids.util;
 
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.world.World;
 
@@ -21,7 +22,9 @@ import com.mcfht.realisticfluids.fluids.BlockFiniteFluid;
 public class Equalizer {
 
 	public static final Thread WORKER = new Thread(new Worker());
-	private static ArrayList<EqualizationTask> tasks = new ArrayList<EqualizationTask>();
+	
+	private static ConcurrentLinkedQueue<EqualizationTask> tasks = new ConcurrentLinkedQueue<EqualizationTask>();
+	//private static ArrayList<EqualizationTask> tasks = new ArrayList<EqualizationTask>();
 	
 	/**
 	 * Equalization Task Object for multiple thread access stuffs
@@ -54,7 +57,7 @@ public class Equalizer {
 	private static boolean equalize(int n)
 	{
 		if (n > tasks.size()) return false;
-		EqualizationTask task = tasks.remove(n);
+		EqualizationTask task = tasks.poll(); if (task == null) return false;
 		if (task.world.getChunkFromChunkCoords(task.x >> 4, task.z >>4 ).isChunkLoaded)
 		{
 			task.f.equalize(task.world, task.x, task.y, task.z, task.distance);
