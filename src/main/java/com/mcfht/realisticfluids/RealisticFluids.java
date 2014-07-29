@@ -56,38 +56,51 @@ import cpw.mods.fml.common.registry.GameRegistry;
 public class RealisticFluids extends DummyModContainer 
 {
 	///////////////////////// GENERAL SETTINGS //////////////////////
-	
-	/** Max update quota per tick. TODO NOT MAX */	public static int MAX_UPDATES 		= 	300;
-	/** Force this much update quota TODO NOT MAX */public static int FORCE_UPDATES		= 	48;
-	/** Number of ticks between update sweeps */	public static int GLOBAL_RATE		= 	5;
+	/** Max update quota per tick. TODO NOT MAX */	
+	public static int MAX_UPDATES 		= 	300;
+	/** Force this much update quota TODO NOT MAX */
+	public static int FORCE_UPDATES		= 	48; 
+	/** Number of ticks between update sweeps */
+	public static int GLOBAL_RATE		= 	5;
 	
 	////////////////////DISTANCE BASED PRIORITIZATION ///////////////////////
-	
-	/** Priority distance*/							public static int UPDATE_RANGE 		= 	4*4; //Dear newbs, it gets compiled to 16.
-	/** "Trivial" distance */ 						public static int UPDATE_RANGE_FAR 	= 	12*12;
+	/** Priority distance*/
+	public static int UPDATE_RANGE 		= 	4*4; //note to reader: things like this get compiled away
+	/** "Trivial" distance */
+	public static int UPDATE_RANGE_FAR 	= 	12*12;
 	
 	///////////////////// EQUALIZATION SETTINGS //////////////////////
-	/** Arbitrary limits on NEAR equalization */	public static int EQUALIZE_NEAR 	=	 4;
-	/** Aribtrary limits on DISTANT equalization */ public static int EQUALIZE_FAR 		= 	16;
+	/** Arbitrary limits on NEAR equalization */
+	public static int EQUALIZE_NEAR 	=	 4;
+	/** Aribtrary limits on DISTANT equalization */
+	public static int EQUALIZE_FAR 		= 	16;
 	
 	////////////////// FLUID SETTINGS //////////////////////
-	
-	/** The number of fluid levels for each cell */	public static short MAX_FLUID 		= 	16384;
+	/** The number of fluid levels for each cell */
+	public static short MAX_FLUID 		= 	16384;
 	
 	//WATER
-	/** Finite Water Blocks	*/						public static Block finiteWater;
-	/** Relative update rate of water*/				public static int WATER_UPDATE		= 	1;
-	/** Runniness of water*/						public static final int waterVisc 	= 	4;
+	/** Finite Water Blocks	*/
+	public static Block finiteWater;
+	/** Relative update rate of water*/
+	public static int WATER_UPDATE		= 	1;
+	/** Runniness of water*/
+	public static final int waterVisc 	= 	4;
 	//LAVA
-    /** Finite Lava blocks*/						public static Block finiteLava;
-	/** update rate of lava in the overworld */ 	public static int LAVA_UPDATE 		= 	5;
-	/** update rate of lava in the nether) */		public static int LAVA_NETHER 		= 	3;
-	/** Runniness of lava*/							public static final int lavaVisc 	= 	3;
+	/** Finite Lava blocks*/
+	public static Block finiteLava;
+	/** update rate of lava in the overworld */ 	
+	public static int LAVA_UPDATE 		= 	5;
+	/** update rate of lava in the nether) */		
+	public static int LAVA_NETHER 		= 	3;
+	/** Runniness of lava*/							
+	public static final int lavaVisc 	= 	3;
 	
 	//OTHER
-	/** Infinite Source block (redstone trigger) */	public static Block debugSource;
-  
-    /** Replaces water at gen-time?*/ 				public static Block replaceWater 	= 	new BlockGenWaterReplacer(Material.water);
+	/** Infinite Source block (redstone trigger) */
+	public static Block debugSource;
+	/** Replaces water at gen-time?*/ 
+	public static Block replaceWater 	= 	new BlockGenWaterReplacer(Material.water);
 	
 	
 	////////////////////////////ASM SETTINGS///////////////////////
@@ -95,19 +108,20 @@ public class RealisticFluids extends DummyModContainer
 													public static boolean ASM_WATER	 	= 	true;
 													public static boolean ASM_DOOR 		= 	true;
 	
-	public RealisticFluids() {
+	public RealisticFluids()
+	{
 		super(new ModMetadata());
-		ModMetadata meta 			= getMetadata();
-		meta.modId 					= ModLaunchWrapper.MODID;
-		meta.name 					= ModLaunchWrapper.MODID;
-		meta.version 				= ModLaunchWrapper.VERSION;
-		meta.credits 				= "FHT";
-		meta.authorList 			= Arrays.asList("FHT");
-		meta.description 			= "";
-		meta.url 					= "";
-		meta.updateUrl				= "";
-		meta.screenshots 			= new String[0];
-		meta.logoFile 				= "";
+		ModMetadata meta 		= getMetadata();
+		meta.modId 				= ModLaunchWrapper.MODID;
+		meta.name 				= ModLaunchWrapper.MODID;
+		meta.version 			= ModLaunchWrapper.VERSION;
+		meta.credits 			= "FHT";
+		meta.authorList 		= Arrays.asList("FHT");
+		meta.description 		= "";
+		meta.url 				= "";
+		meta.updateUrl			= "";
+		meta.screenshots 		= new String[0];
+		meta.logoFile 			= "";
 	}
 	
 	@Override
