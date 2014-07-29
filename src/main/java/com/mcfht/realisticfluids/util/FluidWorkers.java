@@ -18,8 +18,11 @@ import com.mcfht.realisticfluids.util.ChunkDataMap.ChunkCache;
  */
 public class FluidWorkers {
 
+	public static WorkerPriority PWorker = new WorkerPriority();
+	public static Thread PRIORITY = new Thread(PWorker);
 	
-	public static Thread PRIORITY = new Thread(new WorkerPriority());
+	public static WorkerPriority TWorker = new WorkerPriority();
+	public static Thread TRIVIAL = new Thread(TWorker);
 	
 	/**
 	 * Thread object to perform high priority updates
@@ -29,14 +32,37 @@ public class FluidWorkers {
 	public static class WorkerPriority implements Runnable
 	{
 
+		public int myStartTime;
+		public int quota;
+		public World[] worlds;
+		
+		
 		@Override
 		public void run() {
 			
+			for (World world : worlds)
+			{
+				//There are no players, so there is no point
+				if (world.playerEntities == null || world.playerEntities.size() == 0) continue;
 
-			
-			
-			
-			
+				ChunkCache map = ChunkDataMap.worldCache.get(world);
+				if (map == null) continue;
+				if (map.priority.size() <= 0) continue;
+				
+				int ticksLeft = quota + RealisticFluids.FORCE_UPDATES; //Give ourselves a tick quota
+				
+				//Thread no. 1
+				//Start with priority chunks!
+				System.out.println("HP");
+				for (Chunk c : map.priority)
+				{
+					ChunkDataMap t = map.chunks.get(c);
+					if (t == null || !c.isChunkLoaded){
+						System.out.println("Map was null"); continue;
+					}
+					ticksLeft -= doTask(world, c, t, true, myStartTime);
+				}
+				map.priority.clear();
 		}
 
 		
@@ -49,9 +75,38 @@ public class FluidWorkers {
 	 */
 	public static class WorkerTrivial implements Runnable
 	{
-
+		public int myStartTime;
+		public int quota;
+		public World[] worlds;
+		
 		@Override
 		public void run() {
+			for (World world : worlds)
+			{
+				//There are no players, so there is no point
+				if (world.playerEntities == null || world.playerEntities.size() == 0) continue;
+
+				ChunkCache map = ChunkDataMap.worldCache.get(world);
+				if (map == null) continue;
+				if (map.priority.size() <= 0) continue;
+				
+				int ticksLeft = RealisticFluids.FORCE_UPDATES; //Give ourselves a tick quota
+					
+					while (map.distant.size() > 0 && (ticksLeft > 0))
+					{
+						//Select a random distant chunk
+						//int i = world.rand.nextInt(map.distant.size());
+						Chunk c = (Chunk) map.distant.poll(); //can we just do 0?
+						map.distant.remove(c);
+						
+						ChunkDataMap t = map.chunks.get(c);
+						if (t == null || !c.isChunkLoaded) continue;
+						
+						ticksLeft -= doTask(world, c, t, false, myStartTime);
+					}
+				}
+			}
+			
 			
 		}
 		
@@ -67,9 +122,9 @@ public class FluidWorkers {
 	 * @param flag Do heavy equalization?
 	 * @return
 	 */
-	public int doTask(World w, Chunk c, ChunkDataMap d, boolean isHighPriority)
+	public static int doTask(World w, Chunk c, ChunkDataMap d, boolean isHighPriority, int startTime)
 	{
-		int interval = (UpdateHandler.tickCounter() % RealisticFluids.GLOBAL_RATE);
+		int interval = (startTime % RealisticFluids.GLOBAL_RATE);
 		int cost = 0;
 		int x,y,z;
 		//Iterate over each 
@@ -130,7 +185,7 @@ public class FluidWorkers {
 	 * @param number
 	 * @param isHighPriority
 	 */
-	public void doRandomTicks(World w, Chunk c, ChunkDataMap d, int ebsY, int number, boolean isHighPriority)
+	public static void doRandomTicks(World w, Chunk c, ChunkDataMap d, int ebsY, int number, boolean isHighPriority)
 	{
 		int equalizationQuota = isHighPriority ? RealisticFluids.EQUALIZE_NEAR : RealisticFluids.EQUALIZE_FAR; 
 		for (int i = 0; i < number; i++){
@@ -183,7 +238,7 @@ public class FluidWorkers {
 	 * @param z
 	 * @param b
 	 */
-	public void doWaterFun(World w, Chunk c, int x, int y, int z, Block b)
+	public static void doWaterFun(World w, Chunk c, int x, int y, int z, Block b)
 	{
 		boolean isWater = b != Blocks.air;
 		int xx = x + (c.xPosition<<4), zz = z + (c.zPosition<<4);

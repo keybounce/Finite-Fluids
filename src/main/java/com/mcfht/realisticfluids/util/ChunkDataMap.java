@@ -6,7 +6,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicIntegerArray;
+
+import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 
 import scala.reflect.internal.util.Set;
 import net.minecraft.world.World;
@@ -69,10 +72,10 @@ public class ChunkDataMap {
 		public ConcurrentHashMap<Chunk, ChunkDataMap> chunks;
 		
 		/** Set of chunk updates to be performed with PRIORITY */
-		public HashSet<Chunk> priority = new HashSet<Chunk>();
+		public ConcurrentLinkedQueue<Chunk> priority = new ConcurrentLinkedQueue<Chunk>();
 		
 		/** Set of distant chunks to be updated if we have time */
-		public HashSet<Chunk> distant = new HashSet<Chunk>();
+		public ConcurrentLinkedQueue<Chunk> distant = new ConcurrentLinkedQueue<Chunk>();
 		
 		/**
 		 * A cache which maps Chunk Data to each Chunk, and also contains 

@@ -68,6 +68,8 @@ public class Equalizer {
 	
 	private static class Worker implements Runnable
 	{
+		public int myStartTime;
+		
 		@Override
 		public void run() {
 			for (int i = 0; i < Math.min(tasks.size(), 32); i++)
