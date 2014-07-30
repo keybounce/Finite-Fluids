@@ -104,7 +104,7 @@ public class BlockFiniteFluid extends BlockLiquid{
 					|| stack[5].getClassName().equals(BlockPistonExtension.class.getName()
 					);
 			
-			System.out.println("Displace? " + flag1 + " - " + flag2 + " - " + (flag1 || flag2));
+			//System.out.println("Displace? " + flag1 + " - " + flag2 + " - " + (flag1 || flag2));
 			
 			if (flag1 || flag2)
 			{
@@ -127,7 +127,7 @@ public class BlockFiniteFluid extends BlockLiquid{
 	 */
 	public static void scheduleNeighbors(World w, int x, int y, int z)
 	{
-		ChunkDataMap.markBlockForUpdate(w, x, y, z);
+		//ChunkDataMap.markBlockForUpdate(w, x, y, z);
 		for (int i = 0; i < 4; i++)
 		{
 			ChunkDataMap.markBlockForUpdate(w, (x + directions[i][0]), y, (z + directions[i][1]));
@@ -146,7 +146,7 @@ public class BlockFiniteFluid extends BlockLiquid{
 		//Factor in flow rate and viscosity;
 		//We tick once every 5, but we only need to update once every n*5;
 		
-		System.out.println(UpdateHandler.tickCounter());
+		//System.out.println(UpdateHandler.tickCounter());
 		testFlowRate:
 		{
 			if (flowRate != 1)
@@ -471,7 +471,7 @@ public class BlockFiniteFluid extends BlockLiquid{
 		l1 = l1 > maxFluid ? maxFluid : l1;
 		
 		//Sledgehammer fix: prevent excessive equalization calculations
-		if (causeUpdates && Math.abs(l0 - l1) <= 4) causeUpdates = false;
+		if (Math.abs(l0 - l1) <= 4) return;
 		
 		//Ensure that we do not change the content of the wrong block by mistake
 		if (b0 != Blocks.air && b0 != this) return;
@@ -485,9 +485,12 @@ public class BlockFiniteFluid extends BlockLiquid{
 			if (l0 != 0)
 				ChunkDataMap.setWaterLevel(w, x, y, z, 0);
 			
+			//ChunkDataMap.markBlockForUpdate(w, x, y, z);
+			
 			if (causeUpdates) scheduleNeighbors(w, x, y, z);
 			return;
 		}
+		
 		//There is no need to update meta if the meta doesn't change
 		int m0 = w.getBlockMetadata(x, y, z);
 		int m1 = (maxFluid - l1) / (maxFluid >> 3);
@@ -496,39 +499,47 @@ public class BlockFiniteFluid extends BlockLiquid{
 		if (b0 instanceof BlockFiniteFluid){
 			if (m0 != m1)
 			{
-				//w.setBlockMetadataWithNotify(x, y, z, meta1, 2);
-				//Don't throw update, it's pointless
 				//Do not update light (neg. flag), since fluid level is not relevant to light
 				UpdateHandler.setBlock(w, x, y, z, null, m1, -2, true);
-				//w.getChunkFromChunkCoords(x << 4,  z << 4).getBlockStorageArray()[y >> 4].setExtBlockMetadata(x  & 0xF, y  & 0xF, z  & 0xF, meta1);
 			}
 			
-			if (!causeUpdates) return;
+			//Mark necessary updates
+			ChunkDataMap.markBlockForUpdate(w, x, y, z);
+			if (causeUpdates) scheduleNeighbors(w, x, y, z);
+
 			
-			//Mark all of these fluid blocks for update
-			scheduleNeighbors(w, x, y, z);
+			
 			return;		
 		}
 		
 		//It was empty, so set it to our block (the onAdded will throw an update)?
 		//w.setBlock(x, y, z, block, meta1, 2);
+		ChunkDataMap.markBlockForUpdate(w, x, y, z);
 		UpdateHandler.setBlock(w, x, y, z, b1, m1, 2, true);
 	}
 
 	//TESTME
 	public void velocityToAddToEntity(World w, int x, int y, int z, Entity e, Vec3 vec)
     {
+		if (e instanceof EntityWaterMob) return;
+		
 		//Copy the flow of the above blocks
-		for (int i = 0; i < 8 && w.getBlock(x, y, z) == this; i++)
+		Chunk c = w.getChunkFromChunkCoords(x >> 4,  z >> 4);
+		
+		int i;
+		for (i = 0; i < 8 && c.getBlock(x & 0xF, y+1, z & 0xF) == this; i++)
 		{
 			y++;
 		}
+
+		//Scale with depth somewhat
+		double d = ((double) i / 6.D) + 0.8D;
 		
 		Vec3 vec1 = this.getFlowVector(w, x, y, z);
 
-        vec.xCoord += vec1.xCoord;
-        vec.yCoord += vec1.yCoord;
-        vec.zCoord += vec1.zCoord;
+        vec.xCoord += vec1.xCoord * d;
+        vec.yCoord += vec1.yCoord * d;
+        vec.zCoord += vec1.zCoord * d;
     }
 	
 	
@@ -585,7 +596,7 @@ public class BlockFiniteFluid extends BlockLiquid{
 	 */
 	public void equalize(World w, int x0, int y0, int z0, int distance)
 	{
-		System.out.println("Equalizing Water...");
+		//System.out.println("Equalizing Water...");
 		
 		//setLevel(w, x0, y0, z0, 0, true); //Debugs
 		int level0;

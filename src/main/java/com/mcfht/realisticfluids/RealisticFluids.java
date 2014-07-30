@@ -71,9 +71,13 @@ public class RealisticFluids extends DummyModContainer
 	
 	///////////////////// EQUALIZATION SETTINGS //////////////////////
 	/** Arbitrary limits on NEAR equalization */
-	public static int EQUALIZE_NEAR 	=	 4;
+	public static int EQUALIZE_NEAR 	=	 1;
+	public static int EQUALIZE_NEAR_R	=	32;
 	/** Aribtrary limits on DISTANT equalization */
 	public static int EQUALIZE_FAR 		= 	16;
+	public static int EQUALIZE_FAR_R	= 	32;
+	
+	public static int EQUALIZE_GLOBAL	= 	32;
 	
 	////////////////// FLUID SETTINGS //////////////////////
 	/** The number of fluid levels for each cell */

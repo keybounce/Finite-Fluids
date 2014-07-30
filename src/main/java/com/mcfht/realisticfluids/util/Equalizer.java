@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.world.World;
 
+import com.mcfht.realisticfluids.RealisticFluids;
 import com.mcfht.realisticfluids.fluids.BlockFiniteFluid;
 
 /**
@@ -23,7 +24,7 @@ public class Equalizer {
 
 	public static final Thread WORKER = new Thread(new Worker());
 	
-	private static ConcurrentLinkedQueue<EqualizationTask> tasks = new ConcurrentLinkedQueue<EqualizationTask>();
+	protected static ConcurrentLinkedQueue<EqualizationTask> tasks = new ConcurrentLinkedQueue<EqualizationTask>();
 	//private static ArrayList<EqualizationTask> tasks = new ArrayList<EqualizationTask>();
 	
 	/**
@@ -43,10 +44,10 @@ public class Equalizer {
 	
 	public static void addTask(World w, int x, int y, int z, BlockFiniteFluid f, int distance)
 	{
-		//Prevent leaking if we are too slow
-		if (tasks.size() > 256)
+		//Prevent leaking
+		if (tasks.size() > RealisticFluids.EQUALIZE_GLOBAL)
 		{
-			System.out.println("The water equalizer is lagging behind!!!");
+			//if (w.rand.nextInt(10) == 0) System.err.println("The water equalizer is running behind!");
 			return;
 		}
 		
@@ -72,10 +73,11 @@ public class Equalizer {
 		
 		@Override
 		public void run() {
-			for (int i = 0; i < Math.min(tasks.size(), 32); i++)
+			for (int i = 0; i < Math.min(tasks.size(), RealisticFluids.EQUALIZE_GLOBAL); i++)
 			{
 				equalize(0);
 			}
+			tasks.clear();
 		}		
 	}	
 }

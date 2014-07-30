@@ -53,7 +53,6 @@ public class FluidWorkers {
 				
 				//Thread no. 1
 				//Start with priority chunks!
-				System.out.println("HP");
 				for (Chunk c : map.priority)
 				{
 					ChunkDataMap t = map.chunks.get(c);
@@ -63,9 +62,8 @@ public class FluidWorkers {
 					ticksLeft -= doTask(world, c, t, true, myStartTime);
 				}
 				map.priority.clear();
+			}
 		}
-
-		
 	}
 	
 	/**
@@ -80,7 +78,8 @@ public class FluidWorkers {
 		public World[] worlds;
 		
 		@Override
-		public void run() {
+		public void run() 
+		{
 			for (World world : worlds)
 			{
 				//There are no players, so there is no point
@@ -92,28 +91,22 @@ public class FluidWorkers {
 				
 				int ticksLeft = RealisticFluids.FORCE_UPDATES; //Give ourselves a tick quota
 					
-					while (map.distant.size() > 0 && (ticksLeft > 0))
-					{
-						//Select a random distant chunk
-						//int i = world.rand.nextInt(map.distant.size());
-						Chunk c = (Chunk) map.distant.poll(); //can we just do 0?
-						map.distant.remove(c);
-						
-						ChunkDataMap t = map.chunks.get(c);
-						if (t == null || !c.isChunkLoaded) continue;
-						
-						ticksLeft -= doTask(world, c, t, false, myStartTime);
-					}
+				while (map.distant.size() > 0 && (ticksLeft > 0))
+				{
+					//Select a random distant chunk
+					//int i = world.rand.nextInt(map.distant.size());
+					Chunk c = (Chunk) map.distant.poll(); //can we just do 0?
+					map.distant.remove(c);
+					
+					ChunkDataMap t = map.chunks.get(c);
+					if (t == null || !c.isChunkLoaded) continue;
+					
+					ticksLeft -= doTask(world, c, t, false, myStartTime);
 				}
 			}
-			
-			
 		}
-		
 	}
-	
-	
-	
+
 	/**
 	 * Performs updates within a chunk (or more precisely, a ChunkCache object
 	 * @param w
@@ -130,9 +123,12 @@ public class FluidWorkers {
 		//Iterate over each 
 		for (int i = 0; i < 16; i++)
 		{
+			//Don't bother with empty spaces
+			if (c.getBlockStorageArray()[i] == null) continue;
+			
 			//First of all, let's perform our own random ticks (maor control)
 			//do evaporation, seeping, refilling in rain, and so on.
-			doRandomTicks(w, c, d, i, 5, isHighPriority);
+			doRandomTicks(w, c, d, i, 3, isHighPriority);
 			
 			//No updates, exit
 			if (d.updateCounter[i] == 0)
@@ -187,6 +183,7 @@ public class FluidWorkers {
 	 */
 	public static void doRandomTicks(World w, Chunk c, ChunkDataMap d, int ebsY, int number, boolean isHighPriority)
 	{
+
 		int equalizationQuota = isHighPriority ? RealisticFluids.EQUALIZE_NEAR : RealisticFluids.EQUALIZE_FAR; 
 		for (int i = 0; i < number; i++){
 			
@@ -197,31 +194,32 @@ public class FluidWorkers {
 			Block b = c.getBlock(x, y, z);
 			
 			//Do rainfall and evaporation
-			
 			//First, try to move up a few blocks (aka to the top of stuff)
+			/*
 			if (c.heightMap != null && c.heightMap[x + (z << 4)] < y + 16 && c.heightMap[x + (z << 4)] < 255)
 			{
 				Block b1 = c.getBlock(x, c.heightMap[x + (z << 4)] + 1, y);
 				if (b == RealisticFluids.finiteWater || b == Blocks.air)
 					doWaterFun(w, c, x, c.heightMap[x + (z << 4)] + 1, z, b);
-			}
+			}*/
 			
 			//Only bother doing the next part with fluids
-			if (b instanceof BlockFiniteFluid)
+			if (b instanceof BlockFiniteFluid && Equalizer.tasks.size() < RealisticFluids.EQUALIZE_GLOBAL)
 			{
 				//Make sure we don't overstep the equalization quota, Trivial unless QUOTAS are set low
 				if (equalizationQuota-- <= 0) continue;
 				
 				//Benefit large bodies of water by trying to find surface blocks
 				for (int j = 0; y < 255 && j < 8 && w.getBlock(x, y+1, z) instanceof BlockFiniteFluid; j++) y++;
-				if (w.getBlock(x, y, z) != Blocks.air) continue;
+				
+				if (w.getBlock(x, y+1, z) != Blocks.air) continue;
 				
 				int level = d.getWaterLevel(w, c, x, y, z);
 				if (level < RealisticFluids.MAX_FLUID -  (RealisticFluids.MAX_FLUID >> 4))
 				{
 					Equalizer.addTask
 					(w,	( c.xPosition << 4) + x, y,	( c.zPosition << 4) + z,
-							(BlockFiniteFluid) b, 32 + (isHighPriority ? 32 : 0));
+							(BlockFiniteFluid) b, isHighPriority ? RealisticFluids.EQUALIZE_NEAR_R : RealisticFluids.EQUALIZE_FAR_R);
 				}
 			}
 		
@@ -245,15 +243,12 @@ public class FluidWorkers {
 		BiomeGenBase biome = c.getBiomeGenForWorldCoords(x, z, w.getWorldChunkManager());
 		if (y <= 64 && (w.isRaining() || w.isThundering())  && biome.rainfall > 0F && w.canBlockSeeTheSky(x, y, z))
 		{
-			//We are in a valid biome
-			if (	biome == BiomeGenBase.ocean || biome == BiomeGenBase.river || biome == BiomeGenBase.deepOcean
-				||  biome == BiomeGenBase.beach || biome == BiomeGenBase.coldBeach || biome == BiomeGenBase.swampland)
-			{
+				System.out.println("Rain Increasing...");
 				if (isWater)
 				{
 					BlockFiniteFluid f = ((BlockFiniteFluid)b);
 					int l0 = f.getLevel(w, xx, y, zz);
-					l0 += y < 64 ? RealisticFluids.MAX_FLUID/2 : RealisticFluids.MAX_FLUID;
+					l0 += y < 64 ? RealisticFluids.MAX_FLUID/6 : RealisticFluids.MAX_FLUID;
 					f.setLevel(w, xx, y, zz, l0, true);
 					if (l0 > RealisticFluids.MAX_FLUID) f.setLevel(w, xx, y, zz, l0 - RealisticFluids.MAX_FLUID, true);
 				}
@@ -263,11 +258,13 @@ public class FluidWorkers {
 					BlockFiniteFluid f = (BlockFiniteFluid) c.getBlock(x, y, z);
 					f.setLevel(w, xx, y, zz, f.viscosity, true);
 				}
-			}
-		}else
+			
+		}
+
 		//Make water evaporate in deserts?
 		if (b == RealisticFluids.finiteWater &&  biome.temperature > 1F)
 		{
+			System.out.println("Evaporating..");
 			BlockFiniteFluid f = (BlockFiniteFluid) b;
 			int l0 = f.getLevel(w, xx, y, zz);
 			f.setLevel(w, xx, y, z, l0 - RealisticFluids.MAX_FLUID/2, true);
