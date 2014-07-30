@@ -58,50 +58,9 @@ import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
  */
 public class UpdateHandler {
 	
-	//@SubscribeEvent
-	public void tG(PopulateChunkEvent.Populate event)
-	{
-		StackTraceElement[] stack = Thread.currentThread().getStackTrace();
-		
-		System.out.println(event.type);
-		//System.out.println(event.)
-		/*
-		for (int i = 0; i < stack.length; i++)
-		{
-			System.out.println(i + ": " + stack[i].getClassName() + ", " + stack[i].getMethodName());
-		}*/
-	}
-	
-	
-	//@SubscribeEvent
-	public void taG(OreGenEvent.Post event)
-	{
-		StackTraceElement[] stack = Thread.currentThread().getStackTrace();
-		
-		//System.out.println(event.)
-		for (int i = 0; i < stack.length; i++)
-		{
-			System.out.println(i + ": " + stack[i].getClassName() + ", " + stack[i].getMethodName());
-		}
-	}
-	
 	
 	
 	@SubscribeEvent
-	public void teG(InitMapGenEvent event)
-	{
-		StackTraceElement[] stack = Thread.currentThread().getStackTrace();
-		
-		//System.out.println(event.)
-		for (int i = 0; i < stack.length; i++)
-		{
-			System.out.println(i + ": " + stack[i].getClassName() + ", " + stack[i].getMethodName());
-		}
-	}
-	
-	
-	
-	//@SubscribeEvent
 	public void toG(InitNoiseGensEvent event)
 	{
 		StackTraceElement[] stack = Thread.currentThread().getStackTrace();
