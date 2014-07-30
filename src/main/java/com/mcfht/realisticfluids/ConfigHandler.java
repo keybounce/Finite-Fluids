@@ -15,9 +15,13 @@ public class ConfigHandler {
 		RealisticFluids.UPDATE_RANGE =  config.getInt("globalUpdateRangeNear", "1 - General", 4, 1, 32, "Range of high priority updates");
 		RealisticFluids.UPDATE_RANGE_FAR =  config.getInt("globalUpdateRangeFar", "1 - General", 6, 1, 32, "Range of low priority updates");
 
-		RealisticFluids.EQUALIZE_NEAR =  config.getInt("globalEqualizeNear", "1 - General", 4, 1, 64, "Amount to equalize near chunks");
+		RealisticFluids.EQUALIZE_NEAR =  config.getInt("globalEqualizeNear", "1 - General", 1, 1, 64, "Amount to equalize near chunks");
 		RealisticFluids.EQUALIZE_FAR =  config.getInt("globalEqualizeFar", "1 - General", 16, 1, 64, "Amount to equalize far chunks");
-
+		
+		RealisticFluids.EQUALIZE_GLOBAL	= 5 * config.getInt("globalEqualizeCap", "1 - General", 8, 1, 128, "Hard limit on equalization");
+		
+		
+		
 		//Convert to guassian distance to save doing it later
 		RealisticFluids.UPDATE_RANGE *= RealisticFluids.UPDATE_RANGE;
 		RealisticFluids.UPDATE_RANGE_FAR *= RealisticFluids.UPDATE_RANGE_FAR;

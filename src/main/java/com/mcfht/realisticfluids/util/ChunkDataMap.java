@@ -124,7 +124,7 @@ public class ChunkDataMap {
 		int yy = y & 0xF;
 		int zz = z & 0xF;
 		int i = xx + (zz << 4) + (yy << 8);
-		System.out.println("Scheduled update for " + i + " - " + x + ", " + y + ", " + z + " => " + (y >> 4));
+		//System.out.println("Scheduled update for " + i + " - " + x + ", " + y + ", " + z + " => " + (y >> 4));
 				
 		
 		if (!cc.updateFlags[y >> 4][i])

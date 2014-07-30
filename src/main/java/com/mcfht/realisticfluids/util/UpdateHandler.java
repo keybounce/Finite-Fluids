@@ -238,54 +238,21 @@ public class UpdateHandler {
 		//incrTick();
 		_tickCounter += 1;
 		
+		Equalizer.WORKER.run();
 		
-		
-		System.out.println(tickCounter());
-		//Schedule chunks, fires at n = 4
-		if (tickCounter() % RealisticFluids.GLOBAL_RATE == (RealisticFluids.GLOBAL_RATE - 1))
-		{
-			System.out.println("Schedulingerizing");
-			for (World world : MinecraftServer.getServer().worldServers)
-			{
-				if (world.playerEntities == null || world.playerEntities.size() == 0) continue;
-				for (Object p : world.playerEntities)
-				{
-					EntityPlayer player = (EntityPlayer) p;
-					ChunkCache map 		= ChunkDataMap.worldCache.get(world);
-					if (map == null) continue;
-					
-					//iterate over all flagged chunks
-					for (Chunk c : map.chunks.keySet())
-					{	
-						if (!c.isChunkLoaded) continue;//Just to be safe;
-					
-						int x = c.xPosition - (((int)player.posX) >> 4); 
-						int z = c.zPosition - (((int)player.posZ) >> 4); 
-						int y;
-						
-						int dist = x * x + z * z; //Distance for distance testing
-						
-						if (dist <= RealisticFluids.UPDATE_RANGE) map.priority.add(c);
-						else if (dist <= RealisticFluids.UPDATE_RANGE_FAR) map.distant.add(c);
-						}
-					}
-				}	
-			return;
-		}
-		
-		else if ((tickCounter() % RealisticFluids.GLOBAL_RATE)  == 0)
+		if ((tickCounter() % RealisticFluids.GLOBAL_RATE)  == 0)
 		{
 			int tickQuota;
-			System.out.println("Doingerizing");
+			//System.out.println("Doingerizing");
 			
 			//FIND CHUNKS
-			for (World world : MinecraftServer.getServer().worldServers)
+			for (World w : MinecraftServer.getServer().worldServers)
 			{
-				if (world.playerEntities == null || world.playerEntities.size() == 0) continue;
-				for (Object p : world.playerEntities)
+				if (w.playerEntities == null || w.playerEntities.size() == 0) continue;
+				for (Object p : w.playerEntities)
 				{
 					EntityPlayer player = (EntityPlayer) p;
-					ChunkCache map 		= ChunkDataMap.worldCache.get(world);
+					ChunkCache map 		= ChunkDataMap.worldCache.get(w);
 					if (map == null) continue;
 					//iterate over all flagged chunks
 					for (Chunk c : map.chunks.keySet())
@@ -295,28 +262,35 @@ public class UpdateHandler {
 						int z = c.zPosition - (((int)player.posZ) >> 4); 
 						int dist = x * x + z * z; //Distance for distance testing
 						if (dist <= RealisticFluids.UPDATE_RANGE) map.priority.add(c);
-						else if (dist <= RealisticFluids.UPDATE_RANGE_FAR) map.distant.add(c);
+						else if (dist <= RealisticFluids.UPDATE_RANGE_FAR) 
+						{	
+							if (map.distant.size() < 256)
+								map.distant.add(c);
+						}
 					}
 				}
 			
 			}
 
+			
+			
+			
 			//Leave a minimum number of ticks per world per player (should cover a couple of chunks)
 			tickQuota = RealisticFluids.MAX_UPDATES/Math.max(1, MinecraftServer.getServer().getCurrentPlayerCount());
 			
 			FluidWorkers.PWorker.quota = tickQuota;
-			FluidWorkers.PWorker.myStartTime = tickCounter();
+			FluidWorkers.PWorker.myStartTime = tickCounter(); //MAKE SURE WE REMEMBER THE TICK
 			FluidWorkers.PWorker.worlds = MinecraftServer.getServer().worldServers.clone();
 			
 			FluidWorkers.PRIORITY.run();
 			
-			FluidWorkers.TWorker.quota = tickQuota;
-			FluidWorkers.TWorker.myStartTime = tickCounter();
+			//FluidWorkers.TWorker.quota = tickQuota;
+			FluidWorkers.TWorker.myStartTime = tickCounter(); //MAKE SURE WE REMEMBER THE TICK
 			FluidWorkers.TWorker.worlds = MinecraftServer.getServer().worldServers.clone();
 			
 			FluidWorkers.TRIVIAL.run();
 			
-			Equalizer.WORKER.run();
+			
 		}	
 		
 		//Set blocks for a little bit on the server thread
