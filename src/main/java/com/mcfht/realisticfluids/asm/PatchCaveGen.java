@@ -52,7 +52,7 @@ public class PatchCaveGen implements ASMPatchTask{
 								
 								InsnList toAdd = new InsnList();
 								toAdd.add(new FieldInsnNode(org.objectweb.asm.Opcodes.GETSTATIC, "net/minecraft/init/Blocks", "stone", "Lnet/minecraft/block/Block;"));
-								toAdd.add( new MethodInsnNode(org.objectweb.asm.Opcodes.INVOKEVIRTUAL, "net/minecraft/world/World", "setBlock", "IIILnet/minecraft/block/Block;)Z"));
+								toAdd.add( new MethodInsnNode(org.objectweb.asm.Opcodes.INVOKEVIRTUAL, "net/minecraft/world/World", "setBlock", "(IIILnet/minecraft/block/Block;)Z"));
 								
 								
 								m.instructions.insert(node1, toAdd);

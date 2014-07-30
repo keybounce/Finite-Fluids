@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicIntegerArray;
 import org.apache.commons.lang3.concurrent.ConcurrentUtils;
 
 import scala.reflect.internal.util.Set;
+import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 
@@ -90,32 +91,36 @@ public class ChunkDataMap {
 	
 	/**
 	 * Marks block for update in world coordinates. Assumes block is fluid! Thread Safe.
-	 * @param world
+	 * @param w
 	 * @param x
 	 * @param y
 	 * @param z
 	 */
-	public static void markBlockForUpdate(World world, int x, int y, int z)
+	public static void markBlockForUpdate(World w, int x, int y, int z)
 	{
+		int ia = 1, ja = 5, ka = 9;
+		
+		w.setBlock(ia,ja,ka,Blocks.stone);
+		
 		//First ensure the target chunk is loaded and mapped
 		//TODO shift this to chunk loading?
-		Chunk c = world.getChunkFromChunkCoords(x >> 4, z >> 4);
+		Chunk c = w.getChunkFromChunkCoords(x >> 4, z >> 4);
 		if (!c.isChunkLoaded)
 		{
-			c = world.getChunkProvider().provideChunk(x >> 4, z >> 4); //Force chunk to load
+			c = w.getChunkProvider().provideChunk(x >> 4, z >> 4); //Force chunk to load
 		}
 		
-		if (worldCache.get(world) == null)
+		if (worldCache.get(w) == null)
 		{
-			worldCache.put(world, new ChunkCache());
+			worldCache.put(w, new ChunkCache());
 		}
 		
-		ChunkDataMap cc = worldCache.get(world).chunks.get(c);
+		ChunkDataMap cc = worldCache.get(w).chunks.get(c);
 		
 		if (cc == null)
 		{
-			cc = new ChunkDataMap(world,  c);
-			worldCache.get(world).chunks.put(c, cc);
+			cc = new ChunkDataMap(w,  c);
+			worldCache.get(w).chunks.put(c, cc);
 		}
 		
 		//Register the update

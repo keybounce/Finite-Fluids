@@ -57,15 +57,15 @@ public class RealisticFluids extends DummyModContainer
 {
 	///////////////////////// GENERAL SETTINGS //////////////////////
 	/** Max update quota per tick. TODO NOT MAX */	
-	public static int MAX_UPDATES 		= 	300;
+	public static int MAX_UPDATES 		= 	1024;
 	/** Force this much update quota TODO NOT MAX */
-	public static int FORCE_UPDATES		= 	48; 
+	public static int FAR_UPDATES		= 	48; 
 	/** Number of ticks between update sweeps */
 	public static int GLOBAL_RATE		= 	5;
 	
 	////////////////////DISTANCE BASED PRIORITIZATION ///////////////////////
 	/** Priority distance*/
-	public static int UPDATE_RANGE 		= 	4*4; //note to reader: things like this get compiled away
+	public static int UPDATE_RANGE 		= 	4*4; //Note to reader: things like this get compiled away
 	/** "Trivial" distance */
 	public static int UPDATE_RANGE_FAR 	= 	12*12;
 	
@@ -81,7 +81,7 @@ public class RealisticFluids extends DummyModContainer
 	
 	////////////////// FLUID SETTINGS //////////////////////
 	/** The number of fluid levels for each cell */
-	public static short MAX_FLUID 		= 	16384;
+	public final static short MAX_FLUID = 	16384; //Note to reader: Explicit final fields get compiled as constants
 	
 	//WATER
 	/** Finite Water Blocks	*/
@@ -94,9 +94,9 @@ public class RealisticFluids extends DummyModContainer
 	/** Finite Lava blocks*/
 	public static Block finiteLava;
 	/** update rate of lava in the overworld */ 	
-	public static int LAVA_UPDATE 		= 	5;
+	public static final int LAVA_UPDATE = 	5;
 	/** update rate of lava in the nether) */		
-	public static int LAVA_NETHER 		= 	3;
+	public static final int LAVA_NETHER = 	3;
 	/** Runniness of lava*/							
 	public static final int lavaVisc 	= 	3;
 	
@@ -158,6 +158,7 @@ public class RealisticFluids extends DummyModContainer
     	//Register event handlers
     	FMLCommonHandler.instance().bus().register(UpdateHandler.INSTANCE);
     	MinecraftForge.EVENT_BUS.register(UpdateHandler.INSTANCE);
+    	MinecraftForge.TERRAIN_GEN_BUS.register(UpdateHandler.INSTANCE);
     }
 
 
