@@ -49,7 +49,7 @@ public class FluidWorkers {
 				if (map == null) continue;
 				if (map.priority.size() <= 0) continue;
 				
-				int ticksLeft = quota + RealisticFluids.FORCE_UPDATES; //Give ourselves a tick quota
+				int ticksLeft = quota + RealisticFluids.FAR_UPDATES; //Give ourselves a tick quota
 				
 				//Thread no. 1
 				//Start with priority chunks!
@@ -89,7 +89,7 @@ public class FluidWorkers {
 				if (map == null) continue;
 				if (map.priority.size() <= 0) continue;
 				
-				int ticksLeft = RealisticFluids.FORCE_UPDATES; //Give ourselves a tick quota
+				int ticksLeft = RealisticFluids.FAR_UPDATES; //Give ourselves a tick quota
 					
 				while (map.distant.size() > 0 && (ticksLeft > 0))
 				{
@@ -192,7 +192,7 @@ public class FluidWorkers {
 			int z = w.rand.nextInt(16);
 			
 			Block b = c.getBlock(x, y, z);
-			
+			//w.markBlockRangeForRenderUpdate(p_147458_1_, p_147458_2_, p_147458_3_, p_147458_4_, p_147458_5_, p_147458_6_);
 			//Do rainfall and evaporation
 			//First, try to move up a few blocks (aka to the top of stuff)
 			/*

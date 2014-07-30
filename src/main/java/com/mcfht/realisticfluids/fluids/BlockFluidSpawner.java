@@ -76,21 +76,21 @@ public class BlockFluidSpawner extends Block{
 				{ //water
 					if (b.getMaterial() == Material.water)
 					{
-						((BlockFiniteFluid)b).setLevel(w, x, y-1, z, BlockFiniteFluid.maxFluid, true);
+						((BlockFiniteFluid)b).setLevel(w, x, y-1, z, RealisticFluids.MAX_FLUID, true);
 						return;
 					}
 					w.setBlock(x, y-1, z, RealisticFluids.finiteLava, 0, 3);
-					((BlockFiniteFluid)b).setLevel(w, x, y-1, z, BlockFiniteFluid.maxFluid, true, RealisticFluids.finiteWater);
+					((BlockFiniteFluid)b).setLevel(w, x, y-1, z, RealisticFluids.MAX_FLUID, true, RealisticFluids.finiteWater);
 					
 				}else
 				{//Lava
 					if (b.getMaterial() == Material.lava)
 					{
-						((BlockFiniteFluid)b).setLevel(w, x, y-1, z, BlockFiniteFluid.maxFluid, true);
+						((BlockFiniteFluid)b).setLevel(w, x, y-1, z, RealisticFluids.MAX_FLUID, true);
 						return;
 					}
 					w.setBlock(x, y-1, z, RealisticFluids.finiteLava, 0, 3);
-					((BlockFiniteFluid)b).setLevel(w, x, y-1, z, BlockFiniteFluid.maxFluid, true, RealisticFluids.finiteLava);
+					((BlockFiniteFluid)b).setLevel(w, x, y-1, z, RealisticFluids.MAX_FLUID, true, RealisticFluids.finiteLava);
 				}
 			}
 		}

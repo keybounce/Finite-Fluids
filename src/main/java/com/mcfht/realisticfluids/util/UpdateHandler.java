@@ -1,6 +1,6 @@
 package com.mcfht.realisticfluids.util;
 
-import java.util.ArrayList;
+import java.util.Random;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.block.Block;
@@ -9,14 +9,18 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
+import net.minecraftforge.event.terraingen.InitMapGenEvent;
+import net.minecraftforge.event.terraingen.InitNoiseGensEvent;
+import net.minecraftforge.event.terraingen.OreGenEvent;
+import net.minecraftforge.event.terraingen.PopulateChunkEvent;
 import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.event.world.WorldEvent;
 
 import com.mcfht.realisticfluids.RealisticFluids;
-import com.mcfht.realisticfluids.fluids.BlockFiniteFluid;
 import com.mcfht.realisticfluids.util.ChunkDataMap.ChunkCache;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.TickEvent.ClientTickEvent;
 import cpw.mods.fml.common.gameevent.TickEvent.Phase;
 import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
 
@@ -54,6 +58,60 @@ import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
  */
 public class UpdateHandler {
 	
+	//@SubscribeEvent
+	public void tG(PopulateChunkEvent.Populate event)
+	{
+		StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+		
+		System.out.println(event.type);
+		//System.out.println(event.)
+		/*
+		for (int i = 0; i < stack.length; i++)
+		{
+			System.out.println(i + ": " + stack[i].getClassName() + ", " + stack[i].getMethodName());
+		}*/
+	}
+	
+	
+	//@SubscribeEvent
+	public void taG(OreGenEvent.Post event)
+	{
+		StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+		
+		//System.out.println(event.)
+		for (int i = 0; i < stack.length; i++)
+		{
+			System.out.println(i + ": " + stack[i].getClassName() + ", " + stack[i].getMethodName());
+		}
+	}
+	
+	
+	
+	@SubscribeEvent
+	public void teG(InitMapGenEvent event)
+	{
+		StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+		
+		//System.out.println(event.)
+		for (int i = 0; i < stack.length; i++)
+		{
+			System.out.println(i + ": " + stack[i].getClassName() + ", " + stack[i].getMethodName());
+		}
+	}
+	
+	
+	
+	//@SubscribeEvent
+	public void toG(InitNoiseGensEvent event)
+	{
+		StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+		
+		//System.out.println(event.)
+		for (int i = 0; i < stack.length; i++)
+		{
+			System.out.println(i + ": " + stack[i].getClassName() + ", " + stack[i].getMethodName());
+		}
+	}
 	public static final UpdateHandler INSTANCE = new  UpdateHandler();
 	
 	/** Hidden internal tick counter, prevents accidentally changing it during updating etc lol*/
@@ -88,6 +146,17 @@ public class UpdateHandler {
 		
 		x &= 0xF; y &= 0xF; z &= 0xF;
 		
+		//EXTREME HAX
+		if (ebs == null)
+		{
+			if (b != null)
+				w.setBlock(x, y, z, b, m, flag);
+			else
+			{
+				w.setBlockMetadataWithNotify(x, y, z, m, flag);
+			}
+			return;
+		}
 		ebs.setExtBlockMetadata(x, y, z, m);
 		if (b != null) ebs.func_150818_a(x, y, z, b);
 		
@@ -312,6 +381,23 @@ public class UpdateHandler {
 		
 	}
 	
+	
+	//@SubscribeEvent
+	public void clientTick(ClientTickEvent event)
+	{
+		if (event.phase == Phase.START) return;
+		
+		Random r = new Random();
+		//Every few seconds
+		if (r.nextInt(40) == 0)
+		{
+			
+			
+			
+			
+		}
+	
+	}
 	
 	
 }
