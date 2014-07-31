@@ -11,8 +11,12 @@ import net.minecraftforge.common.config.Configuration;
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
 import com.mcfht.realisticfluids.fluids.BlockFiniteFluid;
+import com.mcfht.realisticfluids.fluids.BlockFiniteLava;
+import com.mcfht.realisticfluids.fluids.BlockFiniteWater;
 import com.mcfht.realisticfluids.fluids.BlockFluidSpawner;
 import com.mcfht.realisticfluids.fluids.BlockGenWaterReplacer;
+import com.mcfht.realisticfluids.util.Equalizer;
+import com.mcfht.realisticfluids.util.FluidWorkers;
 import com.mcfht.realisticfluids.util.UpdateHandler;
 
 import cpw.mods.fml.common.DummyModContainer;
@@ -62,7 +66,9 @@ public class RealisticFluids extends DummyModContainer
 	public static int FAR_UPDATES		= 	48; 
 	/** Number of ticks between update sweeps */
 	public static int GLOBAL_RATE		= 	5;
-	
+	/** Max number of ticks between update sweeps */
+	public static int GLOBAL_RATE_MAX	= 	10;
+	public static int GLOBAL_RATE_AIM	= 	5;
 	////////////////////DISTANCE BASED PRIORITIZATION ///////////////////////
 	/** Priority distance*/
 	public static int UPDATE_RANGE 		= 	4*4; //Note to reader: things like this get compiled away
@@ -85,14 +91,14 @@ public class RealisticFluids extends DummyModContainer
 	
 	//WATER
 	/** Finite Water Blocks	*/
-	public static Block finiteWater;
+	//public static Block finiteWater;
 	/** Relative update rate of water*/
 	public static int WATER_UPDATE		= 	1;
 	/** Runniness of water*/
 	public static final int waterVisc 	= 	4;
 	//LAVA
 	/** Finite Lava blocks*/
-	public static Block finiteLava;
+	//public static Block finiteLava;
 	/** update rate of lava in the overworld */ 	
 	public static final int LAVA_UPDATE = 	5;
 	/** update rate of lava in the nether) */		
@@ -109,8 +115,8 @@ public class RealisticFluids extends DummyModContainer
 	
 	////////////////////////////ASM SETTINGS///////////////////////
 	
-													public static boolean ASM_WATER	 	= 	true;
-													public static boolean ASM_DOOR 		= 	true;
+	public static boolean ASM_WATER	 	= 	true;
+	public static boolean ASM_DOOR 		= 	true;
 	
 	public RealisticFluids()
 	{
@@ -146,14 +152,14 @@ public class RealisticFluids extends DummyModContainer
     public void initEvent(FMLInitializationEvent event)
     {
     	
-    	finiteWater = 	new BlockFiniteFluid(Material.water, waterVisc, WATER_UPDATE).setCreativeTab(CreativeTabs.tabMisc);
-    	finiteLava 	= 	new BlockFiniteFluid(Material.lava, lavaVisc, LAVA_UPDATE).setCreativeTab(CreativeTabs.tabMisc);
-    	debugSource = 	new BlockFluidSpawner(Material.iron).setCreativeTab(CreativeTabs.tabMisc).setBlockTextureName("water_flowing");
+    	//finiteWater = 	new BlockFiniteWater(Material.water /*, waterVisc, WATER_UPDATE*/ ).setCreativeTab(CreativeTabs.tabMisc);
+    	//finiteLava 	= 	new BlockFiniteLava(Material.lava /*, lavaVisc, LAVA_UPDATE*/ ).setCreativeTab(CreativeTabs.tabMisc);
+    	//debugSource = 	new BlockFluidSpawner(Material.iron).setCreativeTab(CreativeTabs.tabMisc).setBlockTextureName("water_flowing");
 
-    	GameRegistry.registerBlock(finiteWater, 	"UninfiniteWater");
-    	GameRegistry.registerBlock(finiteLava, 		"UninfiniteLava");
-    	GameRegistry.registerBlock(debugSource, 	"debugSource");
-    	GameRegistry.registerBlock(replaceWater, 	"replaceWater");
+    	//GameRegistry.registerBlock(finiteWater, 	"UninfiniteWater");
+    	//GameRegistry.registerBlock(finiteLava, 		"UninfiniteLava");
+    	//GameRegistry.registerBlock(debugSource, 	"debugSource");
+    	//GameRegistry.registerBlock(replaceWater, 	"replaceWater");
     	
     	//Register event handlers
     	FMLCommonHandler.instance().bus().register(UpdateHandler.INSTANCE);

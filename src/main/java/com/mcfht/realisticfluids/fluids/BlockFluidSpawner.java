@@ -66,7 +66,7 @@ public class BlockFluidSpawner extends Block{
 			Block b = w.getBlock(x, y-1,z);
 			if (b == Blocks.air)
 			{
-				w.setBlock(x,y-1,z, meta == 1 ? RealisticFluids.finiteWater : RealisticFluids.finiteLava);
+				w.setBlock(x,y-1,z, meta == 1 ? Blocks.water : Blocks.lava);
 				return;
 			}
 			if (b instanceof BlockFiniteFluid)
@@ -79,8 +79,8 @@ public class BlockFluidSpawner extends Block{
 						((BlockFiniteFluid)b).setLevel(w, x, y-1, z, RealisticFluids.MAX_FLUID, true);
 						return;
 					}
-					w.setBlock(x, y-1, z, RealisticFluids.finiteLava, 0, 3);
-					((BlockFiniteFluid)b).setLevel(w, x, y-1, z, RealisticFluids.MAX_FLUID, true, RealisticFluids.finiteWater);
+					w.setBlock(x, y-1, z, Blocks.lava, 0, 3);
+					((BlockFiniteFluid)b).setLevel(w, x, y-1, z, RealisticFluids.MAX_FLUID, true, Blocks.water);
 					
 				}else
 				{//Lava
@@ -89,8 +89,8 @@ public class BlockFluidSpawner extends Block{
 						((BlockFiniteFluid)b).setLevel(w, x, y-1, z, RealisticFluids.MAX_FLUID, true);
 						return;
 					}
-					w.setBlock(x, y-1, z, RealisticFluids.finiteLava, 0, 3);
-					((BlockFiniteFluid)b).setLevel(w, x, y-1, z, RealisticFluids.MAX_FLUID, true, RealisticFluids.finiteLava);
+					w.setBlock(x, y-1, z, Blocks.lava, 0, 3);
+					((BlockFiniteFluid)b).setLevel(w, x, y-1, z, RealisticFluids.MAX_FLUID, true, Blocks.lava);
 				}
 			}
 		}

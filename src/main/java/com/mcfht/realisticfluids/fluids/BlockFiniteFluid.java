@@ -27,6 +27,9 @@ import com.mcfht.realisticfluids.util.ChunkDataMap;
 import com.mcfht.realisticfluids.util.FastMath;
 import com.mcfht.realisticfluids.util.UpdateHandler;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
+
 /**
  * The parent class of all liquids.
  * 
@@ -60,21 +63,13 @@ public class BlockFiniteFluid extends BlockLiquid{
 		this.viscosity = (RealisticFluids.MAX_FLUID >> runniness);
 		this.setTickRandomly(true); //Because who cares, you know?
 		this.flowRate = flowRate;
+		this.canBlockGrass = false;
 	}
 
 	@Override
 	public void onBlockAdded(World w, int x, int y, int z)
 	{
-		ChunkDataMap.markBlockForUpdate(w, x, y, z);
-	}
-	
-	@Override
-    public int onBlockPlaced(World w, int x, int y, int z, int side, float px, float py, float pz, int m)
-	{
-		ChunkDataMap.markBlockForUpdate(w, x, y, z);
-		w.setBlockMetadataWithNotify(x, y, z, 0, 3);
-		setLevel(w, x, y, z, RealisticFluids.MAX_FLUID, true, this);
-		return side;
+		setLevel(w, x, y, z, RealisticFluids.MAX_FLUID, true);
 	}
 	
 	/**
@@ -83,20 +78,19 @@ public class BlockFiniteFluid extends BlockLiquid{
 	@Override
 	public void onNeighborBlockChange(World w, int x, int y, int z, Block b)
 	{
-		ChunkDataMap.markBlockForUpdate(w, x, y, z);
+		if (!isSameFluid(this, b))
+			UpdateHandler.markBlockForUpdate(w, x, y, z);
 	}
-	
-	
-	
+
 	/**
-	 * Ensure that a block is marked as empty when replaced
-	 * <p>TODO Investigate way to recognize falling sand/gravel and have them displace water? [stacktrace?]
+	 * Ensure that a block is marked as empty when replaced. Also allow displacement from falling blocks & pistons
 	 */
 	@Override
 	public void breakBlock(World w, int x, int y, int z, Block b0, int m)
     {
 		Block b1 = w.getBlock(x, y, z);
-		if (b1 != this)
+		
+		if (!isSameFluid(this, b1))
 		{
 			//Extreme hacks?
 			StackTraceElement[] stack = Thread.currentThread().getStackTrace();
@@ -107,18 +101,13 @@ public class BlockFiniteFluid extends BlockLiquid{
 					);
 			
 			//System.out.println("Displace? " + flag1 + " - " + flag2 + " - " + (flag1 || flag2));
-			
 			if (flag1 || flag2)
-			{
-				
-				displace(w, x, y, z);
-			}
-			
+				displace(w, x, y, z, m);
+
 			//Make sure to empty the block out
 			ChunkDataMap.setWaterLevel(w, x, y, z, 0);
 		}
     }
-	
 	
 	/**
 	 * Flags neighboring cells to be updated. ENSURES that they are fluid first!
@@ -129,26 +118,30 @@ public class BlockFiniteFluid extends BlockLiquid{
 	 */
 	public static void scheduleNeighbors(World w, int x, int y, int z)
 	{
-		//ChunkDataMap.markBlockForUpdate(w, x, y, z);
+		//UpdateHandler.markBlockForUpdate(w, x, y, z);
 		for (int i = 0; i < 4; i++)
 		{
-			ChunkDataMap.markBlockForUpdate(w, (x + directions[i][0]), y, (z + directions[i][1]));
+			UpdateHandler.markBlockForUpdate(w, (x + directions[i][0]), y, (z + directions[i][1]));
 		}
-		ChunkDataMap.markBlockForUpdate(w, x, y + 1, z);
-		ChunkDataMap.markBlockForUpdate(w, x, y - 1, z);
+		if (y < 255)
+		UpdateHandler.markBlockForUpdate(w, x, y + 1, z);
+		if (y > 0)
+		UpdateHandler.markBlockForUpdate(w, x, y - 1, z);
 	}
 	
 	public void updateTick(World w, int x, int y, int z, Random rand)
 	{
-	
+		UpdateHandler.markBlockForUpdate(w, x, y, z);
 	}
 	
 	public void doUpdate(World w, int x, int y, int z, Random r, int interval)
 	{
+		//System.out.println("Im being update at " + x + ", " + y + ", " + z + " => " + interval + "(" + UpdateHandler.tickCounter() + ")");
 		//Factor in flow rate and viscosity;
 		//We tick once every 5, but we only need to update once every n*5;
 		
 		//System.out.println(UpdateHandler.tickCounter());
+		
 		testFlowRate:
 		{
 			if (flowRate != 1)
@@ -157,7 +150,7 @@ public class BlockFiniteFluid extends BlockLiquid{
 				{
 					if (UpdateHandler.tickCounter() % (RealisticFluids.GLOBAL_RATE * RealisticFluids.LAVA_NETHER) != interval)
 					{
-						ChunkDataMap.markBlockForUpdate(w, x, y, z); //Mark ourselves to be updated next cycle
+						UpdateHandler.markBlockForUpdate(w, x, y, z); //Mark ourselves to be updated next cycle
 						return;
 					}
 					break testFlowRate;
@@ -165,7 +158,7 @@ public class BlockFiniteFluid extends BlockLiquid{
 			
 				if (UpdateHandler.tickCounter() % (RealisticFluids.GLOBAL_RATE * flowRate) != interval)
 				{
-					ChunkDataMap.markBlockForUpdate(w, x, y, z); //Mark ourselves to be updated next cycle
+					UpdateHandler.markBlockForUpdate(w, x, y, z); //Mark ourselves to be updated next cycle
 					return;	
 				}
 			}
@@ -190,10 +183,7 @@ public class BlockFiniteFluid extends BlockLiquid{
 			//Now check if we can flow into the block below, etcetera
 			Block b1 = w.getBlock(x, y1, z);
 			int l1 = getLevel(w, x, y1, z);
-			
-			//If there is already fluid below, let the fluid flow a little bit better.
-			if (l1 > 0) efVisc = viscosity >> 2;
-			
+			if (l1 > 0) efVisc = viscosity >> 2; //If there is already fluid below, we can flow a little better
 			byte b = checkFlow(w, x, y, z, 0, -1, 0, b1, w.getBlockMetadata(x, y1, z), l0);
 			if (b != 0)
 			{
@@ -245,6 +235,7 @@ public class BlockFiniteFluid extends BlockLiquid{
 							z1 = z + b * dz;
 							l1 = getLevel(w, x1, y, z1);
 						}
+						
 						if (l0 > l1)
 						{
 							int flow = (l0 - l1)/2;
@@ -263,7 +254,7 @@ public class BlockFiniteFluid extends BlockLiquid{
 							Block b2 = w.getBlock(x1, y-1, z1);
 							if (b1 == Blocks.air)
 							{
-								if (b2 == Blocks.air || b2 == this)
+								if (b2 == Blocks.air || isSameFluid(this, b2))
 								{
 									setLevel(w, x1, y, z1, l0, true);
 									l0 = 0;
@@ -291,7 +282,7 @@ public class BlockFiniteFluid extends BlockLiquid{
 	 */
 	public static boolean isSameFluid(BlockFiniteFluid f, Block b)
 	{
-		return (f == b|| (b instanceof BlockFiniteFluid && b.getMaterial() == f.getMaterial()));
+		return (b.getMaterial() == f.getMaterial());
 	}
 	
 	/**
@@ -317,8 +308,8 @@ public class BlockFiniteFluid extends BlockLiquid{
 			if ((b1 == Blocks.fence || b1 == Blocks.nether_brick_fence || b1 == Blocks.iron_bars))
 			{
 				Block bN = w.getBlock(x1+dx, y1+dy, z1+dz);
-				if (bN == Blocks.air || BlockFiniteFluid.isSameFluid(this, b1))return 2;
-				//ChunkDataMap.markBlockForUpdate(w, x0, y0, z0); ChunkDataMap.markBlockForUpdate(w, x1 + dx, y1 + dy, z1 + dz);
+				if (bN == Blocks.air || isSameFluid(this, b1)) return 2;
+				//UpdateHandler.markBlockForUpdate(w, x0, y0, z0); UpdateHandler.markBlockForUpdate(w, x1 + dx, y1 + dy, z1 + dz);
 				return 0;
 			}
 			
@@ -331,14 +322,14 @@ public class BlockFiniteFluid extends BlockLiquid{
 				){
 						b1 = w.getBlock(x1 + dx, y1 + dy, z1 + dz);
 						if (y1 > -dy && b1 == Blocks.air || isSameFluid(this, b1)) return 2;
-						//ChunkDataMap.markBlockForUpdate(w, x0, y0, z0); ChunkDataMap.markBlockForUpdate(w, x1 + dx, y1 + dy, z1 + dz);
+						//UpdateHandler.markBlockForUpdate(w, x0, y0, z0); UpdateHandler.markBlockForUpdate(w, x1 + dx, y1 + dy, z1 + dz);
 				}
 				return 0;
 			}
 			if (dy != 0 && b1 == Blocks.trapdoor)
 			{
         	//Only consider flowing if the trapdoor is open and we are trying to go down
-        	//TODO allow treating open trapoor as air for horizontal flow in correct direction
+        	//TODO allow treating open trapoor as air for horizontal flow
 	        	if ((m & 4) == 1) 
 	        	{
 	        		if (y1 + dy <= 0 )
@@ -347,25 +338,15 @@ public class BlockFiniteFluid extends BlockLiquid{
 	        			return 0;
 	        		}
 		        	b1 = w.getBlock(x1 + dx, y1 + dy, z1 + dz);
-		    		if (b1 == Blocks.air || isSameFluid(this, b1))return 2;
-		    		// ChunkDataMap.markBlockForUpdate(w, x0, y0, z0); ChunkDataMap.markBlockForUpdate(w, x1 + dx, y1 + dy, z1 + dz);
+		    		if (b1 == Blocks.air || isSameFluid(this, b1)) return 2;
+		    		// UpdateHandler.markBlockForUpdate(w, x0, y0, z0); UpdateHandler.markBlockForUpdate(w, x1 + dx, y1 + dy, z1 + dz);
 	        	}
 	        	return 0;
 	        }
 		}
-        
-        //Check for torches, plants, etc. similar to vanilla water
-		if (canBreak(b1))
-		{
-			if (dy < 0 || l0 > flowBreak)
-			{
-				b1.dropBlockAsItem(w, x0, y0, z0, m, m); //if (block != Blocks.snow_layer)
-				w.setBlockToAir(x1, y1, z1);
-				return 1;
-			}
-			return  0;
-		}
-
+        byte temp = (byte) breakInteraction(w, b1, m, x0, y0, z0, l0, x1, y1, z1);
+		if (temp != 0) return temp;
+		
         //The other block is a different fluid
 		if (b1 instanceof BlockFiniteFluid && b1.getMaterial() != this.blockMaterial)
 		{
@@ -374,16 +355,17 @@ public class BlockFiniteFluid extends BlockLiquid{
 			{
 				lavaWaterInteraction(w, x0, y0, z0, l0, x1, y1, z1, level1);
 				if (getLevel(w,x0,y0,z0) <= 0) return 0;
-				return (byte) ((w.getBlock(x1, y1, z1) == Blocks.air || w.getBlock(x1, y1, z1) == this) ? 1 : 0);
+				return (byte) ((w.getBlock(x1, y1, z1) == Blocks.air || isSameFluid(this, w.getBlock(x1, y1, z1))) ? 1 : 0);
 			}
 			
 			if (this.blockMaterial == Material.lava && b1.getMaterial() == Material.water)
 			{
 				lavaWaterInteraction(w, x0, y0, z0, level1, x1, y1, z1, l0);
 				if (getLevel(w,x0,y0,z0) <= 0) return 0;
-				return (byte) ((w.getBlock(x1, y1, z1) == Blocks.air || w.getBlock(x1, y1, z1) == this) ? 1 : 0);
+				return (byte) ((w.getBlock(x1, y1, z1) == Blocks.air || isSameFluid(this, w.getBlock(x1, y1, z1))) ? 1 : 0);
 			}
 		}
+				
 		return 0;
 	}
 	
@@ -432,7 +414,7 @@ public class BlockFiniteFluid extends BlockLiquid{
 	 */
 	public void setLevel(World w, int x, int y, int z, int l, boolean causeUpdates)
 	{
-		setLevel(w, x, y, z, l, causeUpdates, this);
+		setLevel(w, x, y, z, l, causeUpdates, this.blockMaterial == Material.water ? Blocks.flowing_water : Blocks.flowing_lava);
 	}
 	/**
 	 * Sets the level of a cell with the specified fluid (as instance of BlockFFluid)
@@ -450,22 +432,21 @@ public class BlockFiniteFluid extends BlockLiquid{
 		int l0 = getLevel(w, x, y, z);
 		
 		l1 = l1 > RealisticFluids.MAX_FLUID ? RealisticFluids.MAX_FLUID : l1;
-		
 		//Sledgehammer: prevent excessive equalization calculations
 		if (Math.abs(l0 - l1) <= 4)
 		{
 			//Wait... hit it again!!!
-			if (l1 <= 4)
+			if (l0 <= 0 || l1 <= 4)
 			{
 				UpdateHandler.setBlock(w, x, y, z, Blocks.air, 0, causeUpdates ? 2 : 3, true);
 				ChunkDataMap.setWaterLevel(w, x, y, z, 0);
 			}
 			return;
 		}
-		
+
 		//Ensure that we do not change the content of the wrong block by mistake
-		if (b0 != Blocks.air && b0 != this) return;
-		
+		if (b0 != Blocks.air && b0.getMaterial() != b1.getMaterial()) return;
+
 		//Empty empty blocks
 		if (l1 <= 0)
 		{	
@@ -475,31 +456,43 @@ public class BlockFiniteFluid extends BlockLiquid{
 			if (l0 != 0)
 				ChunkDataMap.setWaterLevel(w, x, y, z, 0);
 			
-			//ChunkDataMap.markBlockForUpdate(w, x, y, z);
+			//UpdateHandler.markBlockForUpdate(w, x, y, z);
 			
 			if (causeUpdates) scheduleNeighbors(w, x, y, z);
 			return;
 		}
+		//Block bN = b1.getMaterial() == Material.lava ? Blocks.flowing_lava : Blocks.flowing_water;
+		
+		//Become full block if we have enough content
+		if (l1 > (RealisticFluids.MAX_FLUID - RealisticFluids.MAX_FLUID/8))
+		{
+			b1 =  b1.getMaterial() == Material.lava ? Blocks.lava : Blocks.water;
+		}
+		
 		//There is no need to update meta if the meta doesn't change
 		int m0 = w.getBlockMetadata(x, y, z);
 		int m1 = (RealisticFluids.MAX_FLUID - l1) / (RealisticFluids.MAX_FLUID >> 3);
 		ChunkDataMap.setWaterLevel(w, x, y, z, l1);
 		//We are modifying an existing fluid
 		if (b0 instanceof BlockFiniteFluid){
+			
+			if (b0 != b1)
+				UpdateHandler.setBlock(w, x, y, z, b1, m1, -2, true);
+			else
 			if (m0 != m1)
 			{
 				//Do not update light (neg. flag), since fluid level is not relevant to light
 				UpdateHandler.setBlock(w, x, y, z, null, m1, -2, true);
 			}
 			//Mark necessary updates
-			ChunkDataMap.markBlockForUpdate(w, x, y, z);
+			UpdateHandler.markBlockForUpdate(w, x, y, z);
 			if (causeUpdates) scheduleNeighbors(w, x, y, z);
 			return;		
 		}
-		
+
 		//It was empty, so set it to our block (the onAdded will throw an update)?
 		//w.setBlock(x, y, z, block, meta1, 2);
-		ChunkDataMap.markBlockForUpdate(w, x, y, z);
+		UpdateHandler.markBlockForUpdate(w, x, y, z);
 		UpdateHandler.setBlock(w, x, y, z, b1, m1, 2, true);
 	}
 
@@ -512,7 +505,7 @@ public class BlockFiniteFluid extends BlockLiquid{
 		Chunk c = w.getChunkFromChunkCoords(x >> 4,  z >> 4);
 		
 		int i;
-		for (i = 0; i < 8 && c.getBlock(x & 0xF, y+1, z & 0xF) == this; i++)
+		for (i = 0; i < 8 && isSameFluid(this, c.getBlock(x & 0xF, y+1, z & 0xF)); i++)
 		{
 			y++;
 		}
@@ -569,9 +562,18 @@ public class BlockFiniteFluid extends BlockLiquid{
     }
 
 	
-	
+	/* Technically speaking, this algorithm is very simple.
+	 * 
+	 * First, we receive the coordinate of a block.
+	 * Second, we move out in long lines, collating all of the water
+	 * Finally, we average all of the water blocks in that line.
+	 * 
+	 * Merging the fluid down when averaging is free, since it will only happen later in the updateTask method.
+	 * We also try to move a little bit of water over edges to speed things up a little.
+	 * 
+	 */
 	/**
-	 * Attempts to equalize levels between surface blocks in long horizontal lines.
+	 * Linear averaging equalization algorithm. One of the faster approaches to equalization.
 	 * 
 	 * @param w
 	 * @param x
@@ -581,28 +583,27 @@ public class BlockFiniteFluid extends BlockLiquid{
 	 */
 	public void equalize(World w, int x0, int y0, int z0, int distance)
 	{
-		//System.out.println("Equalizing Water...");
-		
-		//setLevel(w, x0, y0, z0, 0, true); //Debugs
-		int level0;
-		
+		//Use negative distance to allow equalization below the surface
 		if (distance > 0 && w.getBlock(x0, y0 + 1,  z0) != Blocks.air)
 			return;
 		
-		int sum;
-		int r = w.rand.nextInt(8);
+		//System.out.println("Equalizing Water...");
 
-		//Start from a random direction and rotate around in the 8 main directions
-		for (int dir = 0; dir < 8; dir++)
+		int l0;
+		int sum;
+		int skew = w.rand.nextInt(8);
+		
+		//boolean undermine = false;
+		//Start from a random direction and rotate around in 3 semi-random directions
+		for (int dir = 0; dir < 3; dir++)
 		{
-			level0 = getLevel(w, x0, y0, z0);
-			sum = level0;
-			int dx = directions[(dir + r) & 7][0];
-			int dz = directions[(dir + r) & 7][1];
+			l0 = getLevel(w, x0, y0, z0);
+			sum = l0;
+			int dx = directions[(dir + skew) & 7][0];
+			int dz = directions[(dir + skew) & 7][1];
 			int dist = 1;
-			
 			//We are next to a roughly equal block, so skip the equalization
-			if (Math.abs(getLevel(w, x0 + dx, y0, z0 + dz) - level0) < RealisticFluids.MAX_FLUID >> 6 ) continue;
+			if (Math.abs(getLevel(w, x0 + dx, y0, z0 + dz) - l0) < RealisticFluids.MAX_FLUID >> 6 ) continue;
 		
 			for (dist = 1; dist < distance; dist++)
 			{
@@ -610,11 +611,10 @@ public class BlockFiniteFluid extends BlockLiquid{
 				int z1 = z0 + dist * dz;
 				Block b1 = w.getBlock(x1, y0, z1);
 				Block b2 = w.getBlock(x1, y0 - 1, z1);
-
 				//Only attempt to equalize if we are on water, and flowing into water or air;
-				if (b2 == this)
+				if (isSameFluid(this, b2))
 				{
-					if (b1 == this || b1 == Blocks.air )
+					if (b1 == Blocks.air ||  isSameFluid(this, b1) )
 						sum += getLevel(w,x1,y0,z1);
 					else
 						break;
@@ -630,42 +630,31 @@ public class BlockFiniteFluid extends BlockLiquid{
 						z1 += dz;
 						b1 = w.getBlock(x1, y0, z1);
 						//Make sure we are flowing into water or an empty space
-						if (b1 != this && b1 != Blocks.air) break;
+						if (!isSameFluid(this, b1) && b1 != Blocks.air) break;
 						b2 = w.getBlock(x1, y0-1, z1);
 						
 						//Now make sure that there is water close below us
 						if (b2 == Blocks.air)
 						{
 							b2 = w.getBlock(x1, y0-2, z1);
-							if (b2 != this) break;
+								if (!isSameFluid(this, b2)) break;
 						}
-						
 						//Now move a chunk of water over the edge
 						dist++;
-						/*
-						int flow = sum/dist, l1 = getLevel(w, x1, y0-1, z1);
-						setLevel(w, x1, y0-1, z1, Math.min(maxWater, l1 + flow), true);
-						setLevel(w, x1, y0, z1, Math.max(0, l1 + flow - maxWater), true);
-						sum -= (sum/dist);
-						dist--;*/
 					}
 					break;
 				}
 			}
-			//WE PROBABLY DON'T NEED THIS ANYMORE THANKS TO VALIDITY CHECKING ABOVE
-			//Prevent the algorithm from creating new blocks with  ridiculously little viscosity
-			dist = (Math.min(dist, Math.max(1, 4*(sum / 8))));
-			
-			//Don't bother equalizing in this direction if we cannot equalize over a reasonable distance
-			if (dist < 4) continue;
-			
+			//Prevent the algorithm from creating new blocks with ~ridiculously~ little viscosity
+			dist = (Math.min(dist, Math.max(1, sum >> 3)));
+		
 			//Equalize all of the blocks in this direction
 			for (int i = 0; i <= dist; i++)	
 			{
 				int x1 = x0 + i * dx;
 				int z1 = z0 + i * dz;
 				//If we are flowing onto ourselves
-				if (w.getBlock(x1,y0-1,z1) == this)
+				if (isSameFluid(this, w.getBlock(x1,y0-1,z1)))
 				{
 					int l1 = getLevel(w, x1, y0-1, z1) + sum/dist;
 					//Now shift as much water as we can straight down into the block below us (looks a little nicer)
@@ -673,14 +662,25 @@ public class BlockFiniteFluid extends BlockLiquid{
 					setLevel(w, x1, y0, z1, Math.max(0, l1 - RealisticFluids.MAX_FLUID), true);
 				}
 				else //If we are trying to flow into an empty block (the first loop ensures that this flow is itself valid)
-					if (w.getBlock(x1, y0, z1) == Blocks.air)
-					{
-						setLevel(w, x1, y0-1, z1, sum / dist, true);
-					}
+				if (w.getBlock(x1, y0, z1) == Blocks.air)
+				{
+					setLevel(w, x1, y0-1, z1, sum / dist, true);
+				}
 			}
 		}
 	}
 	
+	
+	/* Technical rundown. It's pretty simple.
+	 * 
+	 * 1a. Try to move fluid into adjacent cells.
+	 *  - note that if the above block is liquid, the adjacent cells are 99.99% definitely full
+	 * 1b. Attempt to move any remaining fluid straight up
+	 * 
+	 * 2a. Move up in a line from the block looking for air
+	 * 2b. When we find the surface, move all of the water there.
+	 * 
+	 */
 	/**
 	 * Attempts to displace water by searching for a space above. The algorithm moves upwards trying to find a space;
 	 * Within a max of about 60 blocks.
@@ -689,10 +689,12 @@ public class BlockFiniteFluid extends BlockLiquid{
 	 * @param y
 	 * @param z
 	 */
-	public void displace(World w, int x, int y, int z)
+	public void displace(World w, int x, int y, int z, int m)
 	{
 		Block b1;
 		int l0 = ChunkDataMap.getWaterLevel(w, x, y, z);
+		if (l0 == 0) l0 = (8 - m) * (RealisticFluids.MAX_FLUID >> 3);
+		
 		//System.out.println("We are displacing water... " + l0);
 		int dir = 0, moved = 0;
 		//Try to set content of above and neighboring blocks
@@ -707,19 +709,36 @@ public class BlockFiniteFluid extends BlockLiquid{
 			{
 				int x1 = x + directions[(j + skew) & 3][0];
 				int z1 = z + directions[(j + skew) & 3][1];
-				b1 = w.getBlock(x1, y, z1);
-				if (b1 == Blocks.air || isSameFluid(this, b1))
+				Block bN = w.getBlock(x1, y, z1);
+				if (bN == Blocks.air)
 				{
-					int l1 = getLevel(w, x1, y-1, z1);
+					setLevel(w, x1, y, z1, l0, true);
+					l0 = 0;
+					return;
+				}
+				else if (isSameFluid(this, bN))
+				{
+					int l1 = getLevel(w, x1, y, z1);
 					int move = l0/2;
-					setLevel(w, x1, y, z1, Math.min(RealisticFluids.MAX_FLUID, l1 + move), true);
-					System.out.println("Pushing water to the sides:  " + b1.getClass().getSimpleName() + ", " + l1 + ", " + l0 + " => " + move);
+					//setLevel(w, x1, y, z1, Math.min(RealisticFluids.MAX_FLUID, l1 + move), true);
+					System.out.println("Pushing water to the sides:  " + bN.getClass().getSimpleName() + ", " + l1 + ", " + l0 + " => " + move);
 					l0 = Math.max(0,  l0 + (l1 + move - RealisticFluids.MAX_FLUID));
 				}
 			}
 			
+			//Try to push any remaining water straight up
+			if (b1 == Blocks.air && l0 > 0)
+			{
+				//System.out.println("Pushed the last drop of water up!");
+				setLevel(w, x, y+1, z, l0, true);
+				l0 = 0;
+			}
+			
+			return; //We can't go up or across any further, so exit
 		}
 		
+		//Having passed the above test, we know that the above block is the same fluid,
+		//so now we just move up and put our content at the top
 		for (int i = 1; l0 > 0 && i < 64 && y + i < 255; i++)
 		{
 			b1 = w.getBlock(x, y+i, z);
@@ -729,16 +748,14 @@ public class BlockFiniteFluid extends BlockLiquid{
 			{
 				int l1 = getLevel(w, x, y+i, z);
 				if (l1 < RealisticFluids.MAX_FLUID){
-					System.out.println("Displaced some water vertically! " + y + ": " + l0 + ", " + l1 + " => " + Math.max(0, l1 + l0 - RealisticFluids.MAX_FLUID));
+					//System.out.println("Displaced some water vertically! " + y + ": " + l0 + ", " + l1 + " => " + Math.max(0, l1 + l0 - RealisticFluids.MAX_FLUID));
 					setLevel(w, x, y+i, z, Math.min(RealisticFluids.MAX_FLUID, l1 + l0), true);
 					l0 = Math.max(0, l1 + l0 - RealisticFluids.MAX_FLUID);}
 				continue;
 			}
 			
-			//NOT WORKING GOOD!
+			//NOT WORKING GOOD WHEN RUNNING WITHIN UP-SEARCH!
 			/*
-			//Now we have reached the top of the water, so we are hitting air or a solid block
-			
 			//First, try to move as much water as we can off to the sides.
 			//This looks much prettier than dumping it on top of the block
 			for (int j = 0; j < 4 && l0 > 0; j++)
@@ -775,7 +792,24 @@ public class BlockFiniteFluid extends BlockLiquid{
 		
 	}
 	
+	//////////////////////////////////INTERACTIONS
 	
+	public int breakInteraction(World w, Block b1, int m1, int x0, int y0, int z0, int l0, int x1, int y1, int z1)
+	{
+        //Check for torches, plants, etc. similar to vanilla water
+		if (canBreak(b1))
+		{
+			if (y0 - y1 < 0 || l0 > flowBreak)
+			{
+				b1.dropBlockAsItem(w, x0, y0, z0, m1, m1); //if (block != Blocks.snow_layer)
+				w.setBlockToAir(x1, y1, z1);
+				return 1;
+			}
+			return  0;
+		}
+		return 0;
+
+	}
 		
 	/**
 	 * Handles interaction of lava and water. 0 = water, 1 = lava
@@ -796,8 +830,8 @@ public class BlockFiniteFluid extends BlockLiquid{
 		//Obsidian can only be created by tipping a bucket of lava straight into water
 		if (l0 > l1/2 || l1 - (3*l0/2) < RealisticFluids.MAX_FLUID/4)
 		{
-			setLevel(w, x0, y0, z0, 0, false, RealisticFluids.finiteWater);
-			setLevel(w, x1, y1, z1, 0, false, RealisticFluids.finiteLava);
+			setLevel(w, x0, y0, z0, 0, true, Blocks.flowing_water);
+			setLevel(w, x1, y1, z1, 0, true, Blocks.flowing_lava);
 			
 			if (l1 > RealisticFluids.MAX_FLUID/2)
 			{
@@ -811,9 +845,14 @@ public class BlockFiniteFluid extends BlockLiquid{
 			return;
 		}
 		
-		setLevel(w, x0, y0, z0, Math.max(0, l0 - (2*l1)/3), false, RealisticFluids.finiteWater);
-		setLevel(w, x1, y1, z1, Math.max(0, l1 - (3*l0)/2), false, RealisticFluids.finiteLava);
-		
+		setLevel(w, x0, y0, z0, Math.max(0, l0 - (2*l1)/3), false, Blocks.flowing_water);
+		setLevel(w, x1, y1, z1, Math.max(0, l1 - (3*l0)/2), false, Blocks.flowing_lava);
 	}
-		
+	
+	
+    @SideOnly(Side.CLIENT)
+    public boolean getCanBlockGrass()
+    {
+        return this.canBlockGrass;
+    }
 }

@@ -22,17 +22,6 @@ public class ModLaunchWrapper implements cpw.mods.fml.relauncher.IFMLLoadingPlug
     @Override
 	public String[] getASMTransformerClass() 
     {
-    	
-    	for (String s : ASMTransformer.names)
-    	{
-    		System.out.println(s + " : -"+s.split(" ")[0] + "-");
-    		//Construct the list of targets for replacing water in
-    		ASMTransformer.replaceCache.add(new StringComp(
-    				s.split(" ")[0],
-    				s.split(" ")[1]));
-    				
-    	}
-    	
 		return new String[]{
 				ASMTransformer.class.getName()
 				};

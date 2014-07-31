@@ -9,18 +9,22 @@ public class ConfigHandler {
 		config.load();
 
 		///////////////// GENERAL STUFZ /////////////
-		RealisticFluids.EQUALIZE_FAR =  config.getInt("globalEqualizeFar", "1 - General", 16, 1, 64, "Distant chunk equalization limit [0 to disable]");
-		RealisticFluids.EQUALIZE_NEAR =  config.getInt("globalEqualizeNear", "1 - General", 1, 1, 64, "Near chunk equalization limit, sane values: 1 ~ 4 [0 to disable]");
+		RealisticFluids.EQUALIZE_FAR =  config.getInt("EqualizeFar", "1 - General", 16, 1, 64, "Distant chunk equalization limit [0 to disable]");
+		RealisticFluids.EQUALIZE_NEAR =  config.getInt("EqualizeNear", "1 - General", 1, 1, 64, "Near chunk equalization limit, sane values: 1 ~ 4 [0 to disable]");
 		
 		RealisticFluids.EQUALIZE_GLOBAL	= 5 * config.getInt("globalEqualizeCap", "1 - General", 8, 1, 256, "Max Equalizations per tick. More causes faster equalization. Sane values: 8 ~ 64");
 		
-		RealisticFluids.UPDATE_RANGE_FAR =  config.getInt("globalUpdateRangeFar", "1 - General", 8, 1, 32, "Distant update range (in chunks)");
-		RealisticFluids.UPDATE_RANGE =  config.getInt("globalUpdateRangeNear", "1 - General", 4, 1, 32, "High priority update range (in chunks)");
+		RealisticFluids.UPDATE_RANGE_FAR =  config.getInt("UpdateRangeFar", "1 - General", 8, 1, 32, "Distant update range (in chunks)");
+		RealisticFluids.UPDATE_RANGE =  config.getInt("UpdateRangeNear", "1 - General", 4, 1, 32, "High priority update range (in chunks)");
+		RealisticFluids.FAR_UPDATES = config.getInt("globalFarUpdates", "1 - General", 16384, 1024, 1000000, "Quota for trivial updates");
+		RealisticFluids.MAX_UPDATES = config.getInt("globalNearUpdates", "1 - General", 512, 16, 10000000, "Immediate update Factor. WIP! Currently not implemented at all");
 		
-		RealisticFluids.FAR_UPDATES = config.getInt("globalFarUodates", "1 - General", 512, 16, 100000, "Quota for trivial updates, From 16-256 quota used per chunk [avg ~24-32 in deep ocean]]");
-		RealisticFluids.MAX_UPDATES = config.getInt("globalNearUpdates", "1 - General", 1024, 16, 100000, "Immediate update Factor. WIP! Currently not implemented well/at all");
-		RealisticFluids.GLOBAL_RATE = config.getInt("globalUpdateRate", "1 - General", 5, 3, 32, "The number of ticks between each update sweep. (3 ~ 16)!");
-
+		RealisticFluids.GLOBAL_RATE_MAX = config.getInt("globalMaxUpdateInterval", "1 - General", 10, 4, 32, "The largest number of possible ticks between each update sweep (3 ~ 16)!");
+		RealisticFluids.GLOBAL_RATE_AIM = config.getInt("globalIdealUpdateInterval", "1 - General", 5, 3, 32, "The ideal number of ticks between each update sweep. (3 ~ 16)!");
+		
+		RealisticFluids.GLOBAL_RATE_MAX = Math.max(RealisticFluids.GLOBAL_RATE_AIM,RealisticFluids.GLOBAL_RATE_MAX);
+		RealisticFluids.GLOBAL_RATE = RealisticFluids.GLOBAL_RATE_AIM;
+		
 		///////////////// FLUID STUFFZ ////////////////
 		//RealisticFluids.LAVA_NETHER = config.getInt("lavaUpdateSpeedNether", "2 - Fluids", 2, 1, 999, "The relative update rate of Lava in the NETHER. Higher values = slower flow, but allow greater volumes");
 		//RealisticFluids.LAVA_UPDATE = config.getInt("lavaUpdateSpeed", "2 - Fluids", 5, 1, 999, "The relative update rate of Lava. Higher values = slower flow, but allow greater volumes");

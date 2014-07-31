@@ -17,6 +17,7 @@ import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.event.world.WorldEvent;
 
 import com.mcfht.realisticfluids.RealisticFluids;
+import com.mcfht.realisticfluids.asm.PatchBlockRegistry;
 import com.mcfht.realisticfluids.util.ChunkDataMap.ChunkCache;
 
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
@@ -58,19 +59,6 @@ import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
  */
 public class UpdateHandler {
 	
-	
-	
-	@SubscribeEvent
-	public void toG(InitNoiseGensEvent event)
-	{
-		StackTraceElement[] stack = Thread.currentThread().getStackTrace();
-		
-		//System.out.println(event.)
-		for (int i = 0; i < stack.length; i++)
-		{
-			System.out.println(i + ": " + stack[i].getClassName() + ", " + stack[i].getMethodName());
-		}
-	}
 	public static final UpdateHandler INSTANCE = new  UpdateHandler();
 	
 	/** Hidden internal tick counter, prevents accidentally changing it during updating etc lol*/
@@ -81,7 +69,7 @@ public class UpdateHandler {
 	public static void incrTick()		{ _tickCounter += 1;	}
 	
 
-	
+	protected long lastTime = 0L;
 	
 	/////////////////////////////////// BLOCK SETTING ///////////////////////////////////////////////////
 	/* Vanilla world.setBlock calls are not necessarily thread reliable. This implementation allows us to schedule updates
@@ -90,20 +78,57 @@ public class UpdateHandler {
 	 * ONLY FLAG IMMEDIACY FROM AN ENVIRONMENT WHERE WE ARE DEFINITELY THREAD SAFE!!!
 	 */
 
+	/**
+	 * Marks block for update in world coordinates. Assumes block is fluid! Thread Safe.
+	 * 
+	 * FIXME: Add version which gets passed data structures innately
+	 * @param w
+	 * @param x
+	 * @param y
+	 * @param z
+	 */
+	public static void markBlockForUpdate(World w, int x, int y, int z)
+	{
+		//First ensure the target chunk is loaded and mapped
+		//TODO Map chunks during load, pass parameter as entry
+		Chunk c = w.getChunkFromChunkCoords(x >> 4, z >> 4);
+		
+		if (!c.isChunkLoaded)
+			c = w.getChunkProvider().provideChunk(x >> 4, z >> 4); //Ensure we can mark the updates
+		
+		if (ChunkDataMap.worldCache.get(w) == null)
+			ChunkDataMap.worldCache.put(w, new ChunkCache());
+		
+		ChunkDataMap cc = ChunkDataMap.worldCache.get(w).chunks.get(c);
+		if (cc == null)
+		{
+			cc = new ChunkDataMap(w,  c);
+			ChunkDataMap.worldCache.get(w).chunks.put(c, cc);
+		}
+		//Register the update
+		int xx = x & 0xF;
+		int yy = y & 0xF;
+		int zz = z & 0xF;
+		int i = xx + (zz << 4) + (yy << 8);
+		//System.out.println("Scheduled update for " + i + " - " + x + ", " + y + ", " + z + " => " + (y >> 4));
+				
+		cc.updateCounter[y >> 4] = true;
+		cc.updateFlags[y >> 4][i] = true;
+		//++cc.updateCounter[y >> 4];
+	}
 	
 	public static void setBlock(World w, Chunk c, ExtendedBlockStorage ebs, int x, int y, int z, Block b, int m, int flag)
 	{
 		int _flag = flag < 0 ? -flag : flag;
-		if (_flag >= 2)
-		{
-			w.markBlockForUpdate(x, y, z);
-		}
-		if (_flag >= 3)
-		{
-			w.notifyBlockChange(x, y, z, b);
-		}
 		
-		x &= 0xF; y &= 0xF; z &= 0xF;
+		if (_flag >= 2)
+			w.markBlockForUpdate(x, y, z);
+		if (_flag >= 3)
+			w.notifyBlockChange(x, y, z, b);
+		
+		x &= 0xF; 
+		y &= 0xF; 
+		z &= 0xF;
 		
 		//EXTREME HAX
 		if (ebs == null)
@@ -111,18 +136,18 @@ public class UpdateHandler {
 			if (b != null)
 				w.setBlock(x, y, z, b, m, flag);
 			else
-			{
+			{	
 				w.setBlockMetadataWithNotify(x, y, z, m, flag);
 			}
 			return;
 		}
+		
 		ebs.setExtBlockMetadata(x, y, z, m);
 		if (b != null) ebs.func_150818_a(x, y, z, b);
 		
+		//Allow skipping relights
 		if (flag > 0)
-		{
 			c.updateSkylightColumns[x + (z << 4)] = true;
-		}
 	}
 	
 	/**
@@ -132,8 +157,8 @@ public class UpdateHandler {
 	 * <p>Only supports flags 2 and 3, however negative versions will skip lighting recalculations.
 	 * 
 	 * <p>Flag immediacy for fluid updates. Updates with no immediate time requirement
-	 * AND a need for utter concurrency SHOULD be called as "not immediate" (where they will be set by the server
-	 * at the end of the tick).
+	 * AND a need for guaranteed concurrency SHOULD be called as "not immediate" (where they will be set by the server
+	 * at the end of the current tick).
 	 * 
 	 * @param w
 	 * @param x
@@ -146,21 +171,17 @@ public class UpdateHandler {
 	 */
 	public static void setBlock(World w, int x, int y, int z, Block b, int m, int f, boolean immediate)
 	{
-		
 		Chunk c = w.getChunkFromChunkCoords(x >> 4, z >> 4);
 		if (c == null || !c.isChunkLoaded)
 		{
-			//c = world.getChunkProvider().provideChunk(x >> 4, z >> 4);
-			c = w.getChunkProvider().loadChunk(x >> 4, z >> 4);
+			c = w.getChunkProvider().provideChunk(x >> 4, z >> 4);
 		}
 		ExtendedBlockStorage ebs = c.getBlockStorageArray()[y >> 4];
-		
 		if (!immediate)
 		{
 			BlockTask.blockTasks.add(new BlockTask(w, c, ebs, x, y, z, b, m, f));
 			return;
 		}
-		
 		setBlock(w, c, ebs, x, y, z, b, m, f);
 	}
 	
@@ -186,7 +207,6 @@ public class UpdateHandler {
 		}
 	}
 	
-	
 	/**
 	 * Block Task Object for multiple thread access stuffs
 	 * @author FHT
@@ -208,7 +228,6 @@ public class UpdateHandler {
 			setBlock(w, c, ebs, x, y, z, b, m, f);
 			return true;
 		}
-		
 		public boolean equals(BlockTask b)
 		{
 			if (b.x == x && b.y == y && b.z == z)
@@ -217,7 +236,6 @@ public class UpdateHandler {
 		}
 	}
 
-	
 	/**
 	 * Clean up after ourselves when a chunk is unloaded.
 	 * @param event
@@ -245,6 +263,9 @@ public class UpdateHandler {
 	@SubscribeEvent
 	public void worldUnload(WorldEvent.Unload event)
 	{
+		//Just to be safe
+		PatchBlockRegistry.counter = 0;
+		
 		if (ChunkDataMap.worldCache.get(event.world) != null)
 		{
 			for (ChunkDataMap c : ChunkDataMap.worldCache.get(event.world).chunks.values())
@@ -260,18 +281,31 @@ public class UpdateHandler {
 	@SubscribeEvent
 	public void serverTick(ServerTickEvent event)
 	{
-		if (event.phase != Phase.END) return;
-		
-		long time = System.currentTimeMillis();
-		//incrTick();
 		_tickCounter += 1;
-		
 		Equalizer.WORKER.run();
 		
-		if ((tickCounter() % RealisticFluids.GLOBAL_RATE)  == 0)
+		if (event.phase == Phase.START)
+		{
+			long timeCost = System.currentTimeMillis() - lastTime;
+			if (lastTime > 0)
+				if (timeCost > 500)
+				{
+					++RealisticFluids.GLOBAL_RATE;
+					RealisticFluids.GLOBAL_RATE = Math.min(RealisticFluids.GLOBAL_RATE,RealisticFluids.GLOBAL_RATE_MAX);
+				}else
+				if (timeCost < 40 && (_tickCounter % RealisticFluids.GLOBAL_RATE)  == 1)
+				{
+					--RealisticFluids.GLOBAL_RATE;
+					RealisticFluids.GLOBAL_RATE = Math.max(RealisticFluids.GLOBAL_RATE,RealisticFluids.GLOBAL_RATE_AIM);
+				}
+			lastTime = System.currentTimeMillis();
+		}
+		
+		//System.out.println("Doing tick");
+		if (event.phase == Phase.END && (tickCounter() % RealisticFluids.GLOBAL_RATE)  == 0)
 		{
 			int tickQuota;
-			//System.out.println("Doingerizing");
+			//System.out.println("Doingerizing Update sweep!");
 			
 			//FIND CHUNKS
 			for (World w : MinecraftServer.getServer().worldServers)
@@ -291,17 +325,11 @@ public class UpdateHandler {
 						int dist = x * x + z * z; //Distance for distance testing
 						if (dist <= RealisticFluids.UPDATE_RANGE) map.priority.add(c);
 						else if (dist <= RealisticFluids.UPDATE_RANGE_FAR) 
-						{	
-							if (map.distant.size() < 256)
+							if (map.distant.size() < 256) //prevent leaking
 								map.distant.add(c);
-						}
 					}
 				}
-			
 			}
-
-			
-			
 			
 			//Leave a minimum number of ticks per world per player (should cover a couple of chunks)
 			tickQuota = RealisticFluids.MAX_UPDATES/Math.max(1, MinecraftServer.getServer().getCurrentPlayerCount());
@@ -309,16 +337,12 @@ public class UpdateHandler {
 			FluidWorkers.PWorker.quota = tickQuota;
 			FluidWorkers.PWorker.myStartTime = tickCounter(); //MAKE SURE WE REMEMBER THE TICK
 			FluidWorkers.PWorker.worlds = MinecraftServer.getServer().worldServers.clone();
-			
 			FluidWorkers.PRIORITY.run();
-			
+
 			//FluidWorkers.TWorker.quota = tickQuota;
 			FluidWorkers.TWorker.myStartTime = tickCounter(); //MAKE SURE WE REMEMBER THE TICK
 			FluidWorkers.TWorker.worlds = MinecraftServer.getServer().worldServers.clone();
-			
 			FluidWorkers.TRIVIAL.run();
-			
-			
 		}	
 		
 		//Set blocks for a little bit on the server thread
@@ -326,32 +350,37 @@ public class UpdateHandler {
 		//NOTE: This is 100% utterly thread safe.
 		int toPerform =  BlockTask.blockTasks.size()/16;
 			toPerform = toPerform < 32 ? 32 : toPerform;
-			
-		boolean flagout = false;
-		
+
 		//Prevent lagging the system by allocating a fixed amount of time
-		while (System.currentTimeMillis() - time < 10 && BlockTask.blockTasks.size() > 0)
+		while (System.currentTimeMillis() - lastTime < 10 && BlockTask.blockTasks.size() > 0)
 		{
 			for (int i = 0; i < Math.min(toPerform, BlockTask.blockTasks.size()); i++)
 			{
 				BlockTask.blockTasks.remove().set();
 			}
 		}
-		
 	}
-	
-	
+
 	//@SubscribeEvent
 	public void clientTick(ClientTickEvent event)
 	{
 		if (event.phase == Phase.START) return;
-		
 		Random r = new Random();
 		//Every few seconds
 		if (r.nextInt(40) == 0)
 		{
+			//Iterate over the chunks around each player!
+			//FIND CHUNKS
+			for (World w : MinecraftServer.getServer().worldServers)
+			{
+				if (w.playerEntities == null || w.playerEntities.size() == 0) continue;
+				for (Object p : w.playerEntities)
+				{
+					EntityPlayer player = (EntityPlayer) p;
+					///???
+				}
 			
-			
+			}
 			
 			
 		}

@@ -48,14 +48,14 @@ public class BlockGenWaterReplacer extends BlockFiniteFluid
 		//in all but function.
 		
 		ExtendedBlockStorage ebs0 = w.getChunkFromChunkCoords(x >> 4,  z >> 4).getBlockStorageArray()[y>>4];
-		if (y <= 0) ebs0.func_150818_a(x & 0xF, y & 0xF, z & 0xF, RealisticFluids.finiteWater);
+		if (y <= 0) ebs0.func_150818_a(x & 0xF, y & 0xF, z & 0xF, Blocks.water);
 		ExtendedBlockStorage ebs1 = ebs0;
 		if ((y > 1) && (y-1) >> 4 != y >> 4){
 			ebs1 = w.getChunkFromChunkCoords(x >> 4,  z >> 4).getBlockStorageArray()[(y-1)>>4];
 		}
 		if (ebs1.getBlockByExtId(x & 0xF, (y-1) & 0xF, z & 0xF).getMaterial() == Material.water)
 		{
-			ebs0.func_150818_a(x & 0xF, y & 0xF, z & 0xF, RealisticFluids.finiteWater);
+			ebs0.func_150818_a(x & 0xF, y & 0xF, z & 0xF, Blocks.water);
 			//world.setBlock(x, y, z, FiniteWater.finiteWater);
 		}else
 		{
@@ -75,14 +75,14 @@ public class BlockGenWaterReplacer extends BlockFiniteFluid
 		//in all but function.
 		
 		ExtendedBlockStorage ebs0 = w.getChunkFromChunkCoords(x >> 4,  z >> 4).getBlockStorageArray()[y>>4];
-		if (y <= 0) ebs0.func_150818_a(x & 0xF, y & 0xF, z & 0xF, RealisticFluids.finiteWater);
+		if (y <= 0) ebs0.func_150818_a(x & 0xF, y & 0xF, z & 0xF, Blocks.water);
 		ExtendedBlockStorage ebs1 = ebs0;
 		if ((y > 1) && (y-1) >> 4 != y >> 4){
 			ebs1 = w.getChunkFromChunkCoords(x >> 4,  z >> 4).getBlockStorageArray()[(y-1)>>4];
 		}
 		if (ebs1.getBlockByExtId(x & 0xF, (y-1) & 0xF, z & 0xF).getMaterial() == Material.water)
 		{
-			ebs0.func_150818_a(x & 0xF, y & 0xF, z & 0xF, RealisticFluids.finiteWater);
+			ebs0.func_150818_a(x & 0xF, y & 0xF, z & 0xF, Blocks.water);
 			//world.setBlock(x, y, z, FiniteWater.finiteWater);
 		}else
 		{
@@ -101,7 +101,7 @@ public class BlockGenWaterReplacer extends BlockFiniteFluid
 		{
 			w.setBlock(x,y,z,Blocks.water);
 		}
-		w.setBlock(x, y, z, RealisticFluids.finiteWater);
+		w.setBlock(x, y, z, Blocks.water);
 	}
 	
 }

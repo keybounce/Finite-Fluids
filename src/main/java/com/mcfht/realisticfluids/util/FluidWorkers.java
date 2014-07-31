@@ -35,11 +35,11 @@ public class FluidWorkers {
 		public int myStartTime;
 		public int quota;
 		public World[] worlds;
-		
+		public boolean running = false;
 		
 		@Override
-		public void run() {
-			
+		public void run() 
+		{
 			for (World world : worlds)
 			{
 				//There are no players, so there is no point
@@ -50,7 +50,6 @@ public class FluidWorkers {
 				if (map.priority.size() <= 0) continue;
 				
 				int ticksLeft = quota + RealisticFluids.FAR_UPDATES; //Give ourselves a tick quota
-				
 				//Thread no. 1
 				//Start with priority chunks!
 				for (Chunk c : map.priority)
@@ -76,15 +75,16 @@ public class FluidWorkers {
 		public int myStartTime;
 		public int quota;
 		public World[] worlds;
+		public boolean running = false;
 		
 		@Override
 		public void run() 
 		{
+			
 			for (World world : worlds)
 			{
 				//There are no players, so there is no point
 				if (world.playerEntities == null || world.playerEntities.size() == 0) continue;
-
 				ChunkCache map = ChunkDataMap.worldCache.get(world);
 				if (map == null) continue;
 				if (map.priority.size() <= 0) continue;
@@ -104,6 +104,8 @@ public class FluidWorkers {
 					ticksLeft -= doTask(world, c, t, false, myStartTime);
 				}
 			}
+				
+			
 		}
 	}
 
@@ -129,22 +131,21 @@ public class FluidWorkers {
 			//First of all, let's perform our own random ticks (maor control)
 			//do evaporation, seeping, refilling in rain, and so on.
 			doRandomTicks(w, c, d, i, 3, isHighPriority);
-			
 			//No updates, exit
-			if (d.updateCounter[i] == 0)
+			if (!d.updateCounter[i])
 				continue;
 
 			//cost += Math.max(16, t.updateCounter[i] >> 6); //Moved this to the end
 			
-			//Reset the counter
-			d.updateCounter[i] = 0;
-			//Count the updates which occur
-			int counter = 0;
+			//Reset the cube flag
+			d.updateCounter[i] = false;
+						
 			/////////////////////////////////////////////////////////////////////////////////////
 			for (int j = 0; j < 4096; j++)
 			{
 				if (d.updateFlags[i][j])
 				{
+					cost++;
 					//Un-flag this block
 					d.updateFlags[i][j] = false;
 			
@@ -159,17 +160,12 @@ public class FluidWorkers {
 						//Tick the water block
 						((BlockFiniteFluid) b).doUpdate(w, x, y, z, w.rand, interval);
 					}
-					counter++;
+					
 				}
 			}
-			cost += counter;
 		}
-		//c.needsSaving(true);
-		//world.markBlockForUpdate((c.xPosition <<  4) + 1, 1, (c.zPosition <<  4) + 1);
-		//if (!isHighPriority && w.rand.nextBoolean()) c.sendUpdates = true;
 		//TODO: Make distant chunks re-render
-		
-		return Math.max(16, 1 + (cost >> 6));
+		return cost;
 	}
 
 	/**
@@ -215,7 +211,7 @@ public class FluidWorkers {
 				if (w.getBlock(x, y+1, z) != Blocks.air) continue;
 				
 				int level = d.getWaterLevel(w, c, x, y, z);
-				if (level < RealisticFluids.MAX_FLUID -  (RealisticFluids.MAX_FLUID >> 4))
+				if (level < RealisticFluids.MAX_FLUID -  (RealisticFluids.MAX_FLUID/16)) //gets compiled away to ~15'000
 				{
 					Equalizer.addTask
 					(w,	( c.xPosition << 4) + x, y,	( c.zPosition << 4) + z,
@@ -254,7 +250,7 @@ public class FluidWorkers {
 				}
 				else
 				{
-					w.setBlock(xx, y, zz, RealisticFluids.finiteWater);
+					w.setBlock(xx, y, zz, Blocks.water);
 					BlockFiniteFluid f = (BlockFiniteFluid) c.getBlock(x, y, z);
 					f.setLevel(w, xx, y, zz, f.viscosity, true);
 				}
@@ -262,7 +258,7 @@ public class FluidWorkers {
 		}
 
 		//Make water evaporate in deserts?
-		if (b == RealisticFluids.finiteWater &&  biome.temperature > 1F)
+		if (b.getMaterial() == Material.water &&  biome.temperature > 1F)
 		{
 			System.out.println("Evaporating..");
 			BlockFiniteFluid f = (BlockFiniteFluid) b;

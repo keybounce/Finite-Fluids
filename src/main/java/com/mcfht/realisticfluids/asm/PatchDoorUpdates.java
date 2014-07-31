@@ -46,8 +46,6 @@ public class PatchDoorUpdates implements ASMPatchTask{
 			}
 			
 		}
-		
-		System.out.println("Patched doors!");
 		return classNode;
 	}
 

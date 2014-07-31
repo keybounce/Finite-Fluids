@@ -22,7 +22,9 @@ import com.mcfht.realisticfluids.fluids.BlockFiniteFluid;
  */
 public class Equalizer {
 
-	public static final Thread WORKER = new Thread(new Worker());
+	public static final Worker EqualizeWorker = new Worker();
+	public static final Thread WORKER = new Thread(EqualizeWorker);
+	
 	
 	protected static ConcurrentLinkedQueue<EqualizationTask> tasks = new ConcurrentLinkedQueue<EqualizationTask>();
 	//private static ArrayList<EqualizationTask> tasks = new ArrayList<EqualizationTask>();
@@ -44,8 +46,8 @@ public class Equalizer {
 	
 	public static void addTask(World w, int x, int y, int z, BlockFiniteFluid f, int distance)
 	{
-		//Prevent leaking
-		if (tasks.size() > RealisticFluids.EQUALIZE_GLOBAL)
+		//Prevent over-filling the queue
+		if (tasks.size() > 4*RealisticFluids.EQUALIZE_GLOBAL)
 		{
 			//if (w.rand.nextInt(10) == 0) System.err.println("The water equalizer is running behind!");
 			return;
@@ -67,17 +69,24 @@ public class Equalizer {
 		return false;
 	}
 	
-	private static class Worker implements Runnable
+	public static class Worker implements Runnable
 	{
 		public int myStartTime;
+		public boolean running = false;
+
 		
 		@Override
-		public void run() {
-			for (int i = 0; i < Math.min(tasks.size(), RealisticFluids.EQUALIZE_GLOBAL); i++)
+		public void run() 
+		{
+			long startTime = System.currentTimeMillis();
+			int i = 0;
+			while ((tasks.size() > 0 && System.currentTimeMillis() - startTime < 10 )|| (i++ < RealisticFluids.EQUALIZE_GLOBAL))
 			{
 				equalize(0);
 			}
 			tasks.clear();
-		}		
+		}
+			
+		
 	}	
 }
