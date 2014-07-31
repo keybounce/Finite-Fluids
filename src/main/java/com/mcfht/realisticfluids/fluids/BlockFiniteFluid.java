@@ -865,6 +865,11 @@ public class BlockFiniteFluid extends BlockLiquid{
     	return super.setHardness(f);
     }
     @Override
+    public Block setTickRandomly(boolean ticks)
+    {
+    	return super.setTickRandomly(ticks);
+    }
+    @Override
     public Block setLightOpacity(int o)
     {
     	return super.setLightOpacity(o);
