@@ -19,7 +19,8 @@ import org.objectweb.asm.tree.TypeInsnNode;
 
 public class PatchBlockRegistry implements ASMPatchTask{
 
-	public static final String blockDesc = "Lnet/minecraft/block/Block;";
+	//public static final String blockDesc = "Lnet/minecraft/block/Block;";
+	//public static final String blockObfDesc = "aji;";
 	public static final String blockOwner = "com/mcfht/realisticfluids/RealisticFluids";
 	
 	public static int counter = 0;
@@ -59,6 +60,7 @@ public class PatchBlockRegistry implements ASMPatchTask{
 						if (node1.getOpcode() != Opcodes.NEW) continue;
 						LdcInsnNode target = (LdcInsnNode) node0;
 
+						//String newDesc = obfuscated ? blockObfDesc : blockDesc;
 						InsnList toRemove = new InsnList();
 						toRemove.add(node1);
 						//Store the starting node and starting index

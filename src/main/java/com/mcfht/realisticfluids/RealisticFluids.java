@@ -110,7 +110,7 @@ public class RealisticFluids extends DummyModContainer
 	/** Infinite Source block (redstone trigger) */
 	public static Block debugSource;
 	/** Replaces water at gen-time?*/ 
-	public static Block replaceWater 	= 	new BlockGenWaterReplacer(Material.water);
+	//public static Block replaceWater 	= 	new BlockGenWaterReplacer(Material.water);
 	
 	
 	////////////////////////////ASM SETTINGS///////////////////////

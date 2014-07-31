@@ -5,6 +5,8 @@ import java.util.Random;
 import com.mcfht.realisticfluids.RealisticFluids;
 import com.mcfht.realisticfluids.util.UpdateHandler;
 
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockFire;
 import net.minecraft.block.material.Material;
@@ -170,4 +172,50 @@ public class BlockFiniteLava extends BlockFiniteFluid{
 		if (a) return 1;
 		return 0;
 	}
+	
+	
+    @SideOnly(Side.CLIENT)
+    public boolean getCanBlockGrass()
+    {
+        return this.canBlockGrass;
+    }
+    @Override
+    public Block setHardness(float f)
+    {
+    	return super.setHardness(f);
+    }
+
+    public Block c(float f)
+    {
+    	this.setHardness(f);
+    	return super.setHardness(f);
+    }
+    @Override
+    public Block setLightOpacity(int o)
+    {
+    	return super.setLightOpacity(o);
+    }
+    @Override
+    public Block setBlockName(String name)
+    {
+    	return super.setBlockName(name);
+    }
+    @Override 
+    public Block setLightLevel(float f)
+    {
+    	return super.setLightLevel(f);
+    }
+    @Override
+    public Block setBlockTextureName(String tex)
+    {
+    	return super.setBlockTextureName(tex);
+    }
+    @Override
+    public Block disableStats()
+    {
+    	return super.disableStats();
+    }
 }
+
+
+

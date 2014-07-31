@@ -69,6 +69,7 @@ public class BlockFiniteFluid extends BlockLiquid{
 	@Override
 	public void onBlockAdded(World w, int x, int y, int z)
 	{
+		UpdateHandler.markBlockForUpdate(w, x, y, z);
 		setLevel(w, x, y, z, RealisticFluids.MAX_FLUID, true);
 	}
 	
@@ -850,9 +851,43 @@ public class BlockFiniteFluid extends BlockLiquid{
 	}
 	
 	
+	//Because bad stuff seems to be happening when these methods are not present
+	//They should be inherited, but apparently not D:
+	
     @SideOnly(Side.CLIENT)
     public boolean getCanBlockGrass()
     {
         return this.canBlockGrass;
     }
+    @Override
+    public Block setHardness(float f)
+    {
+    	return super.setHardness(f);
+    }
+    @Override
+    public Block setLightOpacity(int o)
+    {
+    	return super.setLightOpacity(o);
+    }
+    @Override
+    public Block setBlockName(String name)
+    {
+    	return super.setBlockName(name);
+    }
+    @Override 
+    public Block setLightLevel(float f)
+    {
+    	return super.setLightLevel(f);
+    }
+    @Override
+    public Block setBlockTextureName(String tex)
+    {
+    	return super.setBlockTextureName(tex);
+    }
+    @Override
+    public Block disableStats()
+    {
+    	return super.disableStats();
+    }
+    
 }
