@@ -95,7 +95,7 @@ public class BlockFiniteFluid extends BlockLiquid{
 			StackTraceElement[] stack = Thread.currentThread().getStackTrace();
 			boolean flag1, flag2;
 			flag1 = b1 instanceof BlockFalling && stack[4].getClassName().equals(EntityFallingBlock.class.getName());
-			flag2 =    stack[5].getClassName().equals(BlockPistonBase.class.getName())
+			flag2 =   stack[5].getClassName().equals(BlockPistonBase.class.getName())
 					|| stack[5].getClassName().equals(BlockPistonExtension.class.getName()
 					);
 			
