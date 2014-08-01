@@ -11,7 +11,6 @@ import net.minecraft.util.IIcon;
 import net.minecraft.world.World;
 
 import com.mcfht.realisticfluids.RealisticFluids;
-import com.mcfht.realisticfluids.util.UpdateHandler;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -22,9 +21,9 @@ import cpw.mods.fml.relauncher.SideOnly;
  * @author FHT
  *
  */
-public class BlockFluidSpawner extends Block{
+public class BlockInfiniteSource extends Block{
 
-	public BlockFluidSpawner(Material material) {
+	public BlockInfiniteSource(Material material) {
 		super(material);
 		this.setTickRandomly(true);
 	}
@@ -49,10 +48,10 @@ public class BlockFluidSpawner extends Block{
 	{
 		if (w.isBlockIndirectlyGettingPowered(x, y, z) || w.isBlockIndirectlyGettingPowered(x, y + 1, z))
 		{
-			w.scheduleBlockUpdate(x, y, z, this, 5 + (UpdateHandler.INSTANCE.tickCounter() % 5));			
+			w.scheduleBlockUpdate(x, y, z, this, 5 + (RealisticFluids.tickCounter() % 5));			
 		}
 	}
-	
+	/*
 	public void updateTick(World w, int x, int y, int z, Random r)
 	{
 		
@@ -95,7 +94,7 @@ public class BlockFluidSpawner extends Block{
 			}
 		}
 	}
-	
+	*/
     @SideOnly(Side.CLIENT)
     public void registerBlockIcons(IIconRegister reg)
     {
@@ -122,7 +121,7 @@ public class BlockFluidSpawner extends Block{
         }
             int i1 = w.getBlockMetadata(x, y, z);
             w.setBlockMetadataWithNotify(x, y, z, (i1 + 1) % 3, 2);
-            w.scheduleBlockUpdate(x, y, z, this, 5 + (UpdateHandler.INSTANCE.tickCounter() % 5));	
+            w.scheduleBlockUpdate(x, y, z, this, 5 + (RealisticFluids.tickCounter() % 5));	
             return true;
         
     }

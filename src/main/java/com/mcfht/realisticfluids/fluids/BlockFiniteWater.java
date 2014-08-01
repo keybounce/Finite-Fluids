@@ -11,7 +11,7 @@ import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
 
-public class BlockFiniteWater extends BlockFiniteFluid {
+public final class BlockFiniteWater extends BlockFiniteFluid {
 
 	public BlockFiniteWater(Material material) {
 		super(material, RealisticFluids.waterVisc, RealisticFluids.WATER_UPDATE);
@@ -73,6 +73,11 @@ public class BlockFiniteWater extends BlockFiniteFluid {
     public Block setHardness(float f)
     {
     	return super.setHardness(f);
+    }
+    public Block c(float f)
+    {
+    	this.blockHardness = f;
+    	return this;
     }
     @Override
     public Block setLightOpacity(int o)

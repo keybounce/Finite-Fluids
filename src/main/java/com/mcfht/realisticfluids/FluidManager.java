@@ -1,4 +1,6 @@
-package com.mcfht.realisticfluids.util;
+package com.mcfht.realisticfluids;
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
@@ -7,23 +9,59 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 
-import com.mcfht.realisticfluids.RealisticFluids;
+import com.mcfht.realisticfluids.FluidData.ChunkCache;
+import com.mcfht.realisticfluids.FluidData.ChunkData;
 import com.mcfht.realisticfluids.fluids.BlockFiniteFluid;
-import com.mcfht.realisticfluids.util.ChunkDataMap.ChunkCache;
 
 /**
  * Handles virtually all fluid calculations. Manages worker threads.
  * @author FHT
  *
  */
-public class FluidWorkers {
+public class FluidManager {
 
+	public static Delegator delegator = new Delegator();
+	
 	public static WorkerPriority PWorker = new WorkerPriority();
 	public static Thread PRIORITY = new Thread(PWorker);
 	
 	public static WorkerPriority TWorker = new WorkerPriority();
 	public static Thread TRIVIAL = new Thread(TWorker);
 	
+	/**
+	 * Delegates tasks to different threads in a not yet existing thread pool
+	 * @author FHT
+	 *
+	 */
+	public static class Delegator implements Runnable
+	{
+		public AtomicInteger sweepCost = new AtomicInteger(0);
+		
+		
+		@Override
+		public void run() {
+			// TODO Auto-generated method stub
+			
+		}
+		
+	}
+	
+	public static class Worker implements Runnable
+	{
+		public boolean forceQuit = false;
+		public boolean isHighPriority;
+		public int myStartTick;
+		public int cost;
+		public ChunkData data;
+		
+		
+		@Override
+		public void run() {
+			cost += doTask(data, isHighPriority, myStartTick);
+			delegator.sweepCost.addAndGet(cost);
+		}
+	
+	}
 	/**
 	 * Thread object to perform high priority updates
 	 * @author 4HT
@@ -45,7 +83,7 @@ public class FluidWorkers {
 				//There are no players, so there is no point
 				if (world.playerEntities == null || world.playerEntities.size() == 0) continue;
 
-				ChunkCache map = ChunkDataMap.worldCache.get(world);
+				ChunkCache map = FluidData.worldCache.get(world);
 				if (map == null) continue;
 				if (map.priority.size() <= 0) continue;
 				
@@ -54,11 +92,11 @@ public class FluidWorkers {
 				//Start with priority chunks!
 				for (Chunk c : map.priority)
 				{
-					ChunkDataMap t = map.chunks.get(c);
-					if (t == null || !c.isChunkLoaded){
+					ChunkData data = map.chunks.get(c);
+					if (data == null || !c.isChunkLoaded){
 						System.out.println("Map was null"); continue;
 					}
-					ticksLeft -= doTask(world, c, t, true, myStartTime);
+					ticksLeft -= doTask(data, true, myStartTime);
 				}
 				map.priority.clear();
 			}
@@ -80,12 +118,11 @@ public class FluidWorkers {
 		@Override
 		public void run() 
 		{
-			
 			for (World world : worlds)
 			{
 				//There are no players, so there is no point
 				if (world.playerEntities == null || world.playerEntities.size() == 0) continue;
-				ChunkCache map = ChunkDataMap.worldCache.get(world);
+				ChunkCache map = FluidData.worldCache.get(world);
 				if (map == null) continue;
 				if (map.priority.size() <= 0) continue;
 				
@@ -98,14 +135,12 @@ public class FluidWorkers {
 					Chunk c = (Chunk) map.distant.poll(); //can we just do 0?
 					map.distant.remove(c);
 					
-					ChunkDataMap t = map.chunks.get(c);
-					if (t == null || !c.isChunkLoaded) continue;
+					ChunkData data = map.chunks.get(c);
+					if (data == null || !c.isChunkLoaded) continue;
 					
-					ticksLeft -= doTask(world, c, t, false, myStartTime);
+					ticksLeft -= doTask(data, false, myStartTime);
 				}
 			}
-				
-			
 		}
 	}
 
@@ -113,11 +148,11 @@ public class FluidWorkers {
 	 * Performs updates within a chunk (or more precisely, a ChunkCache object
 	 * @param w
 	 * @param c
-	 * @param d
+	 * @param data
 	 * @param flag Do heavy equalization?
 	 * @return
 	 */
-	public static int doTask(World w, Chunk c, ChunkDataMap d, boolean isHighPriority, int startTime)
+	public static int doTask(ChunkData data, boolean isHighPriority, int startTime)
 	{
 		int interval = (startTime % RealisticFluids.GLOBAL_RATE);
 		int cost = 0;
@@ -126,39 +161,39 @@ public class FluidWorkers {
 		for (int i = 0; i < 16; i++)
 		{
 			//Don't bother with empty spaces
-			if (c.getBlockStorageArray()[i] == null) continue;
+			if (data.c.getBlockStorageArray()[i] == null) continue;
 			
 			//First of all, let's perform our own random ticks (maor control)
 			//do evaporation, seeping, refilling in rain, and so on.
-			doRandomTicks(w, c, d, i, 3, isHighPriority);
+			doRandomTicks(data, i, 3, isHighPriority);
 			//No updates, exit
-			if (!d.updateCounter[i])
+			if (!data.updateCounter[i] || data.updateFlags[i] == null)
 				continue;
 
 			//cost += Math.max(16, t.updateCounter[i] >> 6); //Moved this to the end
 			
 			//Reset the cube flag
-			d.updateCounter[i] = false;
+			data.updateCounter[i] = false;
 						
 			/////////////////////////////////////////////////////////////////////////////////////
 			for (int j = 0; j < 4096; j++)
 			{
-				if (d.updateFlags[i][j])
+				if (data.updateFlags[i][j])
 				{
 					cost++;
 					//Un-flag this block
-					d.updateFlags[i][j] = false;
+					data.updateFlags[i][j] = false;
 			
 					//Rebuild the coordinates from the array position
-					x = (c.xPosition << 4) + (j & 0xF);
+					x = (data.c.xPosition << 4) + (j & 0xF);
 					y = (i << 4) + ((j >> 8) & 0xF);
-					z = (c.zPosition << 4) + ((j >> 4) & 0xF);
+					z = (data.c.zPosition << 4) + ((j >> 4) & 0xF);
 
-					Block b = w.getBlock(x, y, z);
+					Block b = data.c.getBlock(x & 0xF, y, z & 0xF);
 					if (b instanceof BlockFiniteFluid)
 					{
 						//Tick the water block
-						((BlockFiniteFluid) b).doUpdate(w, x, y, z, w.rand, interval);
+						((BlockFiniteFluid) b).doUpdate(data, x, y, z, data.w.rand, interval);
 					}
 					
 				}
@@ -172,22 +207,22 @@ public class FluidWorkers {
 	 * Perform a specified number of random ticks in the 16x16x16 part of the world.
 	 * @param w
 	 * @param c
-	 * @param d
+	 * @param data
 	 * @param ebsY
 	 * @param number
 	 * @param isHighPriority
 	 */
-	public static void doRandomTicks(World w, Chunk c, ChunkDataMap d, int ebsY, int number, boolean isHighPriority)
+	public static void doRandomTicks(ChunkData data, int ebsY, int number, boolean isHighPriority)
 	{
 
 		int equalizationQuota = isHighPriority ? RealisticFluids.EQUALIZE_NEAR : RealisticFluids.EQUALIZE_FAR; 
 		for (int i = 0; i < number; i++){
 			
-			int x = w.rand.nextInt(16);
-			int y = w.rand.nextInt(16) + (ebsY << 4);
-			int z = w.rand.nextInt(16);
+			int x = data.w.rand.nextInt(16);
+			int y = data.w.rand.nextInt(16) + (ebsY << 4);
+			int z = data.w.rand.nextInt(16);
 			
-			Block b = c.getBlock(x, y, z);
+			Block b = data.c.getBlock(x, y, z);
 			//w.markBlockRangeForRenderUpdate(p_147458_1_, p_147458_2_, p_147458_3_, p_147458_4_, p_147458_5_, p_147458_6_);
 			//Do rainfall and evaporation
 			//First, try to move up a few blocks (aka to the top of stuff)
@@ -200,25 +235,25 @@ public class FluidWorkers {
 			}*/
 			
 			//Only bother doing the next part with fluids
-			if (b instanceof BlockFiniteFluid && Equalizer.tasks.size() < RealisticFluids.EQUALIZE_GLOBAL)
+			if (b instanceof BlockFiniteFluid && FluidEqualizer.tasks.size() < RealisticFluids.EQUALIZE_GLOBAL)
 			{
 				//Make sure we don't overstep the equalization quota, Trivial unless QUOTAS are set low
 				if (equalizationQuota-- <= 0) continue;
 				
 				//Benefit large bodies of water by trying to find surface blocks
-				for (int j = 0; y < 255 && j < 8 && w.getBlock(x, y+1, z) instanceof BlockFiniteFluid; j++) y++;
+				for (int j = 0; y < 255 && j < 8 && data.w.getBlock(x, y+1, z) instanceof BlockFiniteFluid; j++) y++;
 				
-				if (w.getBlock(x, y+1, z) != Blocks.air) continue;
+				if (data.w.getBlock(x, y+1, z) != Blocks.air) continue;
 				
-				int level = d.getWaterLevel(w, c, x, y, z);
+				int level = data.getLevel(x, y, z);
 				if (level < RealisticFluids.MAX_FLUID -  (RealisticFluids.MAX_FLUID/16)) //gets compiled away to ~15'000
 				{
-					Equalizer.addTask
-					(w,	( c.xPosition << 4) + x, y,	( c.zPosition << 4) + z,
-							(BlockFiniteFluid) b, isHighPriority ? RealisticFluids.EQUALIZE_NEAR_R : RealisticFluids.EQUALIZE_FAR_R);
+					FluidEqualizer.addTask
+					(data.w, 
+					( data.c.xPosition << 4) + x, y, ( data.c.zPosition << 4) + z, (BlockFiniteFluid) b, 
+					isHighPriority ? RealisticFluids.EQUALIZE_NEAR_R : RealisticFluids.EQUALIZE_FAR_R);
 				}
 			}
-		
 		}
 	}
 	
@@ -232,6 +267,7 @@ public class FluidWorkers {
 	 * @param z
 	 * @param b
 	 */
+	/*
 	public static void doWaterFun(World w, Chunk c, int x, int y, int z, Block b)
 	{
 		boolean isWater = b != Blocks.air;
@@ -267,5 +303,5 @@ public class FluidWorkers {
 			//ChunkDataMap.setWaterLevel(w, c, x, y, z, ChunkDataMap.getWaterLevel(w, c, x, y, z) - (FiniteWater.MAX_FLUID/3));
 		}
 	}
-	
+	*/
 }
