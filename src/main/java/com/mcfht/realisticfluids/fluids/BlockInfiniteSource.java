@@ -11,7 +11,6 @@ import net.minecraft.util.IIcon;
 import net.minecraft.world.World;
 
 import com.mcfht.realisticfluids.RealisticFluids;
-import com.mcfht.realisticfluids.util.UpdateHandler;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -22,9 +21,9 @@ import cpw.mods.fml.relauncher.SideOnly;
  * @author FHT
  *
  */
-public class BlockFluidSpawner extends Block{
+public class BlockInfiniteSource extends Block{
 
-	public BlockFluidSpawner(Material material) {
+	public BlockInfiniteSource(Material material) {
 		super(material);
 		this.setTickRandomly(true);
 	}
@@ -49,10 +48,10 @@ public class BlockFluidSpawner extends Block{
 	{
 		if (w.isBlockIndirectlyGettingPowered(x, y, z) || w.isBlockIndirectlyGettingPowered(x, y + 1, z))
 		{
-			w.scheduleBlockUpdate(x, y, z, this, 5 + (UpdateHandler.INSTANCE.tickCounter() % 5));			
+			w.scheduleBlockUpdate(x, y, z, this, 5 + (RealisticFluids.tickCounter() % 5));			
 		}
 	}
-	
+	/*
 	public void updateTick(World w, int x, int y, int z, Random r)
 	{
 		
@@ -66,7 +65,7 @@ public class BlockFluidSpawner extends Block{
 			Block b = w.getBlock(x, y-1,z);
 			if (b == Blocks.air)
 			{
-				w.setBlock(x,y-1,z, meta == 1 ? RealisticFluids.finiteWater : RealisticFluids.finiteLava);
+				w.setBlock(x,y-1,z, meta == 1 ? Blocks.water : Blocks.lava);
 				return;
 			}
 			if (b instanceof BlockFiniteFluid)
@@ -79,8 +78,8 @@ public class BlockFluidSpawner extends Block{
 						((BlockFiniteFluid)b).setLevel(w, x, y-1, z, RealisticFluids.MAX_FLUID, true);
 						return;
 					}
-					w.setBlock(x, y-1, z, RealisticFluids.finiteLava, 0, 3);
-					((BlockFiniteFluid)b).setLevel(w, x, y-1, z, RealisticFluids.MAX_FLUID, true, RealisticFluids.finiteWater);
+					w.setBlock(x, y-1, z, Blocks.lava, 0, 3);
+					((BlockFiniteFluid)b).setLevel(w, x, y-1, z, RealisticFluids.MAX_FLUID, true, Blocks.water);
 					
 				}else
 				{//Lava
@@ -89,13 +88,13 @@ public class BlockFluidSpawner extends Block{
 						((BlockFiniteFluid)b).setLevel(w, x, y-1, z, RealisticFluids.MAX_FLUID, true);
 						return;
 					}
-					w.setBlock(x, y-1, z, RealisticFluids.finiteLava, 0, 3);
-					((BlockFiniteFluid)b).setLevel(w, x, y-1, z, RealisticFluids.MAX_FLUID, true, RealisticFluids.finiteLava);
+					w.setBlock(x, y-1, z, Blocks.lava, 0, 3);
+					((BlockFiniteFluid)b).setLevel(w, x, y-1, z, RealisticFluids.MAX_FLUID, true, Blocks.lava);
 				}
 			}
 		}
 	}
-	
+	*/
     @SideOnly(Side.CLIENT)
     public void registerBlockIcons(IIconRegister reg)
     {
@@ -122,7 +121,7 @@ public class BlockFluidSpawner extends Block{
         }
             int i1 = w.getBlockMetadata(x, y, z);
             w.setBlockMetadataWithNotify(x, y, z, (i1 + 1) % 3, 2);
-            w.scheduleBlockUpdate(x, y, z, this, 5 + (UpdateHandler.INSTANCE.tickCounter() % 5));	
+            w.scheduleBlockUpdate(x, y, z, this, 5 + (RealisticFluids.tickCounter() % 5));	
             return true;
         
     }

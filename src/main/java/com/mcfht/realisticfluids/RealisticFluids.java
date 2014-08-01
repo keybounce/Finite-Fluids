@@ -1,19 +1,25 @@
 package com.mcfht.realisticfluids;
 
 import java.util.Arrays;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.world.World;
+import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.event.world.ChunkEvent;
+import net.minecraftforge.event.world.WorldEvent;
 
 import com.google.common.eventbus.EventBus;
 import com.google.common.eventbus.Subscribe;
-import com.mcfht.realisticfluids.fluids.BlockFiniteFluid;
-import com.mcfht.realisticfluids.fluids.BlockFluidSpawner;
-import com.mcfht.realisticfluids.fluids.BlockGenWaterReplacer;
-import com.mcfht.realisticfluids.util.UpdateHandler;
+import com.mcfht.realisticfluids.FluidData.*;
+import com.mcfht.realisticfluids.asm.PatchBlockRegistry;
 
 import cpw.mods.fml.common.DummyModContainer;
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -24,6 +30,9 @@ import cpw.mods.fml.common.ModMetadata;
 import cpw.mods.fml.common.event.FMLConstructionEvent;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.TickEvent.Phase;
+import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
 import cpw.mods.fml.common.registry.GameRegistry;
 
 
@@ -62,6 +71,9 @@ public class RealisticFluids extends DummyModContainer
 	public static int FAR_UPDATES		= 	48; 
 	/** Number of ticks between update sweeps */
 	public static int GLOBAL_RATE		= 	5;
+	/** Max number of ticks between update sweeps */
+	public static int GLOBAL_RATE_MAX	= 	10;
+	public static int GLOBAL_RATE_AIM	= 	5;
 	
 	////////////////////DISTANCE BASED PRIORITIZATION ///////////////////////
 	/** Priority distance*/
@@ -84,15 +96,12 @@ public class RealisticFluids extends DummyModContainer
 	public final static short MAX_FLUID = 	16384; //Note to reader: Explicit final fields get compiled as constants
 	
 	//WATER
-	/** Finite Water Blocks	*/
-	public static Block finiteWater;
 	/** Relative update rate of water*/
 	public static int WATER_UPDATE		= 	1;
 	/** Runniness of water*/
 	public static final int waterVisc 	= 	4;
 	//LAVA
-	/** Finite Lava blocks*/
-	public static Block finiteLava;
+
 	/** update rate of lava in the overworld */ 	
 	public static final int LAVA_UPDATE = 	5;
 	/** update rate of lava in the nether) */		
@@ -100,32 +109,13 @@ public class RealisticFluids extends DummyModContainer
 	/** Runniness of lava*/							
 	public static final int lavaVisc 	= 	3;
 	
-	//OTHER
-	/** Infinite Source block (redstone trigger) */
-	public static Block debugSource;
-	/** Replaces water at gen-time?*/ 
-	public static Block replaceWater 	= 	new BlockGenWaterReplacer(Material.water);
-	
-	
-	////////////////////////////ASM SETTINGS///////////////////////
-	
-													public static boolean ASM_WATER	 	= 	true;
-													public static boolean ASM_DOOR 		= 	true;
+		////////////////////////////ASM SETTINGS///////////////////////
+	public static boolean ASM_DOOR 		= 	true;
 	
 	public RealisticFluids()
 	{
 		super(new ModMetadata());
-		ModMetadata meta 		= getMetadata();
-		meta.modId 				= ModLaunchWrapper.MODID;
-		meta.name 				= ModLaunchWrapper.MODID;
-		meta.version 			= ModLaunchWrapper.VERSION;
-		meta.credits 			= "FHT";
-		meta.authorList 		= Arrays.asList("FHT");
-		meta.description 		= "";
-		meta.url 				= "";
-		meta.updateUrl			= "";
-		meta.screenshots 		= new String[0];
-		meta.logoFile 			= "";
+		FluidModInfo.get(getMetadata());
 	}
 	
 	@Override
@@ -134,33 +124,343 @@ public class RealisticFluids extends DummyModContainer
 		bus.register(this);
 		return true;
 	}
-
     
     @Subscribe
     public void preInit(FMLPreInitializationEvent event)
     {
-    	ConfigHandler.handleConfigs(new Configuration(event.getSuggestedConfigurationFile()));
+    	FluidConfig.handleConfigs(new Configuration(event.getSuggestedConfigurationFile()));
     }
     
     @Subscribe
     public void initEvent(FMLInitializationEvent event)
     {
-    	
-    	finiteWater = 	new BlockFiniteFluid(Material.water, waterVisc, WATER_UPDATE).setCreativeTab(CreativeTabs.tabMisc);
-    	finiteLava 	= 	new BlockFiniteFluid(Material.lava, lavaVisc, LAVA_UPDATE).setCreativeTab(CreativeTabs.tabMisc);
-    	debugSource = 	new BlockFluidSpawner(Material.iron).setCreativeTab(CreativeTabs.tabMisc).setBlockTextureName("water_flowing");
-
-    	GameRegistry.registerBlock(finiteWater, 	"UninfiniteWater");
-    	GameRegistry.registerBlock(finiteLava, 		"UninfiniteLava");
-    	GameRegistry.registerBlock(debugSource, 	"debugSource");
-    	GameRegistry.registerBlock(replaceWater, 	"replaceWater");
-    	
     	//Register event handlers
-    	FMLCommonHandler.instance().bus().register(UpdateHandler.INSTANCE);
-    	MinecraftForge.EVENT_BUS.register(UpdateHandler.INSTANCE);
-    	MinecraftForge.TERRAIN_GEN_BUS.register(UpdateHandler.INSTANCE);
+    	FMLCommonHandler.instance().bus().register(this);
+    	MinecraftForge.EVENT_BUS.register(this);
+
     }
 
+    /**
+     *  How the scheduler works!
+     *  <p>
+     * 	<p><b>1. </b> Select all players, determine a global number of allowed updates to perform
+     * 	depending on the number of players, etcetera.
+     * 	<p><b>2. </b>Iterate over the chunks around the players, starting with the closer chunks and then trying
+     * 	to perform a few updates in some random distant chunks.
 
+     * <p>Within each chunk, we have a boolean map of flags. Boolean array is much faster than bitset, but uses 8xn bytes of
+     * memory. The fluid data array is similar, using 2 bytes. To reduce this, segments are null until accessed.
+     * 
+     * <p><b>ADVANTAGES:</b>
+     * <p>By using a simple array to store flags, we can greatly increase the speed of flagging updates
+     * (as opposed to hashing). Also, by synchronizing updates with each other, it is easier to thread, and we
+     * can eliminate "compounding" updates.
+     * 
+     * 
+     */
+
+	/** Hidden internal tick counter*/
+	private static int _tickCounter = 0;
+	/** Returns the current tick-time of this instance*/
+	public static int tickCounter()		{ return _tickCounter;	}	
+	protected long lastTime = 0L;
+	
+	/////////////////////////////////// BLOCK SETTING ///////////////////////////////////////////////////
+	/* Vanilla world.setBlock calls are not necessarily thread reliable. This implementation allows us to schedule updates
+	 * for the server thread, AND allows us to set blocks a little more reliably in the EBS directly.
+	 * 
+	 * ONLY FLAG IMMEDIACY FROM AN ENVIRONMENT WHERE WE ARE DEFINITELY THREAD SAFE AND DO NOT CARE ABOUT THINGS LIKE
+	 * HEIGHTMAPS AND LIGHTING.
+	 */
+
+	/**
+	 * Marks block for update in world coordinates. Assumes block is fluid! Thread Safe.
+	 * WARNING: THIS STATIC METHOD IS SLOW-ER. Use {@link ChunkData#markUpdate} where possible.
+	 * @param w
+	 * @param x
+	 * @param y
+	 * @param z
+	 */
+	public static void markBlockForUpdate(World w, int x, int y, int z)
+	{
+		//First ensure the target chunk is mapped
+		Chunk c = w.getChunkFromChunkCoords(x >> 4, z >> 4);
+		if (!c.isChunkLoaded)
+			c = w.getChunkProvider().provideChunk(x >> 4, z >> 4); //Ensure we can mark the updates
+		
+		//System.out.println("***********START MARK***********");
+		//System.out.println(" -" +Util.intStr(x, y, z));
+		FluidData.getChunkData(c).markUpdate(x & 0xF, y, z & 0xF);
+	}
+	
+	/**
+	 * Full version of my heavily optimized and stripped set block method. Utterly ignores all kinds
+	 * of updates which only take up out precious clocks, and typically do not matter
+	 * at all when dealing with fluids themselves.
+	 * 
+	 * @param w
+	 * @param c
+	 * @param ebs
+	 * @param x
+	 * @param y
+	 * @param z
+	 * @param b
+	 * @param m
+	 * @param flag
+	 */
+	public static void setBlock(World w, Chunk c, ExtendedBlockStorage ebs, int x, int y, int z, Block b, int m, int flag)
+	{
+		//EXTREME HAX
+		if (ebs == null)
+			ebs = c.getBlockStorageArray()[y>>4] = new ExtendedBlockStorage(y & 0xFFFFFFF0, !c.worldObj.provider.hasNoSky);
+		
+		final int _flag = (flag >> 31) & 0x1;
+		//At CPU level, this costs many less clocks than > or <, since we are targetting specific conditions
+		//if ((flag & 0x2) == (_flag))
+		w.markBlockForUpdate(x, y, z); //Never called without rerender so...
+		if ((flag & 0x1) != (_flag))
+			w.notifyBlockChange(x, y, z, ebs.getBlockByExtId(x & 0xF, y & 0xF, z & 0xF));
+
+		x &= 0xF; y &= 0xF; z &= 0xF;
+		//Warning will not flag changes very far through the system!
+		ebs.setExtBlockMetadata(x, y, z, m);
+		ebs.func_150818_a(x, y, z, b); //If there was a block
+		
+		//Allow skipping relights
+		c.updateSkylightColumns[x + (z << 4)] = (flag & 0x8000000) == 0;
+	}
+	/**
+	 * Same as above, but metadata optimized
+	 * @param w
+	 * @param c
+	 * @param ebs
+	 * @param x
+	 * @param y
+	 * @param z
+	 * @param m
+	 * @param flag
+	 */
+	public static void setMetadata(World w, Chunk c, ExtendedBlockStorage ebs, int x, int y, int z, int m, int flag)
+	{
+		//EXTREME HAX
+		if (ebs == null)
+			//2 bitshifts where one & is enough (2x more overhead lol)... You're slipping Mojang /clinically insane optimizer
+			ebs = c.getBlockStorageArray()[y >> 4] = new ExtendedBlockStorage(y & 0xFFFFFF0, !c.worldObj.provider.hasNoSky);
+		
+		final int _flag = (flag >> 31) & 0x1;
+		//At CPU level, this costs many less clocks than > or <, since we are targetting specific conditions
+		//if ((flag & 0x2) == (_flag))
+		w.markBlockForUpdate(x, y, z);
+		if ((flag & 0x1) != (_flag))
+			w.notifyBlockChange(x, y, z, ebs.getBlockByExtId(x = x & 0xF, y = y & 0xF, z = z & 0xF));
+		
+		//Warning will not flag changes very far through the system. Care when using with other systems!
+		ebs.setExtBlockMetadata(x, y, z, m);
+		//Allow skipping relights
+		c.updateSkylightColumns[x + (z << 4)] = (flag & 0x8000000) == 0;
+	}
+	
+	
+	/**
+	 * Guaranteed thread safe block setting method, directly manipulates EBS, skips some redundant world.setBlock calls,
+	 * allows skipping of light recalculations, and allows unimportant block updates to deferred to the server tick at a later time.
+	 * 
+	 * <p>Only supports flags 2 and 3, however negative versions will skip lighting recalculations.
+	 * 
+	 * <p>Flag immediacy for fluid updates. Immediacy forces all kinds of hacky things, like skipping relights and heightmap updates,
+	 * and hence should ~only~ be used with fluids! Not flagging immediacy will ship the operation out to the server tick,
+	 * where it will eventually be performed (much more thread safe).
+	 * 
+	 * @param w
+	 * @param x
+	 * @param y
+	 * @param z
+	 * @param m
+	 * @param flag : 0 = no update or light, 2 = render update, 3 = block update, <= prevents light recalc
+	 * @param immediate : whether we should do this now, or defer it to the server tick event.
+	 */
+	public static void setBlock(World w, int x, int y, int z, Block b, int m, int flag, boolean immediate)
+	{
+		Chunk c = w.getChunkFromChunkCoords(x >> 4, z >> 4);
+		if (c == null || !c.isChunkLoaded)
+		{
+			c = w.getChunkProvider().provideChunk(x >> 4, z >> 4);
+		}
+		ExtendedBlockStorage ebs = c.getBlockStorageArray()[y >> 4];
+		if (!immediate)
+		{
+			BlockTask.blockTasks.add(new BlockTask(w, c, ebs, x, y, z, b, m, flag));
+			return;
+		}
+		if (b == null)
+			setMetadata(w, c, ebs, x, y, z, m, flag);
+		else
+		setBlock(w, c, ebs, x, y, z, b, m, flag);
+	}
+	
+	public static void setBlockMetadata(World world, int x, int y, int z, int meta, int flag)
+	{
+		setBlock(world, x, y, z, null, meta, flag, true);
+	}
+	
+	public static void setBlock(World world, int x, int y, int z, Block block, int meta, int flag)
+	{
+		setBlock(world, x, y, z, block, meta, flag, true);
+	}
+	/** Simple queue implementation to prevent duplicate entries. TODO Benchmark
+	 * @author FHT
+	 * @param <E>
+	 */
+	static class QueueSet<E> extends ConcurrentLinkedQueue<E>
+	{
+		public boolean add(E e)
+		{
+			if (super.contains(e)) return false;
+			return super.add(e);
+		}
+	}
+	
+	/**
+	 * Block Task Object for multiple thread access stuffs
+	 * @author FHT
+	 *
+	 */
+	private static class BlockTask
+	{
+		public static QueueSet<BlockTask> blockTasks = new QueueSet<BlockTask>();
+		
+		World w; Chunk c; ExtendedBlockStorage ebs; int x; int y; int z; Block b; int m; int f;
+		
+		/** Block Task object to be constructed for thread safe block setting! */
+		BlockTask(World world, Chunk c, ExtendedBlockStorage ebs, int x, int y, int z, Block b, int m,  int flag)
+		{this.w = world; this.c = c; this.ebs = ebs; this.x = x; this.y = y; this.z = z; this.b = b; this.m = m; this.f = flag;}
+		
+		/** Perform this block task. Thread Safe.*/
+		public boolean set()
+		{
+			setBlock(w, c, ebs, x, y, z, b, m, f);
+			return true;
+		}
+		public boolean equals(BlockTask b)
+		{
+			if (b.x == x && b.y == y && b.z == z)
+				return true;
+			return false;
+		}
+	}
+
+	/**
+	 * Clean up after ourselves when a chunk is unloaded.
+	 * @param event
+	 */
+	@SubscribeEvent
+	public void chunkUnload(ChunkEvent.Unload event)
+	{
+		if (FluidData.worldCache.get(event.world) != null)
+		{
+			ChunkData c = FluidData.worldCache.get(event.world).chunks.remove(event.getChunk());
+		}
+	}
+	
+	/**
+	 * Clean up after ourselves when a world is unloaded
+	 * @param event
+	 */
+	@SubscribeEvent
+	public void worldUnload(WorldEvent.Unload event)
+	{
+		//Just to be safe
+		PatchBlockRegistry.counter = 0;
+		
+		if (FluidData.worldCache.get(event.world) != null)
+		{
+			for (ChunkData c : FluidData.worldCache.get(event.world).chunks.values())
+			{
+				FluidData.worldCache.get(event.world).chunks.values().remove(c);
+			}
+		}
+	}
+	
+	@SubscribeEvent
+	public void serverTick(ServerTickEvent event)
+	{
+		_tickCounter += 1;
+		FluidEqualizer.WORKER.run();
+		
+		if (event.phase == Phase.START)
+		{
+			long timeCost = System.currentTimeMillis() - lastTime;
+			if (lastTime > 0)
+				if (timeCost > 500)
+				{
+					GLOBAL_RATE = Math.min(++GLOBAL_RATE,GLOBAL_RATE_MAX);
+				}else
+				if (timeCost < 40 && (_tickCounter % GLOBAL_RATE)  == 1)
+				{
+					GLOBAL_RATE = Math.max(--GLOBAL_RATE,GLOBAL_RATE_AIM);
+				}
+			lastTime = System.currentTimeMillis();
+		}
+		
+		//System.out.println("Doing tick");
+		if (event.phase == Phase.END && (tickCounter() % GLOBAL_RATE)  == 0)
+		{
+			int tickQuota;
+			//System.out.println("Doingerizing Update sweep!");
+			
+			//FIND CHUNKS
+			for (World w : MinecraftServer.getServer().worldServers)
+			{
+				if (w.playerEntities == null || w.playerEntities.size() == 0) continue;
+				for (Object p : w.playerEntities)
+				{
+					EntityPlayer player = (EntityPlayer) p;
+					ChunkCache map 		= FluidData.worldCache.get(w);
+					if (map == null) continue;
+					//iterate over all flagged chunks
+					for (Chunk c : map.chunks.keySet())
+					{	
+						if (!c.isChunkLoaded) continue;//Just to be safe;
+						int x = c.xPosition - (((int)player.posX) >> 4); 
+						int z = c.zPosition - (((int)player.posZ) >> 4); 
+						int dist = x * x + z * z; //Distance for distance testing
+						if (dist <= UPDATE_RANGE) map.priority.add(c);
+						else if (dist <= UPDATE_RANGE_FAR) 
+							if (map.distant.size() < 256) //prevent leaking
+								map.distant.add(c);
+					}
+				}
+			}
+			
+			//Leave a minimum number of ticks per world per player (should cover a couple of chunks)
+			tickQuota = MAX_UPDATES/Math.max(1, MinecraftServer.getServer().getCurrentPlayerCount());
+			
+			FluidManager.PWorker.quota = tickQuota;
+			FluidManager.PWorker.myStartTime = tickCounter(); //MAKE SURE WE REMEMBER THE TICK
+			FluidManager.PWorker.worlds = MinecraftServer.getServer().worldServers.clone();
+			FluidManager.PRIORITY.run();
+
+			//FluidWorkers.TWorker.quota = tickQuota;
+			FluidManager.TWorker.myStartTime = tickCounter(); //MAKE SURE WE REMEMBER THE TICK
+			FluidManager.TWorker.worlds = MinecraftServer.getServer().worldServers.clone();
+			FluidManager.TRIVIAL.run();
+		}	
+		
+		//Set blocks for a little bit on the server thread
+		//This is triggered from using the setBlock call WITHOUT Immediacy
+		//NOTE: This is 100% utterly thread safe.
+		int toPerform =  BlockTask.blockTasks.size()/16;
+			toPerform = toPerform < 32 ? 32 : toPerform;
+
+		//Prevent lagging the system by allocating a fixed amount of time
+		while (System.currentTimeMillis() - lastTime < 10 && BlockTask.blockTasks.size() > 0)
+		{
+			for (int i = 0; i < Math.min(toPerform, BlockTask.blockTasks.size()); i++)
+			{
+				BlockTask.blockTasks.remove().set();
+			}
+		}
+	}
+    	
 	    
 }

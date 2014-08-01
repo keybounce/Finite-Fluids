@@ -26,7 +26,6 @@ public class PatchDoorUpdates implements ASMPatchTask{
 		{
 			MethodNode m = methods.next();
 			AbstractInsnNode node0 = null;
-			
 			@SuppressWarnings("unchecked")
 			Iterator<AbstractInsnNode> iter = m.instructions.iterator();
 			int index = -1;
@@ -46,8 +45,6 @@ public class PatchDoorUpdates implements ASMPatchTask{
 			}
 			
 		}
-		
-		System.out.println("Patched doors!");
 		return classNode;
 	}
 

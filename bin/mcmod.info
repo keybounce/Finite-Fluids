@@ -1,8 +1,8 @@
 [
 {
-  "modid": "finitewaterpatch",
-  "name": "Finite Water Patch",
-  "description": "Water Overhaul",
+  "modid": "realisticfluids",
+  "name": "Realistic Fluids Overhaul",
+  "description": "Realistic Fluids Overhaul",
   "version": "${version}",
   "mcversion": "${mcversion}",
   "url": "",
