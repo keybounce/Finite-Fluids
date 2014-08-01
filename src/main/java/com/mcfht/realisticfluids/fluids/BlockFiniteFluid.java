@@ -76,7 +76,7 @@ public class BlockFiniteFluid extends BlockLiquid{
 	@Override
 	public void onNeighborBlockChange(World w, int x, int y, int z, Block b)
 	{
-		if (!isSameFluid(this, b))
+		//if (!isSameFluid(this, b))
 			RealisticFluids.markBlockForUpdate(w, x, y, z);
 	}
 
@@ -99,7 +99,6 @@ public class BlockFiniteFluid extends BlockLiquid{
 					|| stack[5].getClassName().equals(BlockPistonExtension.class.getName()
 					);
 			
-			//System.out.println("Displace? " + flag1 + " - " + flag2 + " - " + (flag1 || flag2));
 			if (flag1 || flag2)
 				displace(data, x, y, z, m);
 
@@ -170,14 +169,13 @@ public class BlockFiniteFluid extends BlockLiquid{
 			//Ensure we do not flow out of the w
 			if (y1 < 0 || y1 > 255)
 			{
-				System.err.println("Fluid is flowing out of the world!");
 				FluidData.setLevelWorld(data, this, x0, y0, z0, 0, true);
 				return;
 			}
 			//Now check if we can flow into the block below, etcetera
 			Block b1 = data.c.getBlock(x0 & 0xF, y1, z0 & 0xF);
 			int l1 = FluidData.getLevel(data, this, x0 & 0xF, y1, z0 & 0xF);
-			if (l1 > 0) efVisc = viscosity >> 2; //If there is already fluid below, we can flow a little better
+			if (l1 > 0) efVisc = viscosity >> 4; //Emulate surface tension
 			byte b = checkFlow(data, x0, y0, z0, 0, -1, 0, b1, data.c.getBlockMetadata(x0 & 0xF, y1, z0 & 0xF), l0);
 			if (b != 0)
 			{
@@ -240,9 +238,9 @@ public class BlockFiniteFluid extends BlockLiquid{
 						{
 							int flow = (l0 - l1)/2;
 							if (diag) flow -= flow/3; 
-							if (flow > 0 && l0 - flow >= efVisc && l1 + flow >= efVisc)
+							if (flow >= 4 && l0 - flow >= efVisc && l1 + flow >= efVisc)
 							{
-								//System.out.println(" ");
+								//System.err.println("*************");
 								//System.err.println("Flowing horizontally : " + l0 + ", " + l1 + " => " + flow);
 								
 								l0 -= flow;
@@ -262,11 +260,14 @@ public class BlockFiniteFluid extends BlockLiquid{
 							{
 								if (b2 == Blocks.air || isSameFluid(this, b2))
 								{
-									System.out.println("Pushing fluid over edge -> " + l0 + ", " + data.getLevel(x1 & 0xF, y0, z1 & 0xF));
+									//System.out.println("Pushing fluid over edge -> " + l0 + ", " + data.getLevel(x1 & 0xF, y0, z1 & 0xF));
 									FluidData.setLevelWorld(data, this, x1, y0, z1, l0, true);
+									FluidData.setLevelWorld(data, this, x0, y0, z0, 0, true);
+									//l0 = 0;
 									l0 = 0;
-									
-									System.out.println("Pushed fluid over edge -> " + l0 + ", " + data.getLevel(x1 & 0xF, y0, z1 & 0xF));
+									_l0 = 0;
+									FluidData.markNeighborsDiagonal(data, x1, y0, z1); //Update other blocks to fall in hole!
+									//System.out.println("Pushed fluid over edge -> " + l0 + ", " + data.getLevel(x1 & 0xF, y0, z1 & 0xF));
 									
 									return;
 								}

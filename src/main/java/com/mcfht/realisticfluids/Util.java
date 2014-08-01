@@ -96,7 +96,7 @@ public class Util {
 	
 	public static int getMetaFromLevel(int l)
 	{
-		return Math.min(7, 8 - (l / (RealisticFluids.MAX_FLUID >> 3)));
+		return Math.max(0, 7 - (l / (RealisticFluids.MAX_FLUID >> 3)));
 	}
 
 }

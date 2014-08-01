@@ -289,7 +289,7 @@ public class FluidEqualizer {
 			if (data != null)
 			{
 				//System.out.println(" - Starting linear equalizer");
-				//directionalAverageDo(data, f0, x0, y0, z0, distance, 3);
+				directionalAverageDo(data, f0, x0, y0, z0, distance, 3);
 			}
 		}
 		/**
@@ -311,6 +311,11 @@ public class FluidEqualizer {
 			int sum = 0; int counter = 0;
 			final int skew = data.w.rand.nextInt(8);
 			
+			//Make 100% sure the targets are valid
+			if (data.fluidArray[y0 >> 4] == null) data.fluidArray[y0 >> 4] = new short[4096];
+			if (data.fluidArray[(y0-1) >> 4] == null) data.fluidArray[(y0-1) >> 4] = new short[4096];
+			else if (data.fluidArray[(y0-2) >> 4] == null) data.fluidArray[(y0-1) >> 4] = new short[4096];
+			
 			//boolean undermine = false;
 			//Start from a random direction and rotate around in 3 semi-random directions
 			for (int dir = 0; dir < 8 && counter < branches; dir++)
@@ -326,6 +331,11 @@ public class FluidEqualizer {
 								
 				data = FluidData.testCurrentChunkData(data, x0 + dx, z0 + dx);
 				if (data == null || !data.c.isChunkLoaded) break;
+				
+				if (data.fluidArray[y0 >> 4] == null) data.fluidArray[y0 >> 4] = new short[4096];
+				if (data.fluidArray[(y0-1) >> 4] == null) data.fluidArray[(y0-1) >> 4] = new short[4096];
+				else if (data.fluidArray[(y0-2) >> 4] == null) data.fluidArray[(y0-1) >> 4] = new short[4096];
+				
 				
 				//Similar neighbor => probably large flat area, not for this algorithm.
 				if (Math.abs(FluidData.getLevel(data, f0, (x0 + dx) & 0xF, y0, (z0 + dz) & 0xF) - l0) < f0.viscosity >> 5) continue;
@@ -380,33 +390,41 @@ public class FluidEqualizer {
 					{
 						//TODO MAKE A METHOD CALLED "fillFromBottom"
 						//Retrieve the level below
-						int lN = data.fluidArray[(y0 - 1) >> 4][index - 256];
+						
+						//int lN = data.fluidArray[(y0 - 1) >> 4][index - 256];
+						int lN = data.getLevel(x1 & 0xF, y0 - 1, z1 & 0xF);
 						if (lN == 0) //No marked level, so read it from metadata
 						{
-							lN = data.c.getBlockMetadata(x1 & 0xF, y0, z1 & 0xF);
+							lN = data.c.getBlockMetadata(x1 & 0xF, y0 - 1, z1 & 0xF);
 							if (lN >= 7) lN = f0.viscosity;
 							else lN = (8 - lN) * (RealisticFluids.MAX_FLUID >> 3);
 						}
 						
-						data.fluidArray[y0 >> 4][index] = (short) (Math.min(RealisticFluids.MAX_FLUID, lN + sum));
-						int[] result = {lN + sum, Math.max(0, lN + sum - RealisticFluids.MAX_FLUID)};
 						
+						//data.fluidArray[y0 >> 4][index] = (short) (Math.min(RealisticFluids.MAX_FLUID, lN + sum));
+						int[] result = {lN + sum, Math.max(0, lN + (sum/dist) - RealisticFluids.MAX_FLUID)};
+						
+						FluidData.setLevelWorld(data, f0, x1, y0 - 1, z1, result[0], true);
+						FluidData.setLevelWorld(data, f0, x1, y0, z1, result[1], true);
 						//Now update the blocks accordingly
-						int mN = Util.getMetaFromLevel(result[0]);
-						RealisticFluids.setBlock(data.w, x1 & 0xF, y0 - 1, z1 & 0xF, null, mN, 2);
+						//int mN = Util.getMetaFromLevel(result[0]);
+						//RealisticFluids.setBlock(data.w, x1, y0 - 1, z1, null, mN, 2);
 						//data.c.setBlockMetadata(x1 & 0xF, y0 - 1, z1 & 0xF, mN, 2);
 						
 						//If there was water left, put it above
-						data.fluidArray[y0 >> 4][index] = (short) result[1];
+						//data.setLevel(x1 & 0xF, y0, z1 & 0xF, result[1]);
+						//data.fluidArray[y0 >> 4][index] = (short) result[1];
 						
-						if (result[1] > 0) 
-							RealisticFluids.setBlock(data.w, x1, y0, z1, f0, Util.getMetaFromLevel(result[1]), 3); //Trigger an update! Note that this block was air
+						//if (result[1] > 0) 
+						//	RealisticFluids.setBlock(data.w, x1, y0, z1, f0, Util.getMetaFromLevel(result[1]), 3); //Trigger an update! Note that this block was air
 					}
 					else //If we are trying to flow into an empty block (the first loop ensures that this flow is itself valid)
 					if (data.c.getBlock(x1 & 0xF, y0, z1 & 0xF) == Blocks.air)
 					{
-						data.fluidArray[y0 >> 4][index] = (short) (sum/dist);
-						RealisticFluids.setBlock(data.w, x1, y0, z1, f0, Util.getMetaFromLevel(sum/dist), 3);
+						//data.fluidArray[y0 >> 4][index] = (short) (sum/dist);
+						FluidData.setLevelWorld(data, f0, x1, y0, z1, sum/dist, true);
+						//data.setLevel(x1 & 0xF, y0, z1 & 0xF, sum/dist);
+						//RealisticFluids.setBlock(data.w, x1, y0, z1, f0, Util.getMetaFromLevel(sum/dist), 3);
 						//setLevel(w, x1, y0-1, z1, sum / dist, true);
 					}
 				}

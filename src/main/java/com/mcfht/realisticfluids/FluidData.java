@@ -17,6 +17,7 @@ import com.mcfht.realisticfluids.fluids.BlockFiniteFluid;
 
 
 
+
 import scala.reflect.internal.util.Set;
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
@@ -168,12 +169,18 @@ public class FluidData {
 	 */
 	public static void markNeighbors(ChunkData data, int x, int y, int z)
 	{
-		for (int i = 0; i < 4; i++)
-			RealisticFluids.markBlockForUpdate(data.w, (x + Util.cardinalX(i)), y, (z + Util.cardinalZ(i)));
 		if (y < 255)
 			data.markUpdate(x & 0xF, y+1, z & 0xF);
 		if (y > 0)
 			data.markUpdate(x & 0xF, y-1, z & 0xF);
+		
+		for (int i = 0; i < 4; i++)
+		{
+			int x1 = (x + Util.cardinalX(i)), z1 = (x + Util.cardinalZ(i));
+			data = FluidData.forceCurrentChunkData(data, x, z);
+			data.markUpdate(x1 & 0xF, y, z1 & 0xF);
+		}
+
 	}
 	
 	/**
@@ -185,12 +192,17 @@ public class FluidData {
 	 */
 	public static void markNeighborsDiagonal(ChunkData data, int x, int y, int z)
 	{
-		for (int i = 0; i < 8; i++)
-			RealisticFluids.markBlockForUpdate(data.w, (x + Util.intDirX(i)), y, (z + Util.intDirZ(i)));
 		if (y < 255)
 			data.markUpdate(x & 0xF, y+1, z & 0xF);
 		if (y > 0)
 			data.markUpdate(x & 0xF, y-1, z & 0xF);
+		
+		for (int i = 0; i < 8; i++)
+		{
+			int x1 = (x + Util.intDirX(i)), z1 = (x + Util.intDirZ(i));
+			data = FluidData.forceCurrentChunkData(data, x, z);
+			data.markUpdate(x1 & 0xF, y, z1 & 0xF);
+		}
 	}
 	
 	/**
@@ -219,7 +231,7 @@ public class FluidData {
 		ChunkData data;
 		if (cache == null)
 		{
-			System.err.println("There was no world cache! This is a BUG and should NOT happen!");
+			System.err.println("There was no registered world cache! Initializing a new one...");
 			cache = new ChunkCache();
 			data = new ChunkData(w, c);
 			cache.chunks.put(c, data);
@@ -248,7 +260,7 @@ public class FluidData {
 	{
 		Chunk cOut = data0.w.getChunkFromChunkCoords(x1 >> 4, z1 >> 4);
 		if (!cOut.isChunkLoaded) return null;
-		if (cOut.xPosition != data0.c.xPosition && cOut.zPosition != data0.c.zPosition)
+		if (cOut.xPosition != data0.c.xPosition || cOut.zPosition != data0.c.zPosition)
 		{
 			return getChunkData(cOut);
 		}
@@ -269,11 +281,11 @@ public class FluidData {
 		Chunk cOut = data0.w.getChunkFromChunkCoords(x1 >> 4, z1 >> 4);
 		if (!cOut.isChunkLoaded);
 		{
-			//Or should this be provide chunk?
+			//Or should this be load chunk?
 			cOut = data0.w.getChunkProvider().loadChunk(x1 >> 4, z1 >> 4);
 		}
 		
-		if (cOut.xPosition != data0.c.xPosition && cOut.zPosition != data0.c.zPosition)
+		if (cOut.xPosition != data0.c.xPosition || cOut.zPosition != data0.c.zPosition)
 		{
 			return getChunkData(cOut);
 		}
@@ -302,14 +314,7 @@ public class FluidData {
 		}
 		return a;
 	}
-	
-	public static int setLevelWorld(ChunkData data, BlockFiniteFluid f0, int x, int y, int z, int l0, boolean updateNeighbors)
-	{
-		//First, note that the flow is decided, we do not care what the target is unless it is unmarked fluid
-		return setLevel(data, f0, x & 0xF, z & 0xF, x, y, z, l0, updateNeighbors);
-	}
-
-	
+		
 	public static Block convertFlowingStill(Block f0, int level)
 	{
 		if (f0.getMaterial() == Material.water)
@@ -327,16 +332,22 @@ public class FluidData {
 		}
 	}
 	
+	public static int setLevelWorld(ChunkData data, BlockFiniteFluid f0, int x, int y, int z, int l0, boolean updateNeighbors)
+	{
+		return setLevel(data, f0, x & 0xF, z & 0xF, x, y, z, l0, updateNeighbors);
+	}
+
 	public static int setLevel(ChunkData data, Block f1, int cx, int cz, int x, int y, int z, int l1, boolean updateNeighbors)
 	{
-		//First, note that the flow is decided, we do not care what the target is unless it is unmarked fluid
+		//Nte that the flow is decided, we do not care what the target is unless it is unmarked fluid
 		
 		//If level is less than 0, empty the block
 		if (l1 <= 0) //We are emptying the block
 		{
-			System.out.println("Set a block to air!");
+			//System.out.println("Set a block to air!");
 			data.setLevel(cx, y, cz, 0);
-			RealisticFluids.setBlock(data.w, x, y, z, Blocks.air, 0, updateNeighbors ? 3 : 2);
+			RealisticFluids.setBlock(data.w, x, y, z, Blocks.air, 0, 2);
+			if (updateNeighbors) markNeighbors(data, x, y, z);
 			return 0;
 		}
 		
@@ -349,13 +360,14 @@ public class FluidData {
 		//SLEDGEHAMMER
 		if (Math.abs(l0 - l1) <= 4)
 		{
-			System.out.println("Spam blocks are a spamming...!");
+			//System.out.println("Spam blocks are a spamming...!");
 			if (l0 <= 4 || l1 <= 4)
 			{
 				data.setLevel(cx, y, cz, 0);
 				RealisticFluids.setBlock(data.w, x, y, z, Blocks.air, 0, updateNeighbors ? 3 : 2);
 			}
-			updateNeighbors = false;
+			//updateNeighbors = false;
+			return l1; //MAXXOR HAXXOR!
 		}
 		
 		int m1 = Util.getMetaFromLevel(l1);
