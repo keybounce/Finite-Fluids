@@ -68,7 +68,7 @@ public class RealisticFluids extends DummyModContainer
 	/** Max update quota per tick. TODO NOT MAX */	
 	public static int MAX_UPDATES 		= 	1024;
 	/** Force this much update quota TODO NOT MAX */
-	public static int FAR_UPDATES		= 	48; 
+	public static int FAR_UPDATES		= 	2048; 
 	/** Number of ticks between update sweeps */
 	public static int GLOBAL_RATE		= 	5;
 	/** Max number of ticks between update sweeps */
@@ -79,7 +79,7 @@ public class RealisticFluids extends DummyModContainer
 	/** Priority distance*/
 	public static int UPDATE_RANGE 		= 	4*4; //Note to reader: things like this get compiled away
 	/** "Trivial" distance */
-	public static int UPDATE_RANGE_FAR 	= 	12*12;
+	public static int UPDATE_RANGE_FAR 	= 	16*16;
 	
 	///////////////////// EQUALIZATION SETTINGS //////////////////////
 	/** Arbitrary limits on NEAR equalization */
@@ -148,51 +148,34 @@ public class RealisticFluids extends DummyModContainer
      * 	<p><b>2. </b>Iterate over the chunks around the players, starting with the closer chunks and then trying
      * 	to perform a few updates in some random distant chunks.
 
-     * <p>Within each chunk, we have a boolean map of flags, and a preset counter telling us roughly
-     * how many updates we need to process in this chunk. From here, we just iterate over the boolean
-     * map and update the blocks as we come to them, unflagging them as we go. Additionally, we spread
-     * a few random ticks out to some blocks, to use for our own purposes.
-     * 
-     * <p> Note that the updater flags updates in 16x16x16 sections. This allows us to reduce total iterations
-     * significantly in the majority of situations.
+     * <p>Within each chunk, we have a boolean map of flags. Boolean array is much faster than bitset, but uses 8xn bytes of
+     * memory. The fluid data array is similar, using 2 bytes. To reduce this, segments are null until accessed.
      * 
      * <p><b>ADVANTAGES:</b>
      * <p>By using a simple array to store flags, we can greatly increase the speed of flagging updates
-     * (as opposed to maps). By performing all updates at once, we also ditch the overhead cost of
-     * having updates "out of alignment" (aka, block A updates in tick 1, scheduling neighbor blocks,
-     * which get scheduled again in the next tick by block B). By using thread safe implementations, 
-     * we can very easily schedule and update chunks whenever we want, at any time, from any thread.
+     * (as opposed to hashing). Also, by synchronizing updates with each other, it is easier to thread, and we
+     * can eliminate "compounding" updates.
      * 
-     * <p><b>HOW THE TASK SCHEDULING WORKS</b>
      * 
-     * <p>World.setBlock is in practice, not thread safe, since it uses arrays which can be poor at notifying other
-     * accessing threads of changes. For this reason, we use a simple queue to collate the block setting operations,
-     * then perform them all at once from the updates from same place, meaning the data we use is the data in the world.
-     * 
-     * <p>Equalization uses a schedule so that we can set tasks to be performed at any time from multiple threads. May be 
-     * a redundant implementation if I end up dedicating a thread to equalization, but w/e.
      */
 
-	/** Hidden internal tick counter, prevents accidentally changing it during updating etc lol*/
+	/** Hidden internal tick counter*/
 	private static int _tickCounter = 0;
-	
 	/** Returns the current tick-time of this instance*/
-	public static int tickCounter()		{ return _tickCounter;	}
-	public static void incrTick()		{ _tickCounter += 1;	}
-	
-
+	public static int tickCounter()		{ return _tickCounter;	}	
 	protected long lastTime = 0L;
 	
 	/////////////////////////////////// BLOCK SETTING ///////////////////////////////////////////////////
 	/* Vanilla world.setBlock calls are not necessarily thread reliable. This implementation allows us to schedule updates
-	 * for the server thread, AND allows us to set blocks reliably in the EBS itself. Allows us to avoid locking.
+	 * for the server thread, AND allows us to set blocks a little more reliably in the EBS directly.
 	 * 
-	 * ONLY FLAG IMMEDIACY FROM AN ENVIRONMENT WHERE WE ARE DEFINITELY THREAD SAFE!!!
+	 * ONLY FLAG IMMEDIACY FROM AN ENVIRONMENT WHERE WE ARE DEFINITELY THREAD SAFE AND DO NOT CARE ABOUT THINGS LIKE
+	 * HEIGHTMAPS AND LIGHTING.
 	 */
 
 	/**
 	 * Marks block for update in world coordinates. Assumes block is fluid! Thread Safe.
-	 * WARNING: THIS STATIC METHOD IS SLOW. Use {@link ChunkData#markUpdate} where possible.
+	 * WARNING: THIS STATIC METHOD IS SLOW-ER. Use {@link ChunkData#markUpdate} where possible.
 	 * @param w
 	 * @param x
 	 * @param y
@@ -211,7 +194,7 @@ public class RealisticFluids extends DummyModContainer
 	}
 	
 	/**
-	 * Full version of my heavily optimized set block method. Utterly ignores all kinds
+	 * Full version of my heavily optimized and stripped set block method. Utterly ignores all kinds
 	 * of updates which only take up out precious clocks, and typically do not matter
 	 * at all when dealing with fluids themselves.
 	 * 
@@ -229,12 +212,12 @@ public class RealisticFluids extends DummyModContainer
 	{
 		//EXTREME HAX
 		if (ebs == null)
-			ebs = c.getBlockStorageArray()[y>>4] = new ExtendedBlockStorage(y >> 4 << 4, !c.worldObj.provider.hasNoSky);
+			ebs = c.getBlockStorageArray()[y>>4] = new ExtendedBlockStorage(y & 0xFFFFFFF0, !c.worldObj.provider.hasNoSky);
 		
 		final int _flag = (flag >> 31) & 0x1;
 		//At CPU level, this costs many less clocks than > or <, since we are targetting specific conditions
 		//if ((flag & 0x2) == (_flag))
-		w.markBlockForUpdate(x, y, z);
+		w.markBlockForUpdate(x, y, z); //Never called without rerender so...
 		if ((flag & 0x1) != (_flag))
 			w.notifyBlockChange(x, y, z, ebs.getBlockByExtId(x & 0xF, y & 0xF, z & 0xF));
 
@@ -269,12 +252,12 @@ public class RealisticFluids extends DummyModContainer
 		//if ((flag & 0x2) == (_flag))
 		w.markBlockForUpdate(x, y, z);
 		if ((flag & 0x1) != (_flag))
-			w.notifyBlockChange(x, y, z, ebs.getBlockByExtId(x & 0xF, y & 0xF, z & 0xF));
+			w.notifyBlockChange(x, y, z, ebs.getBlockByExtId(x = x & 0xF, y = y & 0xF, z = z & 0xF));
 		
 		//Warning will not flag changes very far through the system. Care when using with other systems!
-		ebs.setExtBlockMetadata(x & 0xF, y & 0xF, z & 0xF, m);
+		ebs.setExtBlockMetadata(x, y, z, m);
 		//Allow skipping relights
-		c.updateSkylightColumns[x & 0xF + (z & 0xF << 4)] = (flag & 0x8000000) == 0;
+		c.updateSkylightColumns[x + (z << 4)] = (flag & 0x8000000) == 0;
 	}
 	
 	
@@ -410,13 +393,11 @@ public class RealisticFluids extends DummyModContainer
 			if (lastTime > 0)
 				if (timeCost > 500)
 				{
-					++GLOBAL_RATE;
-					GLOBAL_RATE = Math.min(GLOBAL_RATE,GLOBAL_RATE_MAX);
+					GLOBAL_RATE = Math.min(++GLOBAL_RATE,GLOBAL_RATE_MAX);
 				}else
 				if (timeCost < 40 && (_tickCounter % GLOBAL_RATE)  == 1)
 				{
-					--GLOBAL_RATE;
-					GLOBAL_RATE = Math.max(GLOBAL_RATE,GLOBAL_RATE_AIM);
+					GLOBAL_RATE = Math.max(--GLOBAL_RATE,GLOBAL_RATE_AIM);
 				}
 			lastTime = System.currentTimeMillis();
 		}

@@ -89,8 +89,8 @@ public class FluidData {
 			for (int i = 0; i < 16; i++)
 			{
 				updateCounter[i] = false;
-			    fluidArray[i] = null;
-			    updateFlags[i] = null;
+			    fluidArray[i] = null; //Save memory
+			    updateFlags[i] = null; //Save memory
 			}
 		}
 		
@@ -177,7 +177,7 @@ public class FluidData {
 		for (int i = 0; i < 4; i++)
 		{
 			int x1 = (x + Util.cardinalX(i)), z1 = (x + Util.cardinalZ(i));
-			data = FluidData.forceCurrentChunkData(data, x, z);
+			data = FluidData.forceCurrentChunkData(data, x1, z1);
 			data.markUpdate(x1 & 0xF, y, z1 & 0xF);
 		}
 
@@ -200,7 +200,7 @@ public class FluidData {
 		for (int i = 0; i < 8; i++)
 		{
 			int x1 = (x + Util.intDirX(i)), z1 = (x + Util.intDirZ(i));
-			data = FluidData.forceCurrentChunkData(data, x, z);
+			data = FluidData.forceCurrentChunkData(data, x1, z1);
 			data.markUpdate(x1 & 0xF, y, z1 & 0xF);
 		}
 	}
@@ -339,7 +339,7 @@ public class FluidData {
 
 	public static int setLevel(ChunkData data, Block f1, int cx, int cz, int x, int y, int z, int l1, boolean updateNeighbors)
 	{
-		//Nte that the flow is decided, we do not care what the target is unless it is unmarked fluid
+		//Note that the flow is decided, we do not care what the target is unless it is unmarked fluid
 		
 		//If level is less than 0, empty the block
 		if (l1 <= 0) //We are emptying the block
