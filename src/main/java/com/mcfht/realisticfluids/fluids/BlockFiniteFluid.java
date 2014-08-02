@@ -99,24 +99,6 @@ public class BlockFiniteFluid extends BlockLiquid
 		}
 
 	}
-	/**
-	 * Flags neighboring cells to be updated. ENSURES that they are fluid first!
-	 * 
-	 * @param w
-	 * @param x
-	 * @param y
-	 * @param z
-	 */
-	public static void scheduleNeighbors(final World w, final int x, final int y, final int z)
-	{
-		// UpdateHandler.markBlockForUpdate(w, x, y, z);
-		for (int i = 0; i < 4; i++)
-			RealisticFluids.markBlockForUpdate(w, x + Util.cardinalX(i), y, z + Util.cardinalZ(i));
-		if (y < 255)
-			RealisticFluids.markBlockForUpdate(w, x, y + 1, z);
-		if (y > 0)
-			RealisticFluids.markBlockForUpdate(w, x, y - 1, z);
-	}
 
 	@Override
 	public void updateTick(final World w, final int x, final int y, final int z, final Random rand)
@@ -134,24 +116,20 @@ public class BlockFiniteFluid extends BlockLiquid
 	}
 	public void doUpdate(ChunkData data, final int x0, final int y0, final int z0, final Random r, final int interval)
 	{
-
-		if (this.flowRate != 1)
-			if (RealisticFluids.tickCounter() % (RealisticFluids.GLOBAL_RATE * this.getFlowRate(data.w)) != interval)
-			{
-				// Mark ourselves for latr
-				RealisticFluids.markBlockForUpdate(data.w, x0, y0, z0);
-				return;
-			}
+		if (this.flowRate != 1 && RealisticFluids.tickCounter() % (RealisticFluids.GLOBAL_RATE * this.getFlowRate(data.w)) != interval)
+		{
+			// Mark ourselves for later
+			RealisticFluids.markBlockForUpdate(data.w, x0, y0, z0);
+			return;
+		}
 
 		data = FluidData.forceCurrentChunkData(data, x0, z0);
 		int l0 = FluidData.getLevel(data, this, x0 & 0xF, y0, z0 & 0xF);
 		final int _l0 = l0;
-		// int efVisc = this.viscosity;
 		try
 		{
 			// First, try to flow downwards
-			final int dy = -1;
-			int y1 = y0 + dy;
+			int y1 = y0 - 1;
 			// Ensure we do not flow out of the world
 			if (y1 < 0 || y1 > 255)
 			{
@@ -161,16 +139,14 @@ public class BlockFiniteFluid extends BlockLiquid
 			// Now check if we can flow into the block below, etcetera
 			Block b1 = data.c.getBlock(x0 & 0xF, y1, z0 & 0xF);
 			int l1 = FluidData.getLevel(data, this, x0 & 0xF, y1, z0 & 0xF);
-			final int efVisc = this.getEffectiveViscosity(data.w, b1, l1); // Simulate
-																			// water
-																			// tension
-
+			// Emulate surface tension for water and lava
 			byte flowResult = this.checkFlow(data, x0, y0, z0, 0, -1, 0, b1, data.c.getBlockMetadata(x0 & 0xF, y1, z0 & 0xF), l0);
+
 			if (flowResult != 0)
 			{
 				if (flowResult > 1)
 				{
-					y1 = y0 + flowResult * dy;
+					y1 = y0 - flowResult;
 					l1 = FluidData.getLevel(data, this, x0 & 0xF, y1, z0 & 0xF);
 				}
 				if (l1 < RealisticFluids.MAX_FLUID)
@@ -184,13 +160,14 @@ public class BlockFiniteFluid extends BlockLiquid
 			if (l0 <= 0)
 				return;
 
+			final int efVisc = this.getEffectiveViscosity(data.w, b1, l1);
+
 			boolean flag = false;
 			if (l0 < efVisc << 1) // Since 2 blocks SHARE the content!!!
 				flag = true;
 
 			int dx, dz;
 			int x1, z1;
-
 			final int skew = r.nextInt(8);
 			boolean diag = false;
 
@@ -289,10 +266,9 @@ public class BlockFiniteFluid extends BlockLiquid
 		final int x1 = x0 + dx;
 		final int y1 = y0 + dy;
 		final int z1 = z0 + dz;
-		/*
-		 * final int xN = x1 + dx; final int yN = y1 + dy; final int zN = z1 +
-		 * dz;
-		 */
+		// final int xN = x1 + dx; final int yN = y1 + dy; final int zN = z1 +
+		// dz;
+
 		// First check for fences;
 		if (dx == 0 || dz == 0)
 			// We can flow through fences
@@ -358,18 +334,13 @@ public class BlockFiniteFluid extends BlockLiquid
 	{
 		Vec3 vec3 = Vec3.createVectorHelper(0.0D, 0.0D, 0.0D);
 		final int l = w.getBlockMetadata(x, y, z);
-
+		int x1, z1;
 		for (int i = 0; i < 4; ++i)
 		{
-			int x1 = x;
-			int z1 = z;
-
 			x1 = x + Util.intDirX(i);
 			z1 = z + Util.intDirZ(i);
-
 			int l1 = this.getEffectiveFlowDecay(w, x1, y, z1);
 			int i2;
-
 			if (l1 < 0)
 			{
 				if (!w.getBlock(x1, y, z1).getMaterial().blocksMovement())
@@ -388,9 +359,7 @@ public class BlockFiniteFluid extends BlockLiquid
 				vec3 = vec3.addVector(Util.intDirX(i) * i2, (y - y) * i2, Util.intDirZ(i) * i2);
 			}
 		}
-
-		vec3 = vec3.normalize();
-		return vec3;
+		return vec3.normalize();
 	}
 
 	/*
@@ -423,14 +392,13 @@ public class BlockFiniteFluid extends BlockLiquid
 		final int skew = data.w.rand.nextInt(4);
 
 		b1 = data.c.getBlock(x & 0xF, y + 1, z & 0xF); // Check the block above
-		if (!Util.isSameFluid(this, b1)) // It's not a similar fluid, so try to
-											// move the water to the sides
+		// If it is not a liquid, try moving the blocks to the sides
+		if (!Util.isSameFluid(this, b1))
 		{
 			for (int j = 0; j < 4 && l0 > 0; j++)
 			{
 				final int x1 = x + Util.cardinalX(j + skew);
 				final int z1 = z + Util.cardinalZ(j + skew);
-
 				data = FluidData.forceCurrentChunkData(data, x1, z1);
 				final Block bN = data.c.getBlock(x1 & 0xF, y, z1 & 0xF);
 				if (bN == Blocks.air)
@@ -446,12 +414,9 @@ public class BlockFiniteFluid extends BlockLiquid
 					l0 += l1 + move - RealisticFluids.MAX_FLUID;
 				}
 			}
-			// All straight up now
 			data = FluidData.forceCurrentChunkData(data, x, z);
-			// Try to push any remaining water straight up if there is space
-			if (b1 == Blocks.air && l0 > 0)
+			if (l0 > 0 && b1 == Blocks.air)
 			{
-				// System.out.println("Pushed the last drop of water up!");
 				FluidData.setLevelWorld(data, this, x, y + 1, z, l0, true);
 				l0 = 0;
 			}
@@ -462,7 +427,11 @@ public class BlockFiniteFluid extends BlockLiquid
 		{
 			b1 = data.w.getBlock(x, y + i, z);
 			// There is fluid above, so move as much content as we can
-			if (b1 == Blocks.air || Util.isSameFluid(this, b1))
+			if (b1 == Blocks.air)
+			{
+				FluidData.setLevelWorld(data, this, x, y + i, z, l0, true);
+				l0 = 0;
+			} else if (Util.isSameFluid(this, b1))
 			{
 				final int l1 = FluidData.getLevel(data, this, x & 0xF, y + i, z & 0xF);
 				if (l1 < RealisticFluids.MAX_FLUID)
@@ -510,10 +479,11 @@ public class BlockFiniteFluid extends BlockLiquid
 	public void lavaWaterInteraction(final ChunkData data, final int x0, final int y0, final int z0, final int l0, final int x1,
 			final int y1, final int z1, final int l1)
 	{
+		final ChunkData data1 = FluidData.forceCurrentChunkData(data, x1, z1);
 		if (l0 > l1 / 2 || l1 - (3 * l0 / 2) < RealisticFluids.MAX_FLUID / 4)
 		{
 			FluidData.setLevelWorld(data, (BlockFiniteFluid) Blocks.flowing_water, x0, y0, z0, 0, true);
-			FluidData.setLevelWorld(data, (BlockFiniteFluid) Blocks.flowing_lava, x1, y1, z1, 0, true);
+			FluidData.setLevelWorld(data1, (BlockFiniteFluid) Blocks.flowing_lava, x1, y1, z1, 0, true);
 			if (l1 > RealisticFluids.MAX_FLUID / 2)
 			{
 				RealisticFluids.setBlock(data.w, x1, y1, z1, Blocks.obsidian, 0, 3, true);
@@ -522,14 +492,12 @@ public class BlockFiniteFluid extends BlockLiquid
 			RealisticFluids.setBlock(data.w, x1, y1, z1, data.w.rand.nextBoolean() ? Blocks.stone : Blocks.cobblestone, 0, 3, true);
 			return;
 		}
-
 		FluidData.setLevelWorld(data, (BlockFiniteFluid) Blocks.flowing_water, x0, y0, z0, Math.max(0, l0 - (2 * l1) / 3), false);
-		FluidData.setLevelWorld(data, (BlockFiniteFluid) Blocks.flowing_lava, x1, y1, z1, Math.max(0, l1 - (3 * l0) / 2), false);
+		FluidData.setLevelWorld(data1, (BlockFiniteFluid) Blocks.flowing_lava, x1, y1, z1, Math.max(0, l1 - (3 * l0) / 2), false);
 	}
 
 	// Because bad stuff seems to be happening when these methods are not
 	// present... they should be inherited, but apparently not D:
-
 	@Override
 	@SideOnly(Side.CLIENT)
 	public boolean getCanBlockGrass()
