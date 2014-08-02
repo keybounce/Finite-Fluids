@@ -68,7 +68,7 @@ public class RealisticFluids extends DummyModContainer
 	/** Max update quota per tick. TODO NOT MAX */	
 	public static int MAX_UPDATES 		= 	1024;
 	/** Force this much update quota TODO NOT MAX */
-	public static int FAR_UPDATES		= 	48; 
+	public static int FAR_UPDATES		= 	2048; 
 	/** Number of ticks between update sweeps */
 	public static int GLOBAL_RATE		= 	5;
 	/** Max number of ticks between update sweeps */
@@ -79,7 +79,7 @@ public class RealisticFluids extends DummyModContainer
 	/** Priority distance*/
 	public static int UPDATE_RANGE 		= 	4*4; //Note to reader: things like this get compiled away
 	/** "Trivial" distance */
-	public static int UPDATE_RANGE_FAR 	= 	12*12;
+	public static int UPDATE_RANGE_FAR 	= 	16*16;
 	
 	///////////////////// EQUALIZATION SETTINGS //////////////////////
 	/** Arbitrary limits on NEAR equalization */
