@@ -440,7 +440,8 @@ public class BlockFiniteFluid extends BlockLiquid
 					l0 += l1 - RealisticFluids.MAX_FLUID;
 				}
 				continue;
-			}
+			} else
+				break;
 		}
 	}
 
