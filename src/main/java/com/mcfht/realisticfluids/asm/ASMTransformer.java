@@ -81,6 +81,8 @@ public class ASMTransformer implements net.minecraft.launchwrapper.IClassTransfo
 		new PatchTask("net.minecraft.block.BlockTrapDoor", false, new PatchDoorUpdates()),
 		new PatchTask("akn", true, new PatchDoorUpdates()),
 		new PatchTask("aoe", true, new PatchDoorUpdates()),
+		
+		
 	};
 
 	static class PatchTask

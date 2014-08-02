@@ -25,7 +25,7 @@ public class FluidManager {
 	public static WorkerPriority PWorker = new WorkerPriority();
 	public static Thread PRIORITY = new Thread(PWorker);
 	
-	public static WorkerPriority TWorker = new WorkerPriority();
+	public static WorkerTrivial TWorker = new WorkerTrivial();
 	public static Thread TRIVIAL = new Thread(TWorker);
 	
 	/**
@@ -73,7 +73,6 @@ public class FluidManager {
 		public int myStartTime;
 		public int quota;
 		public World[] worlds;
-		public boolean running = false;
 		
 		@Override
 		public void run() 
@@ -113,31 +112,43 @@ public class FluidManager {
 		public int myStartTime;
 		public int quota;
 		public World[] worlds;
-		public boolean running = false;
 		
 		@Override
 		public void run() 
 		{
+			//System.err.println("Running trivial updater!");
 			for (World world : worlds)
 			{
 				//There are no players, so there is no point
 				if (world.playerEntities == null || world.playerEntities.size() == 0) continue;
+				
 				ChunkCache map = FluidData.worldCache.get(world);
-				if (map == null) continue;
-				if (map.priority.size() <= 0) continue;
+				
+				if (map == null) 
+				{
+					
+					//System.err.println("Map es Null!");
+					continue;
+				}
+				if (map.distant.size() <= 0) 
+				{
+					//System.err.println("Nwo distant updwates!");
+					continue;
+				}
+				
 				
 				int ticksLeft = RealisticFluids.FAR_UPDATES; //Give ourselves a tick quota
-					
+				//System.out.println("Ticks Left : " + ticksLeft);	
 				while (map.distant.size() > 0 && (ticksLeft > 0))
 				{
 					//Select a random distant chunk
 					//int i = world.rand.nextInt(map.distant.size());
 					Chunk c = (Chunk) map.distant.poll(); //can we just do 0?
-					map.distant.remove(c);
+					//map.distant.remove(c);
 					
 					ChunkData data = map.chunks.get(c);
 					if (data == null || !c.isChunkLoaded) continue;
-					
+					//System.out.println("Doing trivial stuff");
 					ticksLeft -= doTask(data, false, myStartTime);
 				}
 			}
@@ -194,6 +205,7 @@ public class FluidManager {
 					{
 						//Tick the water block
 						((BlockFiniteFluid) b).doUpdate(data, x, y, z, data.w.rand, interval);
+						
 					}
 					
 				}
@@ -246,12 +258,21 @@ public class FluidManager {
 				if (data.w.getBlock(x, y+1, z) != Blocks.air) continue;
 				
 				int level = data.getLevel(x, y, z);
+				//Prevent spamming on flat ocean areas
 				if (level < RealisticFluids.MAX_FLUID -  (RealisticFluids.MAX_FLUID/16)) //gets compiled away to ~15'000
 				{
-					FluidEqualizer.addTask
-					(data.w, 
-					( data.c.xPosition << 4) + x, y, ( data.c.zPosition << 4) + z, (BlockFiniteFluid) b, 
-					isHighPriority ? RealisticFluids.EQUALIZE_NEAR_R : RealisticFluids.EQUALIZE_FAR_R);
+					if (!isHighPriority && data.w.rand.nextInt(5) == 0)
+					{
+						//System.out.println("Smoothing...");
+						FluidEqualizer.addSmoothTask(data.w, (data.c.xPosition << 4) + x, y, (data.c.zPosition << 4) + z,
+						(BlockFiniteFluid) b, RealisticFluids.MAX_FLUID >> 1, 8);
+					}
+					else{
+						FluidEqualizer.addLinearTask
+						(data.w, 
+						( data.c.xPosition << 4) + x, y, ( data.c.zPosition << 4) + z, (BlockFiniteFluid) b, 
+						isHighPriority ? RealisticFluids.EQUALIZE_NEAR_R : RealisticFluids.EQUALIZE_FAR_R, 3);
+					}
 				}
 			}
 		}
