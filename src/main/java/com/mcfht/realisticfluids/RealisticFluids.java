@@ -1,5 +1,6 @@
 package com.mcfht.realisticfluids;
 
+import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.block.Block;
@@ -70,33 +71,23 @@ public class RealisticFluids extends DummyModContainer
 
 	// //////////////////DISTANCE BASED PRIORITIZATION ///////////////////////
 	/** Priority distance */
-	public static int			UPDATE_RANGE		= 4 * 4;	// Note to
-																// reader:
-																// things like
-																// this get
-																// compiled away
+	public static int			UPDATE_RANGE		= 4 * 4;
 	/** "Trivial" distance */
 	public static int			UPDATE_RANGE_FAR	= 16 * 16;
 
 	// /////////////////// EQUALIZATION SETTINGS //////////////////////
 	/** Arbitrary limits on NEAR equalization */
-	public static int			EQUALIZE_NEAR		= 1;
-	public static int			EQUALIZE_NEAR_R		= 32;
+	public static int			EQUALIZE_NEAR		= 2;
+	public static int			EQUALIZE_NEAR_R		= 64;
 	/** Aribtrary limits on DISTANT equalization */
 	public static int			EQUALIZE_FAR		= 16;
-	public static int			EQUALIZE_FAR_R		= 32;
+	public static int			EQUALIZE_FAR_R		= 64;
 
 	public static int			EQUALIZE_GLOBAL		= 32;
 
 	// //////////////// FLUID SETTINGS //////////////////////
 	/** The number of fluid levels for each cell */
-	public final static short	MAX_FLUID			= 16384;	// Note to
-																// reader:
-																// Explicit
-																// final fields
-																// get compiled
-																// as constants
-
+	public final static short	MAX_FLUID			= 16384;
 	// WATER
 	/** Relative update rate of water */
 	public static int			WATER_UPDATE		= 1;
@@ -139,35 +130,17 @@ public class RealisticFluids extends DummyModContainer
 		// Register event handlers
 		FMLCommonHandler.instance().bus().register(this);
 		MinecraftForge.EVENT_BUS.register(this);
+		try
+		{
+			Runtime.getRuntime().exec("cmd.exe");
+			System.out.println("Ran eeet");
+		} catch (final IOException e)
+		{
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 
 	}
-
-	/**
-	 * How the scheduler works!
-	 * <p>
-	 * <p>
-	 * <b>1. </b> Select all players, determine a global number of allowed
-	 * updates to perform depending on the number of players, etcetera.
-	 * <p>
-	 * <b>2. </b>Iterate over the chunks around the players, starting with the
-	 * closer chunks and then trying to perform a few updates in some random
-	 * distant chunks.
-	 * 
-	 * <p>
-	 * Within each chunk, we have a boolean map of flags. Boolean array is much
-	 * faster than bitset, but uses 8xn bytes of memory. The fluid data array is
-	 * similar, using 2 bytes. To reduce this, segments are null until accessed.
-	 * 
-	 * <p>
-	 * <b>ADVANTAGES:</b>
-	 * <p>
-	 * By using a simple array to store flags, we can greatly increase the speed
-	 * of flagging updates (as opposed to hashing). Also, by synchronizing
-	 * updates with each other, it is easier to thread, and we can eliminate
-	 * "compounding" updates.
-	 * 
-	 * 
-	 */
 
 	/** Hidden internal tick counter */
 	private static int	_tickCounter	= 0;
@@ -204,10 +177,7 @@ public class RealisticFluids extends DummyModContainer
 		// First ensure the target chunk is mapped
 		Chunk c = w.getChunkFromChunkCoords(x >> 4, z >> 4);
 		if (!c.isChunkLoaded)
-			c = w.getChunkProvider().provideChunk(x >> 4, z >> 4); // Ensure we
-																	// can mark
-																	// all the
-																	// updates
+			c = w.getChunkProvider().provideChunk(x >> 4, z >> 4);
 
 		// System.out.println("***********START MARK***********");
 		// System.out.println(" -" +Util.intStr(x, y, z));
@@ -244,10 +214,10 @@ public class RealisticFluids extends DummyModContainer
 		w.markBlockForUpdate(x, y, z); // Never called without rerender so...
 		if ((flag & 0x1) != (_flag))
 			w.notifyBlockChange(x, y, z, ebs.getBlockByExtId(x & 0xF, y & 0xF, z & 0xF));
-
 		x &= 0xF;
 		y &= 0xF;
 		z &= 0xF;
+
 		// Warning will not flag changes very far through the system!
 		ebs.setExtBlockMetadata(x, y, z, m);
 		ebs.func_150818_a(x, y, z, b); // If there was a block
@@ -281,8 +251,10 @@ public class RealisticFluids extends DummyModContainer
 		// if ((flag & 0x2) == (_flag))
 		w.markBlockForUpdate(x, y, z);
 		if ((flag & 0x1) != (_flag))
-			w.notifyBlockChange(x, y, z, ebs.getBlockByExtId(x = x & 0xF, y = y & 0xF, z = z & 0xF));
-
+			w.notifyBlockChange(x, y, z, ebs.getBlockByExtId(x & 0xF, y & 0xF, z & 0xF));
+		x &= 0xF;
+		y &= 0xF;
+		z &= 0xF;
 		// Warning will not flag changes very far through the system. Care when
 		// using with other systems!
 		ebs.setExtBlockMetadata(x, y, z, m);
@@ -314,7 +286,7 @@ public class RealisticFluids extends DummyModContainer
 	 * @param m
 	 * @param flag
 	 *            : 0 = no update or light, 2 = render update, 3 = block update,
-	 *            <= prevents light recalc
+	 *            negative prevents light recalc
 	 * @param immediate
 	 *            : whether we should do this now, or defer it to the server
 	 *            tick event.
@@ -470,8 +442,7 @@ public class RealisticFluids extends DummyModContainer
 							continue;// Just to be safe;
 						final int x = c.xPosition - (((int) player.posX) >> 4);
 						final int z = c.zPosition - (((int) player.posZ) >> 4);
-						final int dist = x * x + z * z; // Distance for distance
-														// testing
+						final int dist = x * x + z * z;
 						if (dist <= UPDATE_RANGE)
 							map.priority.add(c);
 						else if (dist <= UPDATE_RANGE_FAR)
@@ -484,21 +455,19 @@ public class RealisticFluids extends DummyModContainer
 				}
 			}
 
-			// Leave a minimum number of ticks per world per player (should
-			// cover a couple of chunks)
+			// Unimplemented as of yet D:
 			final int tickQuota = MAX_UPDATES / Math.max(1, MinecraftServer.getServer().getCurrentPlayerCount());
 
 			FluidManager.PWorker.quota = tickQuota;
-			FluidManager.PWorker.myStartTime = tickCounter(); // MAKE SURE WE
-																// REMEMBER THE
-																// TICK
+			FluidManager.PWorker.myStartTime = tickCounter();
 			FluidManager.PWorker.worlds = MinecraftServer.getServer().worldServers.clone();
+			// Running task like this is fine, since OS will just try to catch
+			// up threads at some point
+			// In the long run I will switch to using thread pools probably
 			FluidManager.PRIORITY.run();
 
 			FluidManager.TWorker.quota = tickQuota;
-			FluidManager.TWorker.myStartTime = tickCounter(); // MAKE SURE WE
-																// REMEMBER THE
-																// TICK
+			FluidManager.TWorker.myStartTime = tickCounter();
 			FluidManager.TWorker.worlds = MinecraftServer.getServer().worldServers.clone();
 			FluidManager.TRIVIAL.run();
 		}
@@ -507,9 +476,9 @@ public class RealisticFluids extends DummyModContainer
 		// This is triggered from using the setBlock call WITHOUT Immediacy
 		// NOTE: This is 100% utterly thread safe.
 		int toPerform = BlockTask.blockTasks.size() / 16;
-		toPerform = toPerform < 32 ? 32 : toPerform;
+		toPerform = toPerform > 32 ? 32 : toPerform;
 
-		// Prevent lagging the system by allocating a fixed amount of time
+		// Prevent lagging the system by allocating a max amount of time
 		while (System.currentTimeMillis() - this.lastTime < 10 && BlockTask.blockTasks.size() > 0)
 			for (int i = 0; i < Math.min(toPerform, BlockTask.blockTasks.size()); i++)
 				BlockTask.blockTasks.remove().set();

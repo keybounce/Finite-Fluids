@@ -58,6 +58,8 @@ public class FluidData
 
 		/** A map of update flags, divided into EBS arrays */
 		public boolean[][]	updateFlags		= new boolean[16][4096];
+		/** Array of flags to be parsed during THIS sweep */
+		public boolean[][]	workingUpdate	= new boolean[16][4096];
 
 		public World		w;
 		public Chunk		c;
@@ -81,6 +83,7 @@ public class FluidData
 				this.updateCounter[i] = false;
 				this.fluidArray[i] = null; // Save memory
 				this.updateFlags[i] = null; // Save memory
+				this.workingUpdate[i] = null; // Save memory
 			}
 		}
 
@@ -154,6 +157,26 @@ public class FluidData
 			this.updateFlags[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = true;
 			// System.out.println("***********DONE************");
 		}
+
+		/**
+		 * Marks update in cx, cy, cz, use to mark block above for fast falling
+		 * fluids
+		 * 
+		 * @param cx
+		 * @param cy
+		 * @param cz
+		 */
+		public void markUpdateImmediate(final int cx, final int cy, final int cz)
+		{
+
+			this.markUpdate(cx, cy, cz);
+
+			if (this.workingUpdate[cy >> 4] == null)
+				this.workingUpdate[cy >> 4] = new boolean[4096];
+
+			this.workingUpdate[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = true;
+			// System.out.println("***********DONE************");
+		}
 	}
 
 	/**
@@ -167,7 +190,7 @@ public class FluidData
 	public static void markNeighbors(ChunkData data, final int x, final int y, final int z)
 	{
 		if (y < 255)
-			data.markUpdate(x & 0xF, y + 1, z & 0xF);
+			data.markUpdateImmediate(x & 0xF, y + 1, z & 0xF);
 		if (y > 0)
 			data.markUpdate(x & 0xF, y - 1, z & 0xF);
 
@@ -201,20 +224,6 @@ public class FluidData
 			data = FluidData.forceCurrentChunkData(data, x1, z1);
 			data.markUpdate(x1 & 0xF, y, z1 & 0xF);
 		}
-	}
-
-	/**
-	 * Sets the water level in world coordinates. Thread Safe.
-	 * 
-	 * @param w
-	 * @param x
-	 * @param y
-	 * @param z
-	 * @param level
-	 */
-	public static void setWaterLevel(final World w, final int x, final int y, final int z, final int l)
-	{
-		setWaterLevel(w, w.getChunkFromBlockCoords(x, z), x & 0xF, y, z & 0xF, l);
 	}
 
 	/**
@@ -321,6 +330,9 @@ public class FluidData
 			a = data.c.getBlockMetadata(cx, cy, cz);
 			if (a >= 7)
 				return f0.viscosity;
+			// Give existing water bodies some capacity to absorb fluid?
+			// if (a == 0) return RealisticFluids.MAX_FLUID -
+			// (RealisticFluids.MAX_FLUID >> 4);
 			return (8 - a) * (RealisticFluids.MAX_FLUID >> 3);
 		}
 		return a;
@@ -409,53 +421,21 @@ public class FluidData
 	}
 
 	/**
-	 * Sets the water level in chunk coordinates. Thread Safe.
+	 * Merges top and bottom fluid blocks
 	 * 
-	 * @param w
-	 * @param c
-	 * @param cx
-	 * @param cy
-	 * @param cz
-	 * @param l
+	 * @param data
+	 * @param x0
+	 * @param y0
+	 * @param z0
+	 * @param y1
+	 * @param toAdd
 	 */
-	public static void setWaterLevel(final World w, final Chunk c, final int cx, final int cy, final int cz, final int l)
+	public static void mergeTopBottomFluid(final ChunkData data, final BlockFiniteFluid f0, final int x0, final int y0, final int z0,
+			final int l0, final int y1, final int l1)
 	{
-		getChunkData(c).setLevel(cx, cy, cz, l);
-	}
+		final int lT = l0 + l1;
+		FluidData.setLevel(data, f0, x0 & 0xF, z0 & 0xF, x0, y0, z0, lT, true);
+		FluidData.setLevel(data, f0, x0 & 0xF, z0 & 0xF, x0, y1, z0, lT - RealisticFluids.MAX_FLUID, true);
 
-	/**
-	 * Gets the water level in world coordinates. Thread Safe. Returns 0 for
-	 * unloaded chunk.
-	 * 
-	 * @param w
-	 * @param x
-	 * @param y
-	 * @param z
-	 * @return
-	 */
-	public static int getWaterLevel(final World w, final int x, final int y, final int z)
-	{
-		return getWaterLevel(w, w.getChunkFromBlockCoords(x, z), x & 0xF, y, z & 0xF);
 	}
-
-	/**
-	 * Gets the water level in chunk coordinates. Thread safe. Returns 0 for
-	 * unloaded chunk.
-	 * 
-	 * @param w
-	 * @param c
-	 * @param cx
-	 * @param cy
-	 * @param cz
-	 * @return
-	 */
-	public static int getWaterLevel(final World w, final Chunk c, final int cx, final int cy, final int cz)
-	{
-		final ChunkCache cache = worldCache.get(w);
-		if (cache != null)
-			if (cache.chunks.get(c) != null)
-				return cache.chunks.get(c).getLevel(cx, cy, cz);
-		return 0;
-	}
-
 }

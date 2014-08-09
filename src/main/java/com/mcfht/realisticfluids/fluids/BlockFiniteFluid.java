@@ -91,7 +91,7 @@ public class BlockFiniteFluid extends BlockLiquid
 				if (b1 == Blocks.piston_extension
 						|| (b1 instanceof BlockFalling && stack[4].getClassName().equals(EntityFallingBlock.class.getName()))
 						|| (stack[5].getClassName().equals(BlockPistonBase.class.getName())))
-					this.displace(data, x, y, z, m);
+					this.displace(data, x, y, z, m, 32);
 			}
 		} finally
 		{
@@ -108,7 +108,7 @@ public class BlockFiniteFluid extends BlockLiquid
 
 	public int getEffectiveViscosity(final World w, final Block b1, final int l1)
 	{
-		return (l1 > 0) ? this.viscosity >> 5 : this.viscosity;
+		return (l1 > 0) ? this.viscosity >> 6 : this.viscosity;
 	}
 	public int getFlowRate(final World w)
 	{
@@ -158,7 +158,10 @@ public class BlockFiniteFluid extends BlockLiquid
 			}
 
 			if (l0 <= 0)
+			{
+				FluidData.markNeighborsDiagonal(data, x0, y0, z0);
 				return;
+			}
 
 			final int efVisc = this.getEffectiveViscosity(data.w, b1, l1);
 
@@ -289,16 +292,12 @@ public class BlockFiniteFluid extends BlockLiquid
 			{
 				this.lavaWaterInteraction(data, x0, y0, z0, l0, x1, y1, z1, level1);
 				data = FluidData.forceCurrentChunkData(data, x1, z1);
-				if (FluidData.getLevel(data, this, x0, y0, z0) <= 0)
-					return 0;
 				return (byte) ((data.w.getBlock(x1, y1, z1) == Blocks.air || Util.isSameFluid(this, data.w.getBlock(x1, y1, z1))) ? 1 : 0);
 			}
 			if (this.blockMaterial == Material.lava && b1.getMaterial() == Material.water)
 			{
-				this.lavaWaterInteraction(data, x0, y0, z0, level1, x1, y1, z1, l0);
+				this.lavaWaterInteraction(data, x1, y1, z1, level1, x0, y0, z0, l0);
 				data = FluidData.forceCurrentChunkData(data, x1, z1);
-				if (FluidData.getLevel(data, this, x0, y0, z0) <= 0)
-					return 0;
 				return (byte) ((data.w.getBlock(x1, y1, z1) == Blocks.air || Util.isSameFluid(this, data.w.getBlock(x1, y1, z1))) ? 1 : 0);
 			}
 		}
@@ -374,14 +373,14 @@ public class BlockFiniteFluid extends BlockLiquid
 	 */
 	/**
 	 * Attempts to displace water by searching for a space above. The algorithm
-	 * moves upwards trying to find a space; Within a max of about 60 blocks.
+	 * moves upwards trying to find a space.
 	 * 
 	 * @param data
 	 * @param x
 	 * @param y
 	 * @param z
 	 */
-	public void displace(ChunkData data, final int x, final int y, final int z, final int m)
+	public void displace(ChunkData data, final int x, final int y, final int z, final int m, final int maxOutHeight)
 	{
 		Block b1;
 		int l0 = data.getLevel(x & 0xF, y, z & 0xF);
@@ -423,7 +422,7 @@ public class BlockFiniteFluid extends BlockLiquid
 			return; // We can't go up or across any further, so exit
 		}
 		// There is fluid above, so just move to the top and put it there
-		for (int i = 1; l0 > 0 && i < 32 && y + i < 255; i++)
+		for (int i = 1; l0 > 0 && i < maxOutHeight && y + i < 255; i++)
 		{
 			b1 = data.w.getBlock(x, y + i, z);
 			// There is fluid above, so move as much content as we can
@@ -468,33 +467,53 @@ public class BlockFiniteFluid extends BlockLiquid
 	 * Handles interaction of lava and water. 0 = water, 1 = lava
 	 * 
 	 * @param w
-	 * @param x0
-	 * @param y0
-	 * @param z0
-	 * @param l0
-	 * @param x1
-	 * @param y1
-	 * @param z1
-	 * @param l1
+	 * @param xw
+	 * @param yw
+	 * @param zw
+	 * @param lw
+	 * @param xl
+	 * @param yl
+	 * @param zl
+	 * @param ll
 	 */
-	public void lavaWaterInteraction(final ChunkData data, final int x0, final int y0, final int z0, final int l0, final int x1,
-			final int y1, final int z1, final int l1)
+	public void lavaWaterInteraction(final ChunkData data, final int xw, final int yw, final int zw, final int lw, final int xl,
+			final int yl, final int zl, final int ll)
 	{
-		final ChunkData data1 = FluidData.forceCurrentChunkData(data, x1, z1);
-		if (l0 > l1 / 2 || l1 - (3 * l0 / 2) < RealisticFluids.MAX_FLUID / 4)
+		final ChunkData data1 = FluidData.forceCurrentChunkData(data, xl, zl);
+
+		if (yl - yw > 0) // Lava flows down into water
 		{
-			FluidData.setLevelWorld(data, (BlockFiniteFluid) Blocks.flowing_water, x0, y0, z0, 0, true);
-			FluidData.setLevelWorld(data1, (BlockFiniteFluid) Blocks.flowing_lava, x1, y1, z1, 0, true);
-			if (l1 > RealisticFluids.MAX_FLUID / 2)
+			if (ll > (RealisticFluids.MAX_FLUID - (RealisticFluids.MAX_FLUID / 3)))
 			{
-				RealisticFluids.setBlock(data.w, x1, y1, z1, Blocks.obsidian, 0, 3, true);
+				FluidData.setLevelWorld(data, (BlockFiniteFluid) Blocks.flowing_water, xw, yw, zw, 0, true);
+				FluidData.setLevelWorld(data1, (BlockFiniteFluid) Blocks.flowing_lava, xl, yl, zl, 0, true);
+				RealisticFluids.setBlock(data.w, xw, yw, zw, Blocks.obsidian, 0, 3, true);
+				return;
+			} else
+			{
+				FluidData.setLevelWorld(data, (BlockFiniteFluid) Blocks.flowing_water, xw, yw, zw, 0, true);
+				FluidData.setLevelWorld(data1, (BlockFiniteFluid) Blocks.flowing_lava, xl, yl, zl, 0, true);
+				RealisticFluids.setBlock(data.w, xw, yw, zw, Blocks.stone, 0, 3, true);
 				return;
 			}
-			RealisticFluids.setBlock(data.w, x1, y1, z1, data.w.rand.nextBoolean() ? Blocks.stone : Blocks.cobblestone, 0, 3, true);
+		} else if (ll > (RealisticFluids.MAX_FLUID - (RealisticFluids.MAX_FLUID / 3)))
+		{
+			FluidData.setLevelWorld(data, (BlockFiniteFluid) Blocks.flowing_water, xw, yw, zw, 0, true);
+			FluidData.setLevelWorld(data1, (BlockFiniteFluid) Blocks.flowing_lava, xl, yl, zl, 0, true);
+			RealisticFluids.setBlock(data.w, xl, yl, zl, Blocks.obsidian, 0, 3, true);
+			return;
+		} else
+		{
+			FluidData.setLevelWorld(data, (BlockFiniteFluid) Blocks.flowing_water, xw, yw, zw, 0, true);
+			FluidData.setLevelWorld(data1, (BlockFiniteFluid) Blocks.flowing_lava, xl, yl, zl, 0, true);
+			RealisticFluids.setBlock(data.w, xl, yl, zl, Blocks.cobblestone, 0, 3, true);
 			return;
 		}
-		FluidData.setLevelWorld(data, (BlockFiniteFluid) Blocks.flowing_water, x0, y0, z0, Math.max(0, l0 - (2 * l1) / 3), false);
-		FluidData.setLevelWorld(data1, (BlockFiniteFluid) Blocks.flowing_lava, x1, y1, z1, Math.max(0, l1 - (3 * l0) / 2), false);
+		// Lower the levels of the fluids
+		// FluidData.setLevelWorld(data, (BlockFiniteFluid)
+		// Blocks.flowing_water, xw, yw, zw, lw - (2 * ll) / 3, false);
+		// FluidData.setLevelWorld(data1, (BlockFiniteFluid)
+		// Blocks.flowing_lava, xl, yl, zl, ll - (3 * lw) / 2, false);
 	}
 
 	// Because bad stuff seems to be happening when these methods are not
