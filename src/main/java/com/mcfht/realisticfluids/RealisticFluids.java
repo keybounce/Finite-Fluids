@@ -228,7 +228,7 @@ public class RealisticFluids extends DummyModContainer
 		// Allow skipping relights
 
 		// if ((flag & 0x8000000) == 0)
-		c.updateSkylightColumns[x + (z << 4)] = true;
+		// c.updateSkylightColumns[x + (z << 4)] = true;
 	}
 	/**
 	 * Same as above, but metadata optimized
@@ -265,7 +265,7 @@ public class RealisticFluids extends DummyModContainer
 		ebs.setExtBlockMetadata(x, y, z, m);
 		// Allow skipping relights
 		// if ((flag & 0x8000000) == 0)
-		c.updateSkylightColumns[x + (z << 4)] = true;
+		// c.updateSkylightColumns[x + (z << 4)] = true;
 	}
 
 	/**
@@ -435,27 +435,28 @@ public class RealisticFluids extends DummyModContainer
 			{
 				if (w.playerEntities == null || w.playerEntities.size() == 0)
 					continue;
+
 				for (final Object p : w.playerEntities)
 				{
 					final EntityPlayer player = (EntityPlayer) p;
 					final ChunkCache map = FluidData.worldCache.get(w);
 					if (map == null)
 						continue;
+
 					// iterate over all flagged chunks
 					for (final Chunk c : map.chunks.keySet())
 					{
 						if (!c.isChunkLoaded)
 							continue;// Just to be safe;
+
 						final int x = c.xPosition - (((int) player.posX) >> 4);
 						final int z = c.zPosition - (((int) player.posZ) >> 4);
 						final int dist = x * x + z * z;
+
 						if (dist <= UPDATE_RANGE)
 							map.priority.add(c);
 						else if (dist <= UPDATE_RANGE_FAR)
-							// System.out.println("Found distant chunk: " +
-							// map.distant.size());
-							if (map.distant.size() < 256)
-								// System.out.println("Added eeet");
+							if (map.distant.size() < 512)
 								map.distant.add(c);
 					}
 				}
@@ -463,24 +464,8 @@ public class RealisticFluids extends DummyModContainer
 
 			FluidManager.delegator.myStartTick = tickCounter();
 			FluidManager.delegator.worlds = MinecraftServer.getServer().worldServers.clone();
-			System.out.println("Performing Tasks...");
 			FluidManager.delegator.performTasks();
 
-			/*
-			 * FluidManager.PWorker.quota = tickQuota;
-			 * FluidManager.PWorker.myStartTime = tickCounter();
-			 * FluidManager.PWorker.worlds =
-			 * MinecraftServer.getServer().worldServers.clone(); // Running task
-			 * like this is fine, since OS will just try to catch // up threads
-			 * at some point // In the long run I will switch to using thread
-			 * pools probably FluidManager.PRIORITY.run();
-			 * 
-			 * FluidManager.TWorker.quota = tickQuota;
-			 * FluidManager.TWorker.myStartTime = tickCounter();
-			 * FluidManager.TWorker.worlds =
-			 * MinecraftServer.getServer().worldServers.clone();
-			 * FluidManager.TRIVIAL.run();
-			 */
 		}
 
 		// Set blocks for a little bit on the server thread

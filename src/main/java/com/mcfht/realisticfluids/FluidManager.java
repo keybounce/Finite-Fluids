@@ -23,13 +23,7 @@ import com.mcfht.realisticfluids.fluids.BlockFiniteWater;
  */
 public class FluidManager
 {
-	public static Delegator			delegator	= new Delegator();
-
-	public static WorkerPriority	PWorker		= new WorkerPriority();
-	public static Thread			PRIORITY	= new Thread(PWorker);
-
-	public static WorkerTrivial		TWorker		= new WorkerTrivial();
-	public static Thread			TRIVIAL		= new Thread(TWorker);
+	public static Delegator	delegator	= new Delegator();
 
 	public static class WorkerThread
 	{
@@ -97,10 +91,11 @@ public class FluidManager
 					wt = this.threadPool.get(this.threadIndex);
 					wt.worker.tasks.add(new Task(data, true, this.myStartTick));
 
-					// attempt to prevent task queue flooding
-					// if (wt.worker.tasks.size() > 320)
-					// for (int i = 0; i < 8; i++)
-					// wt.worker.tasks.poll();
+					// attempt to prevent task queue flooding and move new tasks
+					// forward
+					if (wt.worker.tasks.size() > 320)
+						for (int i = 0; i < 8; i++)
+							wt.worker.tasks.poll();
 				}
 				chunks.priority.clear();
 
@@ -120,12 +115,11 @@ public class FluidManager
 				this.threadIndex = (this.threadIndex + 1) % (this.threads / 2);
 			}
 
+			// Reset quota counter
 			this.sweepCost.set(0);
 
 			for (final WorkerThread wt : this.threadPool)
 				if (wt.worker.tasks.size() > 0 && !wt.worker.running)
-					// System.out.println("Restarting thread, " +
-					// wt.worker.tasks.size() + " tasks...");
 					wt.thread.run();
 
 		}
@@ -157,10 +151,11 @@ public class FluidManager
 		{
 			// System.out.println("Fluid Worker -> " + this.tasks.size() + ", "
 			// + this.forceQuit);
+			this.running = true;
 
 			while (this.tasks.size() > 0 && !this.forceQuit)
 			{
-				this.running = true;
+
 				// System.out.println("Fluid Worker stuffing!");
 
 				final Task task = this.tasks.poll();
@@ -182,100 +177,6 @@ public class FluidManager
 						task.data, task.isHighPriority, task.myStartTick));
 			}
 			this.running = false;
-		}
-	}
-	/**
-	 * Thread object to perform high priority updates
-	 * 
-	 * @author 4HT
-	 * 
-	 */
-	public static class WorkerPriority implements Runnable
-	{
-
-		public int		myStartTime;
-		public int		quota;
-		public World[]	worlds;
-
-		@Override
-		public void run()
-		{
-
-			for (final World world : this.worlds)
-			{
-				// There are no players, so there is no point
-				if (world.playerEntities == null || world.playerEntities.size() == 0)
-					continue;
-
-				final ChunkCache map = FluidData.worldCache.get(world);
-				if (map == null || map.priority.size() <= 0)
-					continue;
-
-				for (final Chunk c : map.priority)
-				{
-					final ChunkData data = map.chunks.get(c);
-					if (data == null || !c.isChunkLoaded)
-					{
-						System.out.println("Map was null");
-						continue;
-					}
-					// Delegate a thread task?
-					doTask(data, true, this.myStartTime);
-				}
-				map.priority.clear();
-
-			}
-		}
-	}
-
-	/**
-	 * Thread object to perform Trivial (aka distant) updates
-	 * 
-	 * @author 4HT
-	 * 
-	 */
-	public static class WorkerTrivial implements Runnable
-	{
-		public int		myStartTime;
-		public int		quota;
-		public World[]	worlds;
-
-		@Override
-		public void run()
-		{
-			// System.err.println("Running trivial updater!");
-			for (final World world : this.worlds)
-			{
-				// There are no players, so there is no point
-				if (world.playerEntities == null || world.playerEntities.size() == 0)
-					continue;
-
-				final ChunkCache map = FluidData.worldCache.get(world);
-
-				if (map == null)
-					// System.err.println("Map es Null!");
-					continue;
-				if (map.distant.size() <= 0)
-					// System.err.println("Nwo distant updwates!");
-					continue;
-
-				int ticksLeft = RealisticFluids.FAR_UPDATES; // Give ourselves a
-																// tick quota
-				// System.out.println("Ticks Left : " + ticksLeft);
-				while (map.distant.size() > 0 && (ticksLeft > 0))
-				{
-					// Select a random distant chunk
-					// int i = world.rand.nextInt(map.distant.size());
-					final Chunk c = map.distant.poll(); // can we just do 0?
-					// map.distant.remove(c);
-
-					final ChunkData data = map.chunks.get(c);
-					if (data == null || !c.isChunkLoaded)
-						continue;
-					// System.out.println("Doing trivial stuff");
-					ticksLeft -= doTask(data, false, this.myStartTime);
-				}
-			}
 		}
 	}
 

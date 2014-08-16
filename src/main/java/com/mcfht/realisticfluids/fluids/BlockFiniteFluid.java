@@ -35,7 +35,27 @@ public class BlockFiniteFluid extends BlockLiquid
 	/** Rate at which this liquid flows */
 	public int			flowRate;
 	/** Amount of fluid needed to break things */
-	public final int	flowBreak	= RealisticFluids.MAX_FLUID >> 3;
+	public final int	flowBreak		= RealisticFluids.MAX_FLUID >> 3;
+
+	/**
+	 * Prevents infinite propagation of fluid pressure, mostly for saving
+	 * computational cost and so on of propagated flow. Reduce to 0 to disable.
+	 */
+	public final int	pressureLoss	= Math.max(1, RealisticFluids.MAX_FLUID >> 16);
+	/**
+	 * Additional pressure from height; consider;
+	 * 
+	 * p = depth * density * gravity
+	 * 
+	 * Assume density is 1 because it is either constant or can be scaled
+	 * retrospectively between fluids, while g remains constant in all
+	 * situations, hence; p is a measure of depth and nothing more.
+	 * 
+	 * However, this may not benefit some situations, and so the pressure gain
+	 * factor allows us to add or remove a little bit of extra pressure per
+	 * vertical step.
+	 */
+	public final int	pressureGain	= Math.max(1, RealisticFluids.MAX_FLUID >> 5);
 
 	/**
 	 * Initialize a new fluid.
@@ -118,27 +138,79 @@ public class BlockFiniteFluid extends BlockLiquid
 	{
 		if (this.flowRate != 1 && RealisticFluids.tickCounter() % (RealisticFluids.GLOBAL_RATE * this.getFlowRate(data.w)) != interval)
 		{
-			// Mark ourselves for later
-			RealisticFluids.markBlockForUpdate(data.w, x0, y0, z0);
+			data.markUpdate(x0 & 0xF, y0, z0 & 0xF);
 			return;
 		}
 
+		ChunkData _data;
 		data = FluidData.forceCurrentChunkData(data, x0, z0);
 		int l0 = FluidData.getLevel(data, this, x0 & 0xF, y0, z0 & 0xF);
 		final int _l0 = l0;
+		int p0;
 		try
 		{
 			// First, try to flow downwards
 			int y1 = y0 - 1;
+
+			int dx, dz;
+			int x1, z1;
+
 			// Ensure we do not flow out of the world
-			if (y1 < 0 || y1 > 255)
+			if (y1 < 0)
 			{
 				FluidData.setLevelWorld(data, this, x0, y0, z0, 0, true);
 				return;
 			}
-			// Now check if we can flow into the block below, etcetera
+
 			Block b1 = data.c.getBlock(x0 & 0xF, y1, z0 & 0xF);
 			int l1 = FluidData.getLevel(data, this, x0 & 0xF, y1, z0 & 0xF);
+			// put the info about the block on the stack
+			final Block _b1 = b1;
+			final int _l1 = l1;
+
+			// Start by estimating our pressure
+			// TODO merge pressure and flow together
+			if (l0 >= RealisticFluids.MAX_FLUID)
+			{
+				// Test below
+				p0 = l1 - this.pressureGain - this.pressureLoss;
+				if (p0 > l0)
+					l0 = p0;
+
+				// test above
+				y1 = y0 + 1;
+				if (y1 <= 255)
+				{
+					FluidData.getLevel(data, this, x0 & 0xF, y1, z0 & 0xF);
+					p0 = l1 + this.pressureGain - this.pressureLoss;
+					if (p0 > l0)
+						l0 = p0;
+				}
+
+				// test to the sides
+				for (int i = 0; i < 8; i++)
+				{
+					dx = Util.intDirX(i);
+					dz = Util.intDirZ(i);
+					x1 = x0 + dx;
+					z1 = z0 + dz;
+
+					// holding reference on the stack cheaper than retrieving
+					// multiple entries from maps.
+					_data = FluidData.forceCurrentChunkData(data, x1, z1);
+					l1 = FluidData.getLevel(_data, this, x1 & 0xF, y0, z1 & 0xF);
+					p0 = i < 4 ? (l1 - this.pressureLoss) : (l1 - this.pressureLoss) / 3;
+					if (p0 > l0)
+						l0 = p0;
+				}
+			}
+
+			// Retrieve info from stack, a little faster than using the block
+			// getter twice
+			b1 = _b1;
+			l1 = _l1;
+
+			y1 = y0 - 1;
 			// Emulate surface tension for water and lava
 			byte flowResult = this.checkFlow(data, x0, y0, z0, 0, -1, 0, b1, data.c.getBlockMetadata(x0 & 0xF, y1, z0 & 0xF), l0);
 
@@ -151,41 +223,17 @@ public class BlockFiniteFluid extends BlockLiquid
 				}
 				if (l1 < RealisticFluids.MAX_FLUID)
 				{
-					// See if we can take water from higher up to save updates?
-					int k, lN = 0, _lN;
-					for (k = 1; k < 16; k++)
-					{
-						_lN = FluidData.getLevel(data, this, x0 & 0xF, y0 + k, z0 & 0xF);
-						if (_lN < RealisticFluids.MAX_FLUID)
-						{
-							k--;
-							break;
-						}
-						lN = _lN;
-						continue;
-					}
-
-					if (lN >= RealisticFluids.MAX_FLUID)
-					{
-						// Pull the water down
-						FluidData.setLevel(data, this, x0 & 0xF, z0 & 0xF, x0, y0 + k, z0, l1, true);
-						FluidData.setLevelWorld(data, this, x0, y1, z0, RealisticFluids.MAX_FLUID, true);
-					} else
-					{
-						// Flow down
-						l0 = l0 + l1 - RealisticFluids.MAX_FLUID;
-						FluidData.setLevelWorld(data, this, x0, y1, z0, _l0 + l1, true);
-					}
+					// Flow down
+					l0 = l0 > RealisticFluids.MAX_FLUID ? RealisticFluids.MAX_FLUID : l0;
+					l0 = l0 + l1 - RealisticFluids.MAX_FLUID;
+					FluidData.setLevelWorld(data, this, x0, y1, z0, _l0 + l1, true);
 
 				}
 			}
-
-			if (l0 <= 0)
-			{
-				FluidData.markNeighborsDiagonal(data, x0, y0, z0);
-				return;
-			}
-
+			/*
+			 * if (l0 <= 0) { FluidData.markNeighborsDiagonal(data, x0, y0, z0);
+			 * return; }
+			 */
 			final int efVisc = this.getEffectiveViscosity(data.w, b1, l1);
 
 			boolean flag = false;
@@ -193,8 +241,6 @@ public class BlockFiniteFluid extends BlockLiquid
 			if (l0 < efVisc << 1) // Since 2 blocks SHARE the content!!!
 				flag = true;
 
-			int dx, dz;
-			int x1, z1;
 			final int skew = r.nextInt(8);
 			boolean diag = false;
 
@@ -208,10 +254,10 @@ public class BlockFiniteFluid extends BlockLiquid
 				x1 = x0 + dx;
 				z1 = z0 + dz;
 
-				data = FluidData.forceCurrentChunkData(data, x1, z1);
-				l1 = FluidData.getLevel(data, this, x1 & 0xF, y0, z1 & 0xF);
-				b1 = data.c.getBlock(x1 & 0xF, y0, z1 & 0xF);
-				flowResult = this.checkFlow(data, x0, y0, z0, dx, 0, dz, b1, data.c.getBlockMetadata(x1 & 0xF, y0, z1 & 0xF), l0);
+				_data = FluidData.forceCurrentChunkData(data, x1, z1);
+				l1 = FluidData.getLevel(_data, this, x1 & 0xF, y0, z1 & 0xF);
+				b1 = _data.c.getBlock(x1 & 0xF, y0, z1 & 0xF);
+				flowResult = this.checkFlow(_data, x0, y0, z0, dx, 0, dz, b1, _data.c.getBlockMetadata(x1 & 0xF, y0, z1 & 0xF), l0);
 
 				if (flowResult != 0)
 					if (!flag)
@@ -220,21 +266,22 @@ public class BlockFiniteFluid extends BlockLiquid
 						{
 							x1 = x0 + flowResult * dx;
 							z1 = z0 + flowResult * dz;
-							data = FluidData.forceCurrentChunkData(data, x1, z1);
-							l1 = FluidData.getLevel(data, this, x1 & 0xF, y0, z1 & 0xF);
+							_data = FluidData.forceCurrentChunkData(_data, x1, z1);
+							l1 = FluidData.getLevel(_data, this, x1 & 0xF, y0, z1 & 0xF);
 						}
 						if (l0 > l1)
 						{
+							l0 = l0 > RealisticFluids.MAX_FLUID ? RealisticFluids.MAX_FLUID : l0;
 							int flow = (l0 - l1) / 2;
 							if (diag)
 								flow -= flow / 3;
 							if (flow >= 4 && l0 - flow >= efVisc && l1 + flow >= efVisc)
 							{
 								l0 -= flow;
-								FluidData.setLevel(data, this, x1 & 0xF, z1 & 0xF, x1, y0, z1, l1 + flow, true);
+								FluidData.setLevel(_data, this, x1 & 0xF, z1 & 0xF, x1, y0, z1, l1 + flow, true);
 								if (l0 < (efVisc >> 2))
 								{
-									data = FluidData.forceCurrentChunkData(data, x0, z0);
+									data = FluidData.forceCurrentChunkData(_data, x0, z0);
 									data.markUpdate(x0 & 0xF, y0, z0 & 0xF);
 									return; // Fix problems with edge stuffs
 								}
@@ -243,17 +290,24 @@ public class BlockFiniteFluid extends BlockLiquid
 					} else // Prevent water from getting stuck on ledges
 					if (FluidData.getLevel(data, this, x0 & 0xF, y0 - 1, z0 & 0xF) == 0)
 					{
-						final Block b2 = data.c.getBlock(x1 & 0xF, y0 - 1, z1 & 0xF);
+						final Block b2 = _data.c.getBlock(x1 & 0xF, y0 - 1, z1 & 0xF);
 						if ((b1 == Blocks.air || (l1 > 0 && l1 + l0 < RealisticFluids.MAX_FLUID))
 								&& (b2 == Blocks.air || b2.getMaterial() == this.blockMaterial))
 						{
-							FluidData.setLevelWorld(data, this, x1, y0, z1, l1 + l0, true);
-							FluidData.markNeighborsDiagonal(data, x1, y0, z1);
+							FluidData.setLevelWorld(_data, this, x1, y0, z1, l1 + l0, true);
+							FluidData.markNeighborsDiagonal(_data, x1, y0, z1);
 							l0 = 0;
 							return;
 						}
 					}
 			}
+
+			// Try to go up
+			y1 = y0 + 1;
+
+			if (l0 > RealisticFluids.MAX_FLUID + this.pressureGain + this.pressureLoss)
+				l1 = FluidData.getLevel(data, this, x0 & 0xF, y1, z0 & 0xF);
+
 		} finally
 		{
 			if (l0 != _l0)
