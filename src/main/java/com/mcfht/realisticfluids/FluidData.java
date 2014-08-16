@@ -337,7 +337,33 @@ public class FluidData
 		}
 		return a;
 	}
-
+	/**
+	 * Returns the fluid level of a cell at the given coordinates in the given
+	 * data array within a designated block (for post getter retrieval)
+	 * 
+	 * @param w
+	 * @param f0
+	 * @param cx
+	 * @param cy
+	 * @param cz
+	 * @return
+	 */
+	public static int getLevel(final ChunkData data, final BlockFiniteFluid f0, final Block b0, final int cx, final int cy, final int cz)
+	{
+		// final Block b0 = data.c.getBlock(cx, cy, cz);
+		int a = data.getLevel(cx, cy, cz);
+		if (a == 0 && Util.isSameFluid(f0, b0))
+		{
+			a = data.c.getBlockMetadata(cx, cy, cz);
+			if (a >= 7)
+				return f0.viscosity;
+			// Give existing water bodies some capacity to absorb fluid?
+			// if (a == 0) return RealisticFluids.MAX_FLUID -
+			// (RealisticFluids.MAX_FLUID >> 4);
+			return (8 - a) * (RealisticFluids.MAX_FLUID >> 3);
+		}
+		return a;
+	}
 	public static Block convertFlowingStill(final Block f0, final int level)
 	{
 		if (f0.getMaterial() == Material.water)

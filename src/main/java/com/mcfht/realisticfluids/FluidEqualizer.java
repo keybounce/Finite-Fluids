@@ -47,8 +47,12 @@ public class FluidEqualizer
 	}
 
 	/** Perform this equalization task. <b>THREAD SAFE</b> */
+	@SuppressWarnings("unused")
 	private static int equalize()
 	{
+		if (true)
+			return 1;
+
 		if (tasks.size() == 0)
 			return 1;
 		final EqualizeTask task = tasks.poll();

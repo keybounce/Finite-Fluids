@@ -33,6 +33,15 @@ public class Util
 											{1, 1},
 											{1, -1},
 											{-1, -1}};
+
+	public static final int[][]	faces		=
+											{
+											{0, 0, 1},
+											{0, 1, 0},
+											{1, 0, 0},
+											{0, 0, -1},
+											{0, -1, 0},
+											{-1, 0, 0}};
 	public static final Random	r			= new Random();
 	/** used to retrieve and shuffle random directions */
 	public static int			offset		= r.nextInt(8);
@@ -56,6 +65,21 @@ public class Util
 	public static int intDirZ(final int dir)
 	{
 		return directions[dir & 0x7][1];
+	}
+
+	public static int intFaceX(final int dir)
+	{
+		return directions[dir % 6][0];
+	}
+
+	public static int intFaceY(final int dir)
+	{
+		return directions[dir % 6][1];
+	}
+
+	public static int intFaceZ(final int dir)
+	{
+		return directions[dir % 6][2];
 	}
 
 	/**
@@ -113,8 +137,9 @@ public class Util
 		return out + "]";
 	}
 
-	public static int getMetaFromLevel(final int l)
+	public static int getMetaFromLevel(int l)
 	{
+		l = Math.min(RealisticFluids.MAX_FLUID, l);
 		return Math.max(0, 7 - (l / (RealisticFluids.MAX_FLUID >> 3)));
 	}
 
