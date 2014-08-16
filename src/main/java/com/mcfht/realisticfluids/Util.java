@@ -36,12 +36,12 @@ public class Util
 
 	public static final int[][]	faces		=
 											{
+											{0, -1, 0},
 											{0, 0, 1},
-											{0, 1, 0},
 											{1, 0, 0},
 											{0, 0, -1},
-											{0, -1, 0},
-											{-1, 0, 0}};
+											{-1, 0, 0},
+											{0, 1, 0},};
 	public static final Random	r			= new Random();
 	/** used to retrieve and shuffle random directions */
 	public static int			offset		= r.nextInt(8);
@@ -69,17 +69,17 @@ public class Util
 
 	public static int intFaceX(final int dir)
 	{
-		return directions[dir % 6][0];
+		return faces[dir % 6][0];
 	}
 
 	public static int intFaceY(final int dir)
 	{
-		return directions[dir % 6][1];
+		return faces[dir % 6][1];
 	}
 
 	public static int intFaceZ(final int dir)
 	{
-		return directions[dir % 6][2];
+		return faces[dir % 6][2];
 	}
 
 	/**

@@ -31,17 +31,19 @@ import cpw.mods.fml.relauncher.SideOnly;
 public class BlockFiniteFluid extends BlockLiquid
 {
 	/** Tendency of this liquid to flow */
-	public final int	viscosity;
+	public final int		viscosity;
 	/** Rate at which this liquid flows */
-	public int			flowRate;
+	public int				flowRate;
 	/** Amount of fluid needed to break things */
-	public final int	flowBreak		= RealisticFluids.MAX_FLUID >> 3;
+	public final int		flowBreak		= RealisticFluids.MAX_FLUID >> 3;
 
 	/**
-	 * Prevents infinite propagation of fluid pressure, mostly for saving
-	 * computational cost and so on of propagated flow. Reduce to 0 to disable.
+	 * Enables us to follow pressure propagation back to higher pressure areas.
 	 */
-	public final int	pressureLoss	= Math.max(1, RealisticFluids.MAX_FLUID >> 16);
+	public static final int	pressureLoss	= 1;								// Math.max(1,
+	// RealisticFluids.MAX_FLUID
+	// >>
+	// 16);
 	/**
 	 * Additional pressure from height; consider;
 	 * 
@@ -51,11 +53,9 @@ public class BlockFiniteFluid extends BlockLiquid
 	 * retrospectively between fluids, while g remains constant in all
 	 * situations, hence; p is a measure of depth and nothing more.
 	 * 
-	 * However, this may not benefit some situations, and so the pressure gain
-	 * factor allows us to add or remove a little bit of extra pressure per
-	 * vertical step.
+	 * Ideally using the max fluid value should be good enough, but whatever...
 	 */
-	public final int	pressureGain	= Math.max(1, RealisticFluids.MAX_FLUID >> 5);
+	public static final int	pressureGain	= RealisticFluids.MAX_FLUID;
 
 	/**
 	 * Initialize a new fluid.
@@ -101,7 +101,10 @@ public class BlockFiniteFluid extends BlockLiquid
 	public void breakBlock(final World w, final int x, final int y, final int z, final Block b0, final int m)
 	{
 		final Block b1 = w.getBlock(x, y, z);
+
 		final ChunkData data = FluidData.getChunkData(w.getChunkFromChunkCoords(x >> 4, z >> 4));
+		if (b1 == Blocks.torch)
+			System.out.println(data.getLevel(x & 0xF, y, z & 0xF));
 		try
 		{
 			if (!(b1 instanceof BlockFiniteFluid))
@@ -170,31 +173,41 @@ public class BlockFiniteFluid extends BlockLiquid
 
 			// Start by estimating our pressure
 			// TODO merge pressure and flow steps together where possible
-			if (l0 >= RealisticFluids.MAX_FLUID)
+
+			if (l0 >= RealisticFluids.MAX_FLUID - 1)
 			{
+				// System.out.println("Doing block at " + Util.intStr(x0, y0,
+				// z0) + " (level: " + l0 + ")");
+				l0 = RealisticFluids.MAX_FLUID;
 				// Test below
-				p0 = l1 - this.pressureGain - this.pressureLoss;
-				if (p0 > l0)
-					l0 = p0;
+				// System.out.println(" - Testing blelow... " + l1);
+				if (l1 > RealisticFluids.MAX_FLUID)
+				{
+					p0 = l1 - pressureGain - pressureLoss;
+					if (p0 > l0)
+						// System.out.println("    - Determined new pressure: "
+						// + p0);
+						l0 = p0;
+
+					// data.setLevel(x0 & 0xF, y1, z0 & 0xF, p0);
+
+				}
+
+				final int p1 = RealisticFluids.MAX_FLUID + pressureGain - pressureLoss;
+				if (l1 >= RealisticFluids.MAX_FLUID && p1 > l1)
+				{
+					data.setLevel(x0 & 0xF, y1, z0 & 0xF, p1);
+					data.markUpdate(x0 & 0xF, y1, z0 & 0xF);
+				}
 
 				// test above
 				y1 = y0 + 1;
 				if (y1 <= 255)
 				{
-					FluidData.getLevel(data, this, x0 & 0xF, y1, z0 & 0xF);
-					p0 = l1 + this.pressureGain - this.pressureLoss;
+					l1 = FluidData.getLevel(data, this, x0 & 0xF, y1, z0 & 0xF);
+					p0 = l1 + pressureGain - pressureLoss;
 					if (p0 > l0)
 						l0 = p0;
-
-					// Attempt to propagate pressure upwards because update
-					// sequence will otherwise prevent this from occurring
-					// NOTE: Change here if changing update direction
-					final int p1 = p0 - this.pressureGain - this.pressureLoss;
-					if (l1 >= RealisticFluids.MAX_FLUID && p1 > l1)
-					{
-						FluidData.setLevel(data, this, x0 & 0xF, z0 & 0xF, x0, y1, z0, p1, false);
-						data.markUpdate(x0 & 0xF, y1, z0 & 0xF);
-					}
 
 				}
 
@@ -206,25 +219,39 @@ public class BlockFiniteFluid extends BlockLiquid
 					x1 = x0 + dx;
 					z1 = z0 + dz;
 
-					// storing and pulling reference cheaper than retrieving
-					// multiple entries from maps.
 					_data = FluidData.forceCurrentChunkData(data, x1, z1);
 					l1 = FluidData.getLevel(_data, this, x1 & 0xF, y0, z1 & 0xF);
 
-					// Scale with diagonal (sqrt(2)/2 distance scale)
-					p0 = i < 4 ? (l1 - this.pressureLoss) : (5 * (l1 - this.pressureLoss)) / 7;
-					if (p0 > l0)
-						l0 = p0;
+					if (l1 >= RealisticFluids.MAX_FLUID - 2)
+					{
+						System.out.println("Block at " + Util.intStr(x0, y0, z0));
+						System.out.println(" - Looking to " + Util.intStr(x1, y0, z1) + "level/pressure: " + l1);
+						System.out.println("     Level:   " + l1);
+
+						// Scale with diagonal (sqrt(2)/2 distance scale)
+						p0 = i < 4 ? (l1 - pressureLoss) : (5 * (l1 - pressureLoss)) / 7;
+						System.out.println("     Becomes: " + p0 + ", vs: " + l0);
+
+						if (p0 > l0)
+							l0 = p0;
+						else if (l0 - pressureLoss > l1)
+						{
+							data.setLevel(x1 & 0xF, y0, z1 & 0xF, l0 - pressureLoss);
+							data.markUpdate(x1 & 0xF, y0, z1 & 0xF);
+						}
+
+					}
 				}
+
 			}
 
-			// Retrieve info from stack, a little faster than using the block
-			// getter twice
 			b1 = _b1;
 			l1 = _l1;
-			final int pressureLevel = l0;
+
+			// int presureLevel = l0;
+
 			y1 = y0 - 1;
-			// Emulate surface tension for water and lava
+
 			byte flowResult = this.checkFlow(data, x0, y0, z0, 0, -1, 0, b1, data.c.getBlockMetadata(x0 & 0xF, y1, z0 & 0xF), l0);
 
 			if (flowResult != 0)
@@ -288,7 +315,7 @@ public class BlockFiniteFluid extends BlockLiquid
 							int flow = (l0 - l1) / 2;
 							if (diag)
 								flow -= flow / 3;
-							if (flow >= 4 && l0 - flow >= efVisc && l1 + flow >= efVisc)
+							if (l0 - flow >= efVisc && l1 + flow >= efVisc)
 							{
 								l0 -= flow;
 								FluidData.setLevel(_data, this, x1 & 0xF, z1 & 0xF, x1, y0, z1, l1 + flow, true);
@@ -316,99 +343,90 @@ public class BlockFiniteFluid extends BlockLiquid
 			}
 
 			// Try to go up
-			y1 = y0 + 1;
+			/*
+			 * y1 = y0 + 1;
+			 * 
+			 * if (l0 > RealisticFluids.MAX_FLUID + this.pressureGain +
+			 * this.pressureLoss) { b1 = data.c.getBlock(x0 & 0xF, y1, z0 &
+			 * 0xF); l1 = FluidData.getLevel(data, this, x0 & 0xF, y1, z0 &
+			 * 0xF);
+			 * 
+			 * // b1 will recalc pressure later by itself if (b1 == Blocks.air
+			 * || (l1 < RealisticFluids.MAX_FLUID && this.blockMaterial ==
+			 * b1.getMaterial())) { FluidData.setLevel(data, this, x0 & 0xF, z0
+			 * & 0xF, x0, y1, z0 & 0xF, Math.min(RealisticFluids.MAX_FLUID, l0),
+			 * true); l0 = l1; }
+			 * 
+			 * }
+			 */
 
-			if (l0 > RealisticFluids.MAX_FLUID + this.pressureGain + this.pressureLoss)
-			{
-				b1 = data.c.getBlock(x0 & 0xF, y1, z0 & 0xF);
-				l1 = FluidData.getLevel(data, this, x0 & 0xF, y1, z0 & 0xF);
-
-				// b1 will recalc pressure later by itself
-				if (b1 == Blocks.air || (l1 < RealisticFluids.MAX_FLUID && this.blockMaterial == b1.getMaterial()))
-				{
-					FluidData.setLevel(data, this, x0 & 0xF, z0 & 0xF, x0, y1, z0 & 0xF, Math.min(RealisticFluids.MAX_FLUID, l0), true);
-					l0 = l1;
-				}
-
-			}
-
-			final boolean pull = pressureLevel >= RealisticFluids.MAX_FLUID;
-			if (l0 < RealisticFluids.MAX_FLUID)
-			{
-				int i, xN = x0, yN = y0, zN = z0, _xN = xN, _yN = yN, _zN = zN, dy;
-				final int cur = pull ? RealisticFluids.MAX_FLUID : l0;
-				ChunkData _dataN, dataN = _dataN = _data = data;
-
-				int dirN = -1, lN = 0;
-
-				for (i = 0; i < 20; i++)
-				{
-
-					for (int dir = 0; dir < 6; dir++)
-					{
-						dy = Util.intFaceY(dir);
-						_xN = xN + Util.intFaceX(dir);
-						_yN = yN + dy;
-						_zN = zN + Util.intFaceZ(dir);
-						if (_yN < 0 || _yN > 255 || (!pull && dy != 0))
-							continue;
-
-						_data = FluidData.forceCurrentChunkData(dataN, _xN, _zN);
-						b1 = _data.c.getBlock(_xN & 0xF, _yN, zN & 0xF);
-
-						if (!(b1 instanceof BlockFiniteFluid) || (b1.getMaterial() != this.blockMaterial))
-							continue;
-
-						l1 = FluidData.getLevel(_data, this, b1, _xN & 0xF, _yN, _zN & 0xF);
-
-						final int equiv = l1 + (dy * this.pressureGain) - this.pressureLoss;
-						if (equiv > cur)
-						{
-							dirN = dir;
-							lN = l1;
-							_dataN = _data;
-						}
-					}
-
-					if (dirN == -1 || lN < cur)
-						break;
-
-					xN += Util.intFaceX(dirN);
-					yN += Util.intFaceY(dirN);
-					zN += Util.intFaceZ(dirN);
-					dataN = _dataN;
-				}
-
-				if (xN != x0 || yN != y0 || zN != z0)
-				{
-					lN = lN > RealisticFluids.MAX_FLUID ? RealisticFluids.MAX_FLUID : lN;
-
-					int toMove;
-					if (pull)
-						toMove = Math.min(lN, RealisticFluids.MAX_FLUID - l0);
-					else
-						toMove = Math.min((lN - l0) / 2, RealisticFluids.MAX_FLUID - l0);
-
-					l0 += toMove;
-
-					FluidData.setLevel(dataN, this, xN & 0xF, zN & 0xF, xN, yN, zN, lN - toMove, true);
-
-					if (l0 >= RealisticFluids.MAX_FLUID)
-						l0 = pressureLevel;
-				}
-
-			}
-
+			/*
+			 * final boolean pull = pressureLevel >= RealisticFluids.MAX_FLUID;
+			 * if (l0 < RealisticFluids.MAX_FLUID) { int i, xN = x0, yN = y0, zN
+			 * = z0, _xN = xN, _yN = yN, _zN = zN, dy; final int cur = pull ?
+			 * RealisticFluids.MAX_FLUID : l0; ChunkData _dataN, dataN = _dataN
+			 * = _data = data;
+			 * 
+			 * int dirN = -1, lN = 0;
+			 * 
+			 * for (i = 0; i < 20; i++) {
+			 * 
+			 * for (int dir = 0; dir < 6; dir++) { dy = Util.intFaceY(dir); _xN
+			 * = xN + Util.intFaceX(dir); _yN = yN + dy; _zN = zN +
+			 * Util.intFaceZ(dir); if (_yN < 0 || _yN > 255 || (!pull && dy !=
+			 * 0)) continue;
+			 * 
+			 * _data = FluidData.forceCurrentChunkData(dataN, _xN, _zN); b1 =
+			 * _data.c.getBlock(_xN & 0xF, _yN, zN & 0xF);
+			 * 
+			 * if (!(b1 instanceof BlockFiniteFluid) || (b1.getMaterial() !=
+			 * this.blockMaterial)) continue;
+			 * 
+			 * l1 = FluidData.getLevel(_data, this, b1, _xN & 0xF, _yN, _zN &
+			 * 0xF);
+			 * 
+			 * final int equiv = l1 + (dy * this.pressureGain) -
+			 * this.pressureLoss; if (equiv > cur) { dirN = dir; lN = l1; _dataN
+			 * = _data; } }
+			 * 
+			 * if (dirN == -1 || lN < cur) break;
+			 * 
+			 * xN += Util.intFaceX(dirN); yN += Util.intFaceY(dirN); zN +=
+			 * Util.intFaceZ(dirN); dataN = _dataN; }
+			 * 
+			 * if (xN != x0 || yN != y0 || zN != z0) { lN = lN >
+			 * RealisticFluids.MAX_FLUID ? RealisticFluids.MAX_FLUID : lN;
+			 * 
+			 * int toMove;
+			 * 
+			 * if (pull) toMove = Math.min(lN, RealisticFluids.MAX_FLUID - l0);
+			 * else toMove = Math.min((lN - l0) / 2, RealisticFluids.MAX_FLUID -
+			 * l0);
+			 * 
+			 * l0 += toMove;
+			 * 
+			 * FluidData.setLevel(dataN, this, xN & 0xF, zN & 0xF, xN, yN, zN,
+			 * lN - toMove, true);
+			 * 
+			 * if (l0 >= RealisticFluids.MAX_FLUID) l0 = pressureLevel; }
+			 * 
+			 * }
+			 */
 		} finally
 		{
 			if (l0 != _l0)
 			{
 				data = FluidData.forceCurrentChunkData(data, x0, z0);
-				// Only flag updates if a significant fuid volume passes?
-				// Math.abs(l0 - _l0) > RealisticFluids.MAX_FLUID >> 10
-				FluidData.setLevelWorld(data, this, x0, y0, z0, l0, true);
-				// Overkill?
-				data.markUpdate(x0 & 0xF, y0, z0 & 0xF);
+				if (l0 >= RealisticFluids.MAX_FLUID && _l0 >= RealisticFluids.MAX_FLUID)
+					data.setLevel(x0 & 0xF, y0, z0 & 0xF, l0);
+				else
+				{
+					// Only flag updates if a significant fuid volume passes?
+					// Math.abs(l0 - _l0) > RealisticFluids.MAX_FLUID >> 10
+					FluidData.setLevelWorld(data, this, x0, y0, z0, l0, true);
+					// Overkill?
+					data.markUpdate(x0 & 0xF, y0, z0 & 0xF);
+				}
 			}
 		}
 	}

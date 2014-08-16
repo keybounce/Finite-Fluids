@@ -151,10 +151,11 @@ public class FluidData
 		 */
 		public void markUpdate(final int cx, final int cy, final int cz)
 		{
-			if (this.updateFlags[cy >> 4] == null)
-				this.updateFlags[cy >> 4] = new boolean[4096];
-			this.updateCounter[cy >> 4] = true;
-			this.updateFlags[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = true;
+			final int _cy = cy >> 4;
+			if (this.updateFlags[_cy] == null)
+				this.updateFlags[_cy] = new boolean[4096];
+			this.updateCounter[_cy] = true;
+			this.updateFlags[_cy][cx + (cz << 4) + ((cy & 0xF) << 8)] = true;
 			// System.out.println("***********DONE************");
 		}
 
@@ -384,8 +385,8 @@ public class FluidData
 		return setLevel(data, f0, x & 0xF, z & 0xF, x, y, z, l0, updateNeighbors);
 	}
 
-	public static int setLevel(final ChunkData data, Block f1, final int cx, final int cz, final int x, final int y, final int z, int l1,
-			final boolean updateNeighbors)
+	public static int setLevel(final ChunkData data, Block f1, final int cx, final int cz, final int x, final int y, final int z,
+			final int l1, final boolean updateNeighbors)
 	{
 		// Note that the flow is decided, we do not care what the target is
 		// unless it is unmarked fluid
@@ -401,25 +402,19 @@ public class FluidData
 			return 0;
 		}
 
-		if (l1 > RealisticFluids.MAX_FLUID)
-			l1 = RealisticFluids.MAX_FLUID;
-
 		f1 = convertFlowingStill(f1, l1);
 		final Block b0 = data.c.getBlock(cx, y, cz);
 		final int l0 = data.getLevel(cx, y, cz);
 
 		// SLEDGEHAMMER
-		if (Math.abs(l0 - l1) <= 4)
-		{
-			// System.out.println("Spam blocks are a spamming...!");
-			if (l0 <= 4 || l1 <= 4)
-			{
-				data.setLevel(cx, y, cz, 0);
-				RealisticFluids.setBlock(data.w, x, y, z, Blocks.air, 0, updateNeighbors ? 3 : 2);
-			}
-			// updateNeighbors = false;
-			return l1; // MAXXOR HAXXOR!
-		}
+		/*
+		 * if (Math.abs(l0 - l1) <= 4) { //
+		 * System.out.println("Spam blocks are a spamming...!"); if (l0 <= 4 ||
+		 * l1 <= 4) { data.setLevel(cx, y, cz, 0);
+		 * RealisticFluids.setBlock(data.w, x, y, z, Blocks.air, 0,
+		 * updateNeighbors ? 3 : 2); } // updateNeighbors = false; return l1; //
+		 * MAXXOR HAXXOR! }
+		 */
 
 		final int m1 = Util.getMetaFromLevel(l1);
 		data.markUpdate(cx, y, cz);

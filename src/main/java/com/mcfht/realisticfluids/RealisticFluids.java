@@ -89,7 +89,7 @@ public class RealisticFluids extends DummyModContainer
 
 	// //////////////// FLUID SETTINGS //////////////////////
 	/** The number of fluid levels for each cell */
-	public final static int	MAX_FLUID			= 1 << 20;
+	public final static int	MAX_FLUID			= 1 << 12;
 	// WATER
 	/** Relative update rate of water */
 	public static int		WATER_UPDATE		= 1;
