@@ -54,7 +54,7 @@ public class FluidData
 	{
 		// INSTANTIATED
 		/** Array of fluid levels */
-		public short[][]	fluidArray		= new short[16][4096];
+		public int[][]		fluidArray		= new int[16][4096];
 
 		/** A map of update flags, divided into EBS arrays */
 		public boolean[][]	updateFlags		= new boolean[16][4096];
@@ -98,7 +98,7 @@ public class FluidData
 		public int getLevel(final int cx, final int cy, final int cz)
 		{
 			if (this.fluidArray[cy >> 4] == null)
-				this.fluidArray[cy >> 4] = new short[4096];
+				this.fluidArray[cy >> 4] = new int[4096];
 
 			return this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)];
 		}
@@ -114,9 +114,9 @@ public class FluidData
 		public void setLevel(final int cx, final int cy, final int cz, final int l)
 		{
 			if (this.fluidArray[cy >> 4] == null)
-				this.fluidArray[cy >> 4] = new short[4096];
+				this.fluidArray[cy >> 4] = new int[4096];
 
-			this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = (short) l;
+			this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = l;
 		}
 
 		/**
@@ -131,11 +131,11 @@ public class FluidData
 		public int[] addSetLevel(final int cx, final int cy, final int cz, final int l)
 		{
 			if (this.fluidArray[cy >> 4] == null)
-				this.fluidArray[cy >> 4] = new short[4096];
+				this.fluidArray[cy >> 4] = new int[4096];
 
 			final int i = this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 4)];
 
-			this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 4)] = (short) (i + l > RealisticFluids.MAX_FLUID
+			this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 4)] = (i + l > RealisticFluids.MAX_FLUID
 					? RealisticFluids.MAX_FLUID
 					: i + l);
 			return new int[]

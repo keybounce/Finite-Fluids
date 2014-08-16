@@ -378,7 +378,7 @@ public class FluidEqualizer
 
 			// Make 100% sure the target fluid data is valid
 			if (data.fluidArray[y0 >> 4] == null)
-				data.fluidArray[y0 >> 4] = new short[4096];
+				data.fluidArray[y0 >> 4] = new int[4096];
 
 			for (int i = y0 * 256; i < (y0 * 256) + 256; i++)
 			{

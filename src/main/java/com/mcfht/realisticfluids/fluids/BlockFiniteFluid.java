@@ -35,7 +35,7 @@ public class BlockFiniteFluid extends BlockLiquid
 	/** Rate at which this liquid flows */
 	public int			flowRate;
 	/** Amount of fluid needed to break things */
-	public final int	flowBreak	= RealisticFluids.MAX_FLUID >> 2;
+	public final int	flowBreak	= RealisticFluids.MAX_FLUID >> 3;
 
 	/**
 	 * Initialize a new fluid.
@@ -108,7 +108,7 @@ public class BlockFiniteFluid extends BlockLiquid
 
 	public int getEffectiveViscosity(final World w, final Block b1, final int l1)
 	{
-		return (l1 > 0) ? this.viscosity >> 6 : this.viscosity;
+		return (l1 > 0 && this.blockMaterial == b1.getMaterial()) ? Math.max(1, this.viscosity >> 15) : this.viscosity;
 	}
 	public int getFlowRate(final World w)
 	{
@@ -151,9 +151,32 @@ public class BlockFiniteFluid extends BlockLiquid
 				}
 				if (l1 < RealisticFluids.MAX_FLUID)
 				{
-					// Flow down
-					l0 = l0 + l1 - RealisticFluids.MAX_FLUID;
-					FluidData.setLevelWorld(data, this, x0, y1, z0, _l0 + l1, true);
+					// See if we can take water from higher up to save updates?
+					int k, lN = 0, _lN;
+					for (k = 1; k < 16; k++)
+					{
+						_lN = FluidData.getLevel(data, this, x0 & 0xF, y0 + k, z0 & 0xF);
+						if (_lN < RealisticFluids.MAX_FLUID)
+						{
+							k--;
+							break;
+						}
+						lN = _lN;
+						continue;
+					}
+
+					if (lN >= RealisticFluids.MAX_FLUID)
+					{
+						// Pull the water down
+						FluidData.setLevel(data, this, x0 & 0xF, z0 & 0xF, x0, y0 + k, z0, l1, true);
+						FluidData.setLevelWorld(data, this, x0, y1, z0, RealisticFluids.MAX_FLUID, true);
+					} else
+					{
+						// Flow down
+						l0 = l0 + l1 - RealisticFluids.MAX_FLUID;
+						FluidData.setLevelWorld(data, this, x0, y1, z0, _l0 + l1, true);
+					}
+
 				}
 			}
 
@@ -166,6 +189,7 @@ public class BlockFiniteFluid extends BlockLiquid
 			final int efVisc = this.getEffectiveViscosity(data.w, b1, l1);
 
 			boolean flag = false;
+			// Block _b1 = b1;
 			if (l0 < efVisc << 1) // Since 2 blocks SHARE the content!!!
 				flag = true;
 
@@ -220,9 +244,10 @@ public class BlockFiniteFluid extends BlockLiquid
 					if (FluidData.getLevel(data, this, x0 & 0xF, y0 - 1, z0 & 0xF) == 0)
 					{
 						final Block b2 = data.c.getBlock(x1 & 0xF, y0 - 1, z1 & 0xF);
-						if (b1 == Blocks.air && (b2 == Blocks.air || Util.isSameFluid(this, b2)))
+						if ((b1 == Blocks.air || (l1 > 0 && l1 + l0 < RealisticFluids.MAX_FLUID))
+								&& (b2 == Blocks.air || b2.getMaterial() == this.blockMaterial))
 						{
-							FluidData.setLevelWorld(data, this, x1, y0, z1, l0, true);
+							FluidData.setLevelWorld(data, this, x1, y0, z1, l1 + l0, true);
 							FluidData.markNeighborsDiagonal(data, x1, y0, z1);
 							l0 = 0;
 							return;
@@ -237,6 +262,8 @@ public class BlockFiniteFluid extends BlockLiquid
 				// Only flag updates if a significant fuid volume passes?
 				// Math.abs(l0 - _l0) > RealisticFluids.MAX_FLUID >> 10
 				FluidData.setLevelWorld(data, this, x0, y0, z0, l0, true);
+				// Overkill?
+				data.markUpdate(x0 & 0xF, y0, z0 & 0xF);
 			}
 		}
 	}

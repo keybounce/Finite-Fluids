@@ -60,50 +60,52 @@ public class RealisticFluids extends DummyModContainer
 {
 	// /////////////////////// GENERAL SETTINGS //////////////////////
 	/** Max update quota per tick. TODO NOT MAX */
-	public static int			MAX_UPDATES			= 1024;
+	public static int		MAX_UPDATES			= 1024;
 	/** Force this much update quota TODO NOT MAX */
-	public static int			FAR_UPDATES			= 2048;
+	public static int		FAR_UPDATES			= 2048;
 	/** Number of ticks between update sweeps */
-	public static int			GLOBAL_RATE			= 5;
+	public static int		GLOBAL_RATE			= 5;
 	/** Max number of ticks between update sweeps */
-	public static int			GLOBAL_RATE_MAX		= 10;
-	public static int			GLOBAL_RATE_AIM		= 5;
+	public static int		GLOBAL_RATE_MAX		= 10;
+	public static int		GLOBAL_RATE_AIM		= 5;
+
+	public static final int	CORES				= Runtime.getRuntime().availableProcessors();
 
 	// //////////////////DISTANCE BASED PRIORITIZATION ///////////////////////
 	/** Priority distance */
-	public static int			UPDATE_RANGE		= 4 * 4;
+	public static int		UPDATE_RANGE		= 4 * 4;
 	/** "Trivial" distance */
-	public static int			UPDATE_RANGE_FAR	= 16 * 16;
+	public static int		UPDATE_RANGE_FAR	= 16 * 16;
 
 	// /////////////////// EQUALIZATION SETTINGS //////////////////////
 	/** Arbitrary limits on NEAR equalization */
-	public static int			EQUALIZE_NEAR		= 2;
-	public static int			EQUALIZE_NEAR_R		= 64;
+	public static int		EQUALIZE_NEAR		= 2;
+	public static int		EQUALIZE_NEAR_R		= 64;
 	/** Aribtrary limits on DISTANT equalization */
-	public static int			EQUALIZE_FAR		= 16;
-	public static int			EQUALIZE_FAR_R		= 64;
+	public static int		EQUALIZE_FAR		= 16;
+	public static int		EQUALIZE_FAR_R		= 64;
 
-	public static int			EQUALIZE_GLOBAL		= 32;
+	public static int		EQUALIZE_GLOBAL		= 32;
 
 	// //////////////// FLUID SETTINGS //////////////////////
 	/** The number of fluid levels for each cell */
-	public final static short	MAX_FLUID			= 16384;
+	public final static int	MAX_FLUID			= 1 << 20;
 	// WATER
 	/** Relative update rate of water */
-	public static int			WATER_UPDATE		= 1;
+	public static int		WATER_UPDATE		= 1;
 	/** Runniness of water */
-	public static final int		waterVisc			= 4;
+	public static final int	waterVisc			= 4;
 	// LAVA
 
 	/** update rate of lava in the overworld */
-	public static final int		LAVA_UPDATE			= 5;
+	public static final int	LAVA_UPDATE			= 5;
 	/** update rate of lava in the nether) */
-	public static final int		LAVA_NETHER			= 3;
+	public static final int	LAVA_NETHER			= 3;
 	/** Runniness of lava */
-	public static final int		lavaVisc			= 3;
+	public static final int	lavaVisc			= 3;
 
 	// //////////////////////////ASM SETTINGS///////////////////////
-	public static boolean		ASM_DOOR			= true;
+	public static boolean	ASM_DOOR			= true;
 
 	public RealisticFluids()
 	{
@@ -214,6 +216,7 @@ public class RealisticFluids extends DummyModContainer
 		w.markBlockForUpdate(x, y, z); // Never called without rerender so...
 		if ((flag & 0x1) != (_flag))
 			w.notifyBlockChange(x, y, z, ebs.getBlockByExtId(x & 0xF, y & 0xF, z & 0xF));
+
 		x &= 0xF;
 		y &= 0xF;
 		z &= 0xF;
@@ -223,7 +226,9 @@ public class RealisticFluids extends DummyModContainer
 		ebs.func_150818_a(x, y, z, b); // If there was a block
 
 		// Allow skipping relights
-		c.updateSkylightColumns[x + (z << 4)] = (flag & 0x8000000) == 0;
+
+		// if ((flag & 0x8000000) == 0)
+		c.updateSkylightColumns[x + (z << 4)] = true;
 	}
 	/**
 	 * Same as above, but metadata optimized
@@ -259,7 +264,8 @@ public class RealisticFluids extends DummyModContainer
 		// using with other systems!
 		ebs.setExtBlockMetadata(x, y, z, m);
 		// Allow skipping relights
-		c.updateSkylightColumns[x + (z << 4)] = (flag & 0x8000000) == 0;
+		// if ((flag & 0x8000000) == 0)
+		c.updateSkylightColumns[x + (z << 4)] = true;
 	}
 
 	/**
@@ -455,21 +461,26 @@ public class RealisticFluids extends DummyModContainer
 				}
 			}
 
-			// Unimplemented as of yet D:
-			final int tickQuota = MAX_UPDATES / Math.max(1, MinecraftServer.getServer().getCurrentPlayerCount());
+			FluidManager.delegator.myStartTick = tickCounter();
+			FluidManager.delegator.worlds = MinecraftServer.getServer().worldServers.clone();
+			System.out.println("Performing Tasks...");
+			FluidManager.delegator.performTasks();
 
-			FluidManager.PWorker.quota = tickQuota;
-			FluidManager.PWorker.myStartTime = tickCounter();
-			FluidManager.PWorker.worlds = MinecraftServer.getServer().worldServers.clone();
-			// Running task like this is fine, since OS will just try to catch
-			// up threads at some point
-			// In the long run I will switch to using thread pools probably
-			FluidManager.PRIORITY.run();
-
-			FluidManager.TWorker.quota = tickQuota;
-			FluidManager.TWorker.myStartTime = tickCounter();
-			FluidManager.TWorker.worlds = MinecraftServer.getServer().worldServers.clone();
-			FluidManager.TRIVIAL.run();
+			/*
+			 * FluidManager.PWorker.quota = tickQuota;
+			 * FluidManager.PWorker.myStartTime = tickCounter();
+			 * FluidManager.PWorker.worlds =
+			 * MinecraftServer.getServer().worldServers.clone(); // Running task
+			 * like this is fine, since OS will just try to catch // up threads
+			 * at some point // In the long run I will switch to using thread
+			 * pools probably FluidManager.PRIORITY.run();
+			 * 
+			 * FluidManager.TWorker.quota = tickQuota;
+			 * FluidManager.TWorker.myStartTime = tickCounter();
+			 * FluidManager.TWorker.worlds =
+			 * MinecraftServer.getServer().worldServers.clone();
+			 * FluidManager.TRIVIAL.run();
+			 */
 		}
 
 		// Set blocks for a little bit on the server thread

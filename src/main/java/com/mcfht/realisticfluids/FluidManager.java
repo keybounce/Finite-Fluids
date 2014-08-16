@@ -1,5 +1,7 @@
 package com.mcfht.realisticfluids;
 
+import java.util.ArrayList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.block.Block;
@@ -21,7 +23,6 @@ import com.mcfht.realisticfluids.fluids.BlockFiniteWater;
  */
 public class FluidManager
 {
-
 	public static Delegator			delegator	= new Delegator();
 
 	public static WorkerPriority	PWorker		= new WorkerPriority();
@@ -30,40 +31,158 @@ public class FluidManager
 	public static WorkerTrivial		TWorker		= new WorkerTrivial();
 	public static Thread			TRIVIAL		= new Thread(TWorker);
 
+	public static class WorkerThread
+	{
+		Thread		thread	= null;
+		FluidWorker	worker	= null;
+
+		public WorkerThread(final FluidWorker worker)
+		{
+			this.thread = new Thread(worker);
+			this.worker = worker;
+		}
+	}
+
 	/**
-	 * Delegates tasks to different threads in a not yet existing thread pool
+	 * Delegates tasks to different threads
 	 * 
 	 * @author FHT
 	 * 
 	 */
-	public static class Delegator implements Runnable
+	public static class Delegator
 	{
-		public AtomicInteger	sweepCost	= new AtomicInteger(0);
+		public AtomicInteger			sweepCost	= new AtomicInteger(0);
+		public int						myStartTick;
+		public World[]					worlds;
 
-		@Override
-		public void run()
+		// Dun saturate
+		public final int				threads		= Math.max(2, (RealisticFluids.CORES - 2) >> 1 << 1);
+
+		// Cycle through the available threads
+		public int						threadIndex	= 0;
+
+		public ArrayList<WorkerThread>	threadPool	= new ArrayList<WorkerThread>(this.threads);
+
+		public void performTasks()
 		{
-			// TODO Auto-generated method stub
+			// Ensure we have adequate threads
+			for (int i = 0; i < this.threads - this.threadPool.size(); i++)
+				this.threadPool.add(new WorkerThread(new FluidWorker()));
+
+			System.out.println("Operating with " + RealisticFluids.CORES + " cores, " + this.threads + " threads.");
+			System.out.println("Interval: " + RealisticFluids.GLOBAL_RATE);
+
+			for (final World world : this.worlds)
+			{
+				// There are no players, so there is no point
+				if (world.playerEntities == null || world.playerEntities.size() == 0)
+					continue;
+
+				// First, iterate over near chunks
+				final ChunkCache chunks = FluidData.worldCache.get(world);
+
+				if (chunks == null)
+					continue;
+
+				for (final Chunk c : chunks.priority)
+				{
+					final ChunkData data = chunks.chunks.get(c);
+					if (data == null || !c.isChunkLoaded)
+					{
+						System.err.println("Attempting to do flow in inactive chunk! This should not happen!");
+						continue;
+					}
+					final WorkerThread wt;
+
+					wt = this.threadPool.get(this.threadIndex);
+					wt.worker.tasks.add(new Task(data, true, this.myStartTick));
+
+					// attempt to prevent task queue flooding
+					// if (wt.worker.tasks.size() > 320)
+					// for (int i = 0; i < 8; i++)
+					// wt.worker.tasks.poll();
+				}
+				chunks.priority.clear();
+
+				// Now do thingimy stuffs...
+				while (chunks.distant.size() > 0)
+				{
+					final Chunk c = chunks.distant.poll();
+
+					final ChunkData data = chunks.chunks.get(c);
+					if (data == null || !c.isChunkLoaded)
+						continue;
+
+					final WorkerThread wt = this.threadPool.get(this.threadIndex + this.threads / 2);
+					wt.worker.tasks.add(new Task(data, false, this.myStartTick));
+				}
+
+				this.threadIndex = (this.threadIndex + 1) % (this.threads / 2);
+			}
+
+			this.sweepCost.set(0);
+
+			for (final WorkerThread wt : this.threadPool)
+				if (wt.worker.tasks.size() > 0 && !wt.worker.running)
+					// System.out.println("Restarting thread, " +
+					// wt.worker.tasks.size() + " tasks...");
+					wt.thread.run();
 
 		}
-
 	}
 
-	public static class Worker implements Runnable
+	public static class Task
 	{
-		public boolean		forceQuit	= false;
 		public boolean		isHighPriority;
 		public int			myStartTick;
-		public int			cost;
 		public ChunkData	data;
+
+		public Task(final ChunkData data, final boolean highPriority, final int startTick)
+		{
+			this.data = data;
+			this.isHighPriority = highPriority;
+			this.myStartTick = startTick;
+		}
+	}
+
+	public static class FluidWorker implements Runnable
+	{
+		public boolean						running		= false;
+		public boolean						forceQuit	= false;
+		public int							cost;
+		public ConcurrentLinkedQueue<Task>	tasks		= new ConcurrentLinkedQueue<Task>();
 
 		@Override
 		public void run()
 		{
-			this.cost += doTask(this.data, this.isHighPriority, this.myStartTick);
-			delegator.sweepCost.addAndGet(this.cost);
-		}
+			// System.out.println("Fluid Worker -> " + this.tasks.size() + ", "
+			// + this.forceQuit);
 
+			while (this.tasks.size() > 0 && !this.forceQuit)
+			{
+				this.running = true;
+				// System.out.println("Fluid Worker stuffing!");
+
+				final Task task = this.tasks.poll();
+
+				if (task == null)
+					return;
+
+				// System.out.println("Has task! pri: " + task.isHighPriority +
+				// "(" + delegator.sweepCost.get() + ")");
+
+				if (!task.isHighPriority && delegator.sweepCost.get() > RealisticFluids.FAR_UPDATES)
+					return;
+
+				// System.out.println("Doing task!");
+				// this.cost = 32 + doTask(task.data, task.isHighPriority,
+				// task.myStartTick);
+
+				delegator.sweepCost.addAndGet(task.isHighPriority ? doTask(task.data, task.isHighPriority, task.myStartTick) >> 2 : doTask(
+						task.data, task.isHighPriority, task.myStartTick));
+			}
+			this.running = false;
+		}
 	}
 	/**
 	 * Thread object to perform high priority updates
@@ -81,6 +200,7 @@ public class FluidManager
 		@Override
 		public void run()
 		{
+
 			for (final World world : this.worlds)
 			{
 				// There are no players, so there is no point
@@ -88,13 +208,9 @@ public class FluidManager
 					continue;
 
 				final ChunkCache map = FluidData.worldCache.get(world);
-				if (map == null)
-					continue;
-				if (map.priority.size() <= 0)
+				if (map == null || map.priority.size() <= 0)
 					continue;
 
-				// Thread no. 1
-				// Start with priority chunks!
 				for (final Chunk c : map.priority)
 				{
 					final ChunkData data = map.chunks.get(c);
@@ -103,9 +219,11 @@ public class FluidManager
 						System.out.println("Map was null");
 						continue;
 					}
+					// Delegate a thread task?
 					doTask(data, true, this.myStartTime);
 				}
 				map.priority.clear();
+
 			}
 		}
 	}
@@ -281,7 +399,7 @@ public class FluidManager
 				final int level = data.getLevel(x, y, z);
 				// Prevent spamming on flat ocean areas
 				if (level < RealisticFluids.MAX_FLUID - (RealisticFluids.MAX_FLUID / 16))
-					if (!isHighPriority && data.w.rand.nextInt(5) == 0)
+					if (data.w.rand.nextInt(5) == 0)
 						// System.out.println("Smoothing...");
 						FluidEqualizer.addSmoothTask(data.w, (data.c.xPosition << 4) + x, y, (data.c.zPosition << 4) + z,
 								(BlockFiniteFluid) b, RealisticFluids.MAX_FLUID >> 1, 8);
