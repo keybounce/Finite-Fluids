@@ -168,10 +168,10 @@ public class FluidManager {
 				// this.cost = 32 + doTask(task.data, task.isHighPriority,
 				// task.myStartTick);
 
-				delegator.sweepCost.addAndGet(task.isHighPriority ? doTask(
-						task.data, task.isHighPriority, task.myStartTick) >> 2
-						: doTask(task.data, task.isHighPriority,
-								task.myStartTick));
+				delegator.sweepCost.addAndGet(task.isHighPriority
+						? doTask(task.data, task.isHighPriority,
+								task.myStartTick) >> 2 : doTask(task.data,
+								task.isHighPriority, task.myStartTick));
 			}
 			this.running = false;
 		}
@@ -256,7 +256,8 @@ public class FluidManager {
 	public static void doRandomTicks(final ChunkData data, final int ebsY,
 			final int number, final boolean isHighPriority) {
 
-		int equalizationQuota = isHighPriority ? RealisticFluids.EQUALIZE_NEAR
+		int equalizationQuota = isHighPriority
+				? RealisticFluids.EQUALIZE_NEAR
 				: RealisticFluids.EQUALIZE_FAR;
 		for (int i = 0; i < number; i++) {
 
@@ -266,66 +267,7 @@ public class FluidManager {
 
 			final Block b = data.c.getBlock(x, y, z);
 
-			if (b instanceof BlockFiniteWater) {
-				final int l = data.getLevel(x, y, z);
-				final int xx = x + (data.c.xPosition << 4);
-				final int zz = z + (data.c.zPosition << 4);
-				// Find neighbor blocks
-
-				// Now do stuff
-				if (l > RealisticFluids.MAX_FLUID * 6) {
-
-					if (data.w.rand.nextInt(2) == 0
-							&& l > RealisticFluids.MAX_FLUID * 10)
-						for (int j = 0; j < 6; j++) {
-							final int dx = Util.intFaceX(j);
-							final int dy = Util.intFaceY(j);
-							final int dz = Util.intFaceZ(j);
-							final int x1 = xx + dx;
-							final int y1 = y + dy;
-							final int z1 = zz + dz;
-
-							if (data.w.getBlock(x1, y1, z1) == Blocks.glass) {
-								EventPerformer.smashGlass(data.w, x1, y1, z1,
-										Blocks.glass, l);
-								break;
-							}
-						}
-
-					// try to go down;
-					int yN = y, lN = l;
-					for (int k = 1; k < 10; k++) {
-						final int _lN = FluidData.getLevel(data,
-								(BlockFiniteFluid) b, x & 0xF, yN - 1, z & 0xF);
-						if (_lN > l) {
-							lN = _lN;
-							yN--;
-							continue;
-						} else
-							break;
-					}
-
-					for (int j = 0; j < 6; j++) {
-						final int dx = Util.intFaceX(j);
-						final int dy = Util.intFaceY(j);
-						final int dz = Util.intFaceZ(j);
-						final int x1 = xx + dx;
-						final int y1 = yN + dy;
-						final int z1 = zz + dz;
-
-						final ChunkData _data = FluidData
-								.forceCurrentChunkData(data, x1, z1);
-
-						if (lN > RealisticFluids.MAX_FLUID * 12
-								&& _data.c.getBlock(x1 & 0xF, y1, z1 & 0xF) == Blocks.glass) {
-							System.out.println("Smashed glass!");
-							EventPerformer.smashGlass(_data.w, x1, yN, z1,
-									Blocks.glass, lN);
-							break;
-						}
-					}
-
-				}
+			if (b instanceof BlockFiniteWater)
 				if (FluidEqualizer.tasks.size() < RealisticFluids.EQUALIZE_GLOBAL) {
 					// Make sure we don't overstep the equalization quota,
 					// Trivial
@@ -362,12 +304,11 @@ public class FluidManager {
 											y,
 											(data.c.zPosition << 4) + z,
 											(BlockFiniteFluid) b,
-											isHighPriority ? RealisticFluids.EQUALIZE_NEAR_R
+											isHighPriority
+													? RealisticFluids.EQUALIZE_NEAR_R
 													: RealisticFluids.EQUALIZE_FAR_R,
 											3);
 				}
-
-			}
 
 			// w.markBlockRangeForRenderUpdate(p_147458_1_, p_147458_2_,
 			// p_147458_3_, p_147458_4_, p_147458_5_, p_147458_6_);
@@ -390,8 +331,9 @@ public class FluidManager {
 	public static void doWaterFun(final ChunkData data, final Block b,
 			final int x, final int y, final int z) {
 		if (data.c.canBlockSeeTheSky(x, y, z)) {
-			final int yRain = data.w.isRaining() ? 62
-					: data.w.isThundering() ? 63 : 0;
+			final int yRain = data.w.isRaining() ? 62 : data.w.isThundering()
+					? 63
+					: 0;
 			if (yRain > 0 && data.c.getHeightValue(x, z) <= yRain) {
 				final int wx = x + (data.c.xPosition << 4);
 				final int wz = x + (data.c.zPosition << 4);
@@ -404,7 +346,7 @@ public class FluidManager {
 					if (b == Blocks.air || b instanceof BlockFiniteWater) {
 						System.out.println("Rain is falling!");
 						FluidData
-								.setLevelWorld(
+								.setLevel(
 										data,
 										(BlockFiniteFluid) Blocks.water,
 										wx,

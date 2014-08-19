@@ -14,18 +14,18 @@ import com.mcfht.realisticfluids.RealisticFluids;
 import com.mcfht.realisticfluids.Util;
 /**
  * WARNING: Lava will annihilate any flammable object it touches :D
- * 
+ *
  * @author FHT
- * 
+ *
  */
 public final class BlockFiniteLava extends BlockFiniteFluid
 {
-	public BlockFiniteLava(final Material material)
+	public BlockFiniteLava(final Material material, final int internalFlowThreshold)
 	{
-		super(material, RealisticFluids.lavaVisc, RealisticFluids.LAVA_UPDATE);
+		super(material, RealisticFluids.lavaVisc, RealisticFluids.LAVA_UPDATE, internalFlowThreshold);
 		// this.setLightLevel(0.8F); //Not max brightness :D
-		this.setLightOpacity(15);
-		this.setResistance(7F);
+		setLightOpacity(15);
+		setResistance(7F);
 	}
 
 	@Override
@@ -38,7 +38,7 @@ public final class BlockFiniteLava extends BlockFiniteFluid
 	/**
 	 * Pretty banal copy of the vanilla method, only exception is that more lava
 	 * has more chances to start fires!
-	 * 
+	 *
 	 * @param w
 	 * @param x
 	 * @param y
@@ -49,16 +49,7 @@ public final class BlockFiniteLava extends BlockFiniteFluid
 	public void updateTick(final World w, int x, int y, int z, final Random r)
 	{
 		super.updateTick(w, x, y, z, r);
-		final int l = r.nextInt((int) (1.F + (w.getBlockMetadata(x, y, z) / 1.666F))); // up
-																						// to
-																						// 2x
-																						// as
-																						// many
-																						// chances
-																						// for
-																						// a
-																						// full
-																						// block
+		final int l = r.nextInt((int) (1.F + (w.getBlockMetadata(x, y, z) / 1.666F)));
 		int i1 = 0;
 		for (int i = 0; i < 4; i++)
 		{
@@ -122,14 +113,14 @@ public final class BlockFiniteLava extends BlockFiniteFluid
 	/**
 	 * Makes lava flow a little bit more dangerously
 	 */
-	@Override
+
 	public int breakInteraction(final World w, final Block b1, final int m1, final int x0, final int y0, final int z0, final int l0,
 			final int x1, final int y1, final int z1)
 	{
-		final int c = this.canBurnAndBreak(b1);
+		final int c = canBurnAndBreak(b1);
 		if (c < 0)
 		{
-			this.updateTick(w, x0, y0, z0, w.rand); // Increase chance to spread
+			updateTick(w, x0, y0, z0, w.rand); // Increase chance to spread
 													// fire
 			return 1;
 		}
@@ -143,13 +134,13 @@ public final class BlockFiniteLava extends BlockFiniteFluid
 					RealisticFluids.setBlock(w, x1, y1, z1, Blocks.fire, 0, -2, false); // BUUUUURN
 																						// EEEEEET
 				if (w.rand.nextInt(45) == 0)
-					this.updateTick(w, x0, y0, z0, w.rand); // Stacks with
+					updateTick(w, x0, y0, z0, w.rand); // Stacks with
 															// adjacent fire :D
 				return 1;
 			}
 			if (b1 == Blocks.fire)
 			{
-				this.updateTick(w, x0, y0, z0, w.rand); // Stacks with adjacent
+				updateTick(w, x0, y0, z0, w.rand); // Stacks with adjacent
 														// fire :D
 				if (y0 > y1 || w.rand.nextInt(30) == 0)
 					w.setBlock(x1, y1, z1, Blocks.air);
@@ -160,7 +151,7 @@ public final class BlockFiniteLava extends BlockFiniteFluid
 				RealisticFluids.setBlock(w, x1, y1, z1, Blocks.air, 0, -2, true);
 				return 1;
 			}
-			if (y0 - y1 < 0 || l0 > this.flowBreak)
+			if (y0 - y1 < 0 || l0 > flowBreak)
 			{
 				if (b1 != Blocks.snow_layer)
 					b1.dropBlockAsItem(w, x0, y0, z0, m1, m1); // if (block !=
@@ -194,7 +185,7 @@ public final class BlockFiniteLava extends BlockFiniteFluid
 	@Override
 	public Block c(final float f)
 	{
-		this.blockHardness = f;
+		blockHardness = f;
 		return this;
 	}
 	@Override

@@ -17,7 +17,7 @@ import com.mcfht.realisticfluids.fluids.BlockFiniteFluid;
 
 /**
  * The thing that equalizes water.
- * 
+ *
  * @author FHT
  */
 public class FluidEqualizer
@@ -82,7 +82,7 @@ public class FluidEqualizer
 
 	/**
 	 * Contains a range of equalization algorithms
-	 * 
+	 *
 	 * @author FHT
 	 */
 	public static class EqualizeAlgorithms
@@ -162,7 +162,7 @@ public class FluidEqualizer
 		/**
 		 * Equalizes water in long straight lines. Distance is the length of
 		 * each line, branches is the max no. of lines.
-		 * 
+		 *
 		 * @param data
 		 * @param f0
 		 * @param x0
@@ -195,7 +195,7 @@ public class FluidEqualizer
 				final int dz = Util.intDirZ(dir + skew);
 				int dist = 0;
 
-				data = FluidData.testCurrentChunkData(data, x0 + dx, z0 + dx);
+				data = FluidData.testData(data, x0 + dx, z0 + dx);
 				if (data == null || !data.c.isChunkLoaded)
 					break;
 
@@ -212,7 +212,7 @@ public class FluidEqualizer
 					final int x1 = x0 + dist * dx;
 					final int z1 = z0 + dist * dz;
 					// Ensure we are in the right data object
-					data = FluidData.testCurrentChunkData(data, x1, z1);
+					data = FluidData.testData(data, x1, z1);
 					if (data == null || !data.c.isChunkLoaded)
 					{
 						--dist;
@@ -239,28 +239,28 @@ public class FluidEqualizer
 					break;
 				// Find the average for each fluid block
 				final int avgL = sum / dist;
-				data = FluidData.testCurrentChunkData(data, x0, z0);
+				data = FluidData.testData(data, x0, z0);
 				// Don't make water blocks with too little fluid in them
-				if (avgL < f0.getEffectiveViscosity(data.w, data.c.getBlock(x0 & 0xF, y0 - 1, z0 & 0xF), RealisticFluids.MAX_FLUID))
+				if (avgL < f0.getEffectiveViscosity(data.w, avgL, data.c.getBlock(x0 & 0xF, y0 - 1, z0 & 0xF), RealisticFluids.MAX_FLUID))
 					break;
 				// Set the first block
-				FluidData.setLevel(data, f0, x0 & 0xF, z0 & 0xF, x0, y0, z0, avgL, true);
+				FluidData.setLevelChunk(data, f0, x0 & 0xF, z0 & 0xF, x0, y0, z0, avgL, true);
 				// Do the rest of the blocks
 				for (int i = 1; i < dist; i++)
 				{
 					final int x1 = x0 + i * dx;
 					final int z1 = z0 + i * dz;
 					// Ensure we are in the right data object
-					data = FluidData.forceCurrentChunkData(data, x1, z1);
+					data = FluidData.forceData(data, x1, z1);
 					int l1 = FluidData.getLevel(data, f0, x1 & 0xF, y0, z1 & 0xF);
 					if (l1 <= 0)
 					{
 						l1 = FluidData.getLevel(data, f0, x1 & 0xF, y0 - 1, z1 & 0xF);
-						FluidData.setLevel(data, f0, x1 & 0xF, z1 & 0xF, x1, y0, z1, l1 + avgL, true);
-						FluidData.setLevel(data, f0, x1 & 0xF, z1 & 0xF, x1, y0, z1, l1 + avgL - RealisticFluids.MAX_FLUID, true);
+						FluidData.setLevelChunk(data, f0, x1 & 0xF, z1 & 0xF, x1, y0, z1, l1 + avgL, true);
+						FluidData.setLevelChunk(data, f0, x1 & 0xF, z1 & 0xF, x1, y0, z1, l1 + avgL - RealisticFluids.MAX_FLUID, true);
 
 					} else
-						FluidData.setLevel(data, f0, x1 & 0xF, z1 & 0xF, x1, y0, z1, avgL, true);
+						FluidData.setLevelChunk(data, f0, x1 & 0xF, z1 & 0xF, x1, y0, z1, avgL, true);
 				}
 				totalDist += dist;
 				counter++;
@@ -277,7 +277,7 @@ public class FluidEqualizer
 		/**
 		 * Equalizes water in long straight lines. Distance is the length of
 		 * each line, branches is the max no. of lines.
-		 * 
+		 *
 		 * @param data
 		 * @param f0
 		 * @param x0
@@ -290,28 +290,28 @@ public class FluidEqualizer
 		 * public static int directionalAverage(ChunkData data, final
 		 * BlockFiniteFluid f0, final int x0, final int y0, final int z0, final
 		 * int distance, final int branches) {
-		 * 
+		 *
 		 * // Use negative distance to allow equalization below the surface? if
 		 * (y0 < 1 || y0 > 255 || (distance > 0 && data.c.getBlock(x0 & 0xF, y0
 		 * + 1, z0 & 0xF) != Blocks.air)) return 1;
-		 * 
+		 *
 		 * final int l0 = FluidData.getLevel(data, f0, x0 & 0xF, y0, z0 & 0xF);
 		 * int sum = 0; int counter = 0; int totalDist = 0; final int skew =
 		 * data.w.rand.nextInt(8);
-		 * 
+		 *
 		 * // boolean undermine = false; // Start from a random direction and
 		 * rotate around in 3 semi-random // directions for (int dir = 0; dir <
 		 * 8 && counter < branches; dir++) { sum = l0; // Reset the sum final
 		 * int dx = Util.intDirX(dir + skew); final int dz = Util.intDirZ(dir +
 		 * skew); int dist = 0;
-		 * 
+		 *
 		 * data = FluidData.testCurrentChunkData(data, x0 + dx, z0 + dx); if
 		 * (data == null || !data.c.isChunkLoaded) break;
-		 * 
+		 *
 		 * // Similar neighbor => probably large flat area, not for this //
 		 * algorithm. if (Math.abs(FluidData.getLevel(data, f0, (x0 + dx) & 0xF,
 		 * y0, (z0 + dz) & 0xF) - l0) < f0.viscosity >> 5) continue;
-		 * 
+		 *
 		 * for (dist = 1; dist < distance; dist++) { final int x1 = x0 + dist *
 		 * dx; final int z1 = z0 + dist * dz; // Ensure we are in the right data
 		 * object data = FluidData.testCurrentChunkData(data, x1, z1); if (data
@@ -322,15 +322,15 @@ public class FluidEqualizer
 		 * continue; else if (Util.isSameFluid(f0, b1)) { sum +=
 		 * FluidData.getLevel(data, f0, x1 & 0xF, y0, z1 & 0xF); continue; }
 		 * else { --dist; break; } } else if (b1 == Blocks.air) break; }
-		 * 
+		 *
 		 * if (dist <= 3) break; if (sum / dist < f0.viscosity >> 2) break;
-		 * 
+		 *
 		 * final int avgL = sum / dist;
-		 * 
+		 *
 		 * data = FluidData.testCurrentChunkData(data, x0, z0);
 		 * FluidData.setLevel(data, f0, x0 & 0xF, z0 & 0xF, x0, y0, z0, avgL,
 		 * true);
-		 * 
+		 *
 		 * for (int i = 1; i < dist; i++) { final int x1 = x0 + i * dx; final
 		 * int z1 = z0 + i * dz; // Ensure we are in the right data object data
 		 * = FluidData.forceCurrentChunkData(data, x1, z1); final Block b1 =
@@ -345,7 +345,7 @@ public class FluidEqualizer
 		 * FluidData.mergeTopBottomFluid(data, f0, x1, y0 - // 1, z1, y0, avgL);
 		 * } else FluidData.setLevel(data, f0, x1 & 0xF, z1 & 0xF, x1, y0, z1,
 		 * avgL, true); } else break; } totalDist += dist; counter++; }
-		 * 
+		 *
 		 * return totalDist; }
 		 */
 
@@ -365,7 +365,7 @@ public class FluidEqualizer
 		 * <p>
 		 * Threshold is similar, but is the required CHANGE before equalization
 		 * can occur
-		 * 
+		 *
 		 * @param data
 		 * @param y0
 		 * @param tolerance

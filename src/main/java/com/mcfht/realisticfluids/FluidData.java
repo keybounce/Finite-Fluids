@@ -15,9 +15,9 @@ import com.mcfht.realisticfluids.fluids.BlockFiniteFluid;
  * Custom data structure object. Maps worlds to extended chunk data objects,
  * ChunkCaches, which themselves map chunks to their respective extended data
  * (instantiated ChunkDataMaps).
- * 
+ *
  * @author FHT
- * 
+ *
  */
 public class FluidData
 {
@@ -28,9 +28,9 @@ public class FluidData
 	/**
 	 * A cache which maps Chunk Data to each Chunk, and also contains thread
 	 * safe updating queues of near and distant chunks.
-	 * 
+	 *
 	 * @author FHT
-	 * 
+	 *
 	 */
 	static class ChunkCache
 	{
@@ -69,7 +69,7 @@ public class FluidData
 
 		/**
 		 * Initialize a new Chunk Data object for the chunk in the given world
-		 * 
+		 *
 		 * @param w
 		 * @param c
 		 */
@@ -89,7 +89,7 @@ public class FluidData
 
 		/**
 		 * Gets level in cx cy cz
-		 * 
+		 *
 		 * @param cx
 		 * @param cy
 		 * @param cz
@@ -105,7 +105,7 @@ public class FluidData
 
 		/**
 		 * Gets level in cx cy cz
-		 * 
+		 *
 		 * @param cx
 		 * @param cy
 		 * @param cz
@@ -122,7 +122,7 @@ public class FluidData
 		/**
 		 * Tries to put the specified amount of fluid into the cell, and returns
 		 * the "overflow", along with the level of the now full block.
-		 * 
+		 *
 		 * @param cx
 		 * @param cy
 		 * @param cz
@@ -144,7 +144,7 @@ public class FluidData
 
 		/**
 		 * Marks update in cx, cy, cz
-		 * 
+		 *
 		 * @param cx
 		 * @param cy
 		 * @param cz
@@ -162,7 +162,7 @@ public class FluidData
 		/**
 		 * Marks update in cx, cy, cz, use to mark block above for fast falling
 		 * fluids
-		 * 
+		 *
 		 * @param cx
 		 * @param cy
 		 * @param cz
@@ -182,7 +182,7 @@ public class FluidData
 
 	/**
 	 * Flags neighboring cells to be updated. ENSURES that they are fluid first!
-	 * 
+	 *
 	 * @param w
 	 * @param x
 	 * @param y
@@ -197,8 +197,8 @@ public class FluidData
 
 		for (int i = 0; i < 4; i++)
 		{
-			final int x1 = (x + Util.cardinalX(i)), z1 = (x + Util.cardinalZ(i));
-			data = FluidData.forceCurrentChunkData(data, x1, z1);
+			final int x1 = (x + Util.cardinalX(i)), z1 = (z + Util.cardinalZ(i));
+			data = FluidData.forceData(data, x1, z1);
 			data.markUpdate(x1 & 0xF, y, z1 & 0xF);
 		}
 
@@ -206,7 +206,7 @@ public class FluidData
 
 	/**
 	 * Flags neighboring cells to be updated. ENSURES that they are fluid first!
-	 * 
+	 *
 	 * @param w
 	 * @param x
 	 * @param y
@@ -222,14 +222,14 @@ public class FluidData
 		for (int i = 0; i < 8; i++)
 		{
 			final int x1 = (x + Util.intDirX(i)), z1 = (x + Util.intDirZ(i));
-			data = FluidData.forceCurrentChunkData(data, x1, z1);
+			data = FluidData.forceData(data, x1, z1);
 			data.markUpdate(x1 & 0xF, y, z1 & 0xF);
 		}
 	}
 
 	/**
 	 * Returns chunk data object. Assumes chunk is loaded!!!
-	 * 
+	 *
 	 * @param w
 	 * @param c
 	 * @return
@@ -261,13 +261,13 @@ public class FluidData
 	/**
 	 * Ensures that the current data object is current, and returns the correct
 	 * object if it is not.
-	 * 
+	 *
 	 * @param data0
 	 * @param x1
 	 * @param z1
 	 * @return Null if unloaded chunk.
 	 */
-	public static ChunkData testCurrentChunkData(final ChunkData data0, final int x1, final int z1)
+	public static ChunkData testData(final ChunkData data0, final int x1, final int z1)
 	{
 		final Chunk cOut = data0.w.getChunkFromChunkCoords(x1 >> 4, z1 >> 4);
 		if (!cOut.isChunkLoaded)
@@ -280,16 +280,16 @@ public class FluidData
 	/**
 	 * Ensures that the current data object is current, and returns the correct
 	 * object if it is not.
-	 * 
+	 *
 	 * <p>
 	 * <b>FORCES UNLOADED CHUNKS TO LOAD
-	 * 
+	 *
 	 * @param data0
 	 * @param x1
 	 * @param z1
 	 * @return May return null in some situations!
 	 */
-	public static ChunkData forceCurrentChunkData(final ChunkData data0, final int x1, final int z1)
+	public static ChunkData forceData(final ChunkData data0, final int x1, final int z1)
 	{
 		try
 		{
@@ -314,7 +314,7 @@ public class FluidData
 	/**
 	 * Returns the fluid level of a cell at the given coordinates in the given
 	 * data array. Targets specific fluid!!!
-	 * 
+	 *
 	 * @param w
 	 * @param f0
 	 * @param cx
@@ -341,7 +341,7 @@ public class FluidData
 	/**
 	 * Returns the fluid level of a cell at the given coordinates in the given
 	 * data array within a designated block (for post getter retrieval)
-	 * 
+	 *
 	 * @param w
 	 * @param f0
 	 * @param cx
@@ -369,23 +369,23 @@ public class FluidData
 	{
 		if (f0.getMaterial() == Material.water)
 		{
-			if (level > (RealisticFluids.MAX_FLUID - (RealisticFluids.MAX_FLUID >> 3)))
+			if (level > (RealisticFluids.MAX_FLUID - (RealisticFluids.MAX_FLUID >> 4)))
 				return Blocks.water;
 			else
 				return Blocks.flowing_water;
-		} else if (level > (RealisticFluids.MAX_FLUID - (RealisticFluids.MAX_FLUID >> 3)))
+		} else if (level > (RealisticFluids.MAX_FLUID - (RealisticFluids.MAX_FLUID >> 4)))
 			return Blocks.lava;
 		else
 			return Blocks.flowing_lava;
 	}
 
-	public static int setLevelWorld(final ChunkData data, final BlockFiniteFluid f0, final int x, final int y, final int z, final int l0,
+	public static int setLevel(final ChunkData data, final BlockFiniteFluid f0, final int x, final int y, final int z, final int l0,
 			final boolean updateNeighbors)
 	{
-		return setLevel(data, f0, x & 0xF, z & 0xF, x, y, z, l0, updateNeighbors);
+		return setLevelChunk(data, f0, x & 0xF, z & 0xF, x, y, z, l0, updateNeighbors);
 	}
 
-	public static int setLevel(final ChunkData data, Block f1, final int cx, final int cz, final int x, final int y, final int z,
+	public static int setLevelChunk(final ChunkData data, Block f1, final int cx, final int cz, final int x, final int y, final int z,
 			final int l1, final boolean updateNeighbors)
 	{
 		// Note that the flow is decided, we do not care what the target is
@@ -394,45 +394,33 @@ public class FluidData
 		// If level is less than 0, empty the block
 		if (l1 <= 0) // We are emptying the block
 		{
-			// System.out.println("Set a block to air!");
 			data.setLevel(cx, y, cz, 0);
 			RealisticFluids.setBlock(data.w, x, y, z, Blocks.air, 0, 2);
-			if (updateNeighbors)
-				markNeighbors(data, x, y, z);
+			if (updateNeighbors) markNeighbors(data, x, y, z);
 			return 0;
 		}
 
 		f1 = convertFlowingStill(f1, l1);
+
 		final Block b0 = data.c.getBlock(cx, y, cz);
 		final int l0 = data.getLevel(cx, y, cz);
-
-		// SLEDGEHAMMER
-		/*
-		 * if (Math.abs(l0 - l1) <= 4) { //
-		 * System.out.println("Spam blocks are a spamming...!"); if (l0 <= 4 ||
-		 * l1 <= 4) { data.setLevel(cx, y, cz, 0);
-		 * RealisticFluids.setBlock(data.w, x, y, z, Blocks.air, 0,
-		 * updateNeighbors ? 3 : 2); } // updateNeighbors = false; return l1; //
-		 * MAXXOR HAXXOR! }
-		 */
-
 		final int m1 = Util.getMetaFromLevel(l1);
+
 		data.markUpdate(cx, y, cz);
-		if (updateNeighbors)
-			markNeighbors(data, x, y, z);
+		if (updateNeighbors) markNeighbors(data, x, y, z);
 
 		data.setLevel(cx, y, cz, l1);
 
 		if (Util.isSameFluid(f1, b0))
 		{
+			if (b0 != f1)
+			{
+				RealisticFluids.setBlock(data.w, x, y, z, f1, m1, 2, true);
+				return l0;
+			}
 			final int m0 = Util.getMetaFromLevel(l0);
 			if (m0 != m1)
 			{
-				if (b0 != f1)
-				{
-					RealisticFluids.setBlock(data.w, x, y, z, f1, m1, 2, true);
-					return l0;
-				}
 				RealisticFluids.setBlock(data.w, x, y, z, null, m1, -2, true);
 				return l0;
 			}
@@ -443,7 +431,7 @@ public class FluidData
 
 	/**
 	 * Merges top and bottom fluid blocks
-	 * 
+	 *
 	 * @param data
 	 * @param x0
 	 * @param y0
@@ -455,8 +443,7 @@ public class FluidData
 			final int l0, final int y1, final int l1)
 	{
 		final int lT = l0 + l1;
-		FluidData.setLevel(data, f0, x0 & 0xF, z0 & 0xF, x0, y0, z0, lT, true);
-		FluidData.setLevel(data, f0, x0 & 0xF, z0 & 0xF, x0, y1, z0, lT - RealisticFluids.MAX_FLUID, true);
-
+		FluidData.setLevelChunk(data, f0, x0 & 0xF, z0 & 0xF, x0, y0, z0, lT, true);
+		FluidData.setLevelChunk(data, f0, x0 & 0xF, z0 & 0xF, x0, y1, z0, lT - RealisticFluids.MAX_FLUID, true);
 	}
 }

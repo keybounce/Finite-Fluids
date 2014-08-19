@@ -20,14 +20,15 @@ public class EventPerformer {
 		w.playSoundEffect(x0 + 0.5D, y0 + 0.5D, z0 + 0.5D, "dig.glass", 1.F,
 				.9F + w.rand.nextFloat() * 0.1F);
 
-		Math.sqrt(Math.max(1, b0.getExplosionResistance(null)));
+		final int a = w.rand.nextInt(3) + 2
+				+ (force / (RealisticFluids.MAX_FLUID * 3));
 
 		for (int i = 0; i < 5; i++) {
 			int xN = x0;
 			int zN = z0;
 			int yN = y0;
 
-			for (int j = 0; j < 4; j++) {
+			for (int j = 0; j < a; j++) {
 				final int r = w.rand.nextInt(6);
 				boolean flag = false;
 				for (int k = 0; k < 6; k++) {
