@@ -124,12 +124,12 @@ public class FluidEqualizer
 			@Override
 			public int perform()
 			{
-				final Chunk c = this.w.getChunkFromChunkCoords(this.x >> 4, this.z >> 4);
+				final Chunk c = w.getChunkFromChunkCoords(x >> 4, z >> 4);
 				if (!c.isChunkLoaded)
 					return 1;
 				final ChunkData data = FluidData.getChunkData(c);
 				if (data != null)
-					return directionalAverage(data, this.f, this.x, this.y, this.z, this.pars[0], this.pars.length > 1 ? this.pars[1] : 3);
+					return directionalAverage(data, f, x, y, z, pars[0], pars.length > 1 ? pars[1] : 3);
 				return 1;
 			}
 		}
@@ -144,15 +144,75 @@ public class FluidEqualizer
 			@Override
 			public int perform()
 			{
-				final Chunk c = this.w.getChunkFromChunkCoords(this.x >> 4, this.z >> 4);
+				final Chunk c = w.getChunkFromChunkCoords(x >> 4, z >> 4);
 				if (!c.isChunkLoaded)
 					return 1;
 				final ChunkData data = FluidData.getChunkData(c);
 				if (data != null)
-					return layerSmooth(data, this.f, this.x, this.y, this.z, this.pars[0], this.pars[1]);
+					return layerSmooth(data, f, x, y, z, pars[0], pars[1]);
 				return 1;
 			}
 		}
+
+
+		public static int highLowPush(final ChunkData data, final BlockFiniteFluid f0, final int x0, final int y0, final int z0, final int scope, final int threshold)
+		{
+			//The aim is to move from a high content area to a low content area,
+			//Then we shift a heap of fluid from the high content area to the low content area.
+			int xN, yN, zN, xM = xN = x0;
+			final int yM = yN = y0;
+			int zM = zN = z0;
+			int lN, lM = lN = FluidData.getLevel(data, f0, x0, y0, z0);
+			final Block bN;
+			Block bM;
+			ChunkData dataN, dataM = dataN = data;
+
+
+			for (int i = 0; i < scope; i++)
+			{
+				final int low = RealisticFluids.MAX_FLUID;
+				int bestDir = -1;
+				for (int j = 0; j < 4; j++)
+				{
+					xM = xN + Util.cardinalX(j);
+					zM = zN + Util.cardinalZ(j);
+					dataM = FluidData.testData(dataN, xM, zM);
+					if (dataM == null) continue;
+					bM = dataM.c.getBlock(xN & 0xF, yN, zN & 0xF);
+					lM = FluidData.getLevel(dataM, f0, bM, xM, yN, zM);
+					if (Util.isSameFluid(bM, f0) && lM < lN)
+					{
+						lN = lM;
+						dataN = dataM;
+						bestDir = j;
+					}
+					else if (bM == Blocks.air)
+					{
+						bM = dataM.c.getBlock(xN & 0xF, yN - 1, zN & 0xF);
+						lM = FluidData.getLevel(dataM, f0, bM, xM, yN - 1, zM);
+						if (Util.isSameFluid(bM, f0))
+						{
+							yN -= 1;
+							lN = lM;
+							dataN = dataM;
+							bestDir = j;
+							break;
+						}
+					}
+				}
+				if (bestDir == -1) break;
+				xN = xN + Util.cardinalX(bestDir);
+				zN = zN + Util.cardinalZ(bestDir);
+			}
+
+
+
+
+
+			return 1;
+		}
+
+
 
 		/*
 		 * Technically speaking, this algorithm is very simple. We basically

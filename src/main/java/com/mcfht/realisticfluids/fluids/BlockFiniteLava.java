@@ -20,9 +20,9 @@ import com.mcfht.realisticfluids.Util;
  */
 public final class BlockFiniteLava extends BlockFiniteFluid
 {
-	public BlockFiniteLava(final Material material, final int internalFlowThreshold)
+	public BlockFiniteLava(final Material material)
 	{
-		super(material, RealisticFluids.lavaVisc, RealisticFluids.LAVA_UPDATE, internalFlowThreshold);
+		super(material, RealisticFluids.lavaVisc, RealisticFluids.LAVA_UPDATE, 0, 4F);
 		// this.setLightLevel(0.8F); //Not max brightness :D
 		setLightOpacity(15);
 		setResistance(7F);

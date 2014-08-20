@@ -5,12 +5,14 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.common.config.Configuration;
+import net.minecraftforge.event.world.ChunkDataEvent;
 import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.event.world.WorldEvent;
 
@@ -31,30 +33,30 @@ import cpw.mods.fml.common.gameevent.TickEvent.Phase;
 import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
 
 /* ~~~~~~~~~~~~~~~~~~General Notes on Code~~~~~~~~~~~~~~~~~~~~
- * 
+ *
  * I have a very particular naming scheme when I code.
- * 
+ *
  * abc0 refers to the FIRST or ORIGIN or whatever
  * abc1 refers to the TARGET or NEXT
  * abcn refers to the Nth target
- * 
- * For example, if we are changing fluid level; l0 is the current level, 
+ *
+ * For example, if we are changing fluid level; l0 is the current level,
  * l1 is the next level, b0 is the target block, etcetera
- * 
+ *
  * If you see "i" or "j" or "k", or a seriously shortened word (aka "dist" = "distance")
  * then it is a counter, or temp variable. The full word is regarded as a parameter or local
- * 
+ *
  * I also like to use specific letters for a range of specific things. For example,
  * world = w, Block = b, Meta = m, Random = r, Level = l, and so on.
- * 
+ *
  * Parameters which I deem to be "unclear" typically get a full name, since it
  * just helps, you know.
- * 
- * 
- * That's about all that needs to be said on this matter, so enjoy perusing. 
- * 
+ *
+ *
+ * That's about all that needs to be said on this matter, so enjoy perusing.
+ *
  * - FHT
- * 
+ *
  */
 public class RealisticFluids extends DummyModContainer
 {
@@ -88,13 +90,15 @@ public class RealisticFluids extends DummyModContainer
 	public static int		EQUALIZE_GLOBAL		= 32;
 
 	// //////////////// FLUID SETTINGS //////////////////////
+	public final static int fluidFactor 		= 15;
 	/** The number of fluid levels for each cell */
-	public final static int	MAX_FLUID			= 1 << 12;
+	public final static int	MAX_FLUID			= 1 << fluidFactor;
+
 	// WATER
 	/** Relative update rate of water */
 	public static int		WATER_UPDATE		= 1;
 	/** Runniness of water */
-	public static final int	waterVisc			= 4;
+	public static final int	waterVisc			= 3;
 	// LAVA
 
 	/** update rate of lava in the overworld */
@@ -110,7 +114,7 @@ public class RealisticFluids extends DummyModContainer
 	public RealisticFluids()
 	{
 		super(new ModMetadata());
-		FluidModInfo.get(this.getMetadata());
+		FluidModInfo.get(getMetadata());
 	}
 
 	@Override
@@ -159,7 +163,7 @@ public class RealisticFluids extends DummyModContainer
 	 * Vanilla world.setBlock calls are not necessarily thread reliable. This
 	 * implementation allows us to schedule updates for the server thread, AND
 	 * allows us to set blocks a little more reliably in the EBS directly.
-	 * 
+	 *
 	 * ONLY FLAG IMMEDIACY FROM AN ENVIRONMENT WHERE WE ARE DEFINITELY THREAD
 	 * SAFE AND DO NOT CARE ABOUT THINGS LIKE HEIGHTMAPS AND LIGHTING.
 	 */
@@ -168,7 +172,7 @@ public class RealisticFluids extends DummyModContainer
 	 * Marks block for update in world coordinates. Assumes block is fluid!
 	 * Thread Safe. WARNING: THIS STATIC METHOD IS SLOW-ER. Use
 	 * {@link ChunkData#markUpdate} where possible.
-	 * 
+	 *
 	 * @param w
 	 * @param x
 	 * @param y
@@ -191,7 +195,7 @@ public class RealisticFluids extends DummyModContainer
 	 * Utterly ignores all kinds of updates which only take up out precious
 	 * clocks, and typically do not matter at all when dealing with fluids
 	 * themselves.
-	 * 
+	 *
 	 * @param w
 	 * @param c
 	 * @param ebs
@@ -232,7 +236,7 @@ public class RealisticFluids extends DummyModContainer
 	}
 	/**
 	 * Same as above, but metadata optimized
-	 * 
+	 *
 	 * @param w
 	 * @param c
 	 * @param ebs
@@ -273,18 +277,18 @@ public class RealisticFluids extends DummyModContainer
 	 * skips some redundant world.setBlock calls, allows skipping of light
 	 * recalculations, and allows unimportant block updates to deferred to the
 	 * server tick at a later time.
-	 * 
+	 *
 	 * <p>
 	 * Only supports flags 2 and 3, however negative versions will skip lighting
 	 * recalculations.
-	 * 
+	 *
 	 * <p>
 	 * Flag immediacy for fluid updates. Immediacy forces all kinds of hacky
 	 * things, like skipping relights and heightmap updates, and hence should
 	 * ~only~ be used with fluids! Not flagging immediacy will ship the
 	 * operation out to the server tick, where it will eventually be performed
 	 * (much more thread safe).
-	 * 
+	 *
 	 * @param w
 	 * @param x
 	 * @param y
@@ -326,7 +330,7 @@ public class RealisticFluids extends DummyModContainer
 	}
 	/**
 	 * Simple queue implementation to prevent duplicate entries. TODO Benchmark
-	 * 
+	 *
 	 * @author FHT
 	 * @param <E>
 	 */
@@ -343,9 +347,9 @@ public class RealisticFluids extends DummyModContainer
 
 	/**
 	 * Block Task Object for multiple thread access stuffs
-	 * 
+	 *
 	 * @author FHT
-	 * 
+	 *
 	 */
 	private static class BlockTask
 	{
@@ -365,7 +369,7 @@ public class RealisticFluids extends DummyModContainer
 		BlockTask(final World world, final Chunk c, final ExtendedBlockStorage ebs, final int x, final int y, final int z, final Block b,
 				final int m, final int flag)
 		{
-			this.w = world;
+			w = world;
 			this.c = c;
 			this.ebs = ebs;
 			this.x = x;
@@ -373,20 +377,20 @@ public class RealisticFluids extends DummyModContainer
 			this.z = z;
 			this.b = b;
 			this.m = m;
-			this.f = flag;
+			f = flag;
 		}
 
 		/** Perform this block task. Thread Safe. */
 		public boolean set()
 		{
-			setBlock(this.w, this.c, this.ebs, this.x, this.y, this.z, this.b, this.m, this.f);
+			setBlock(w, c, ebs, x, y, z, b, m, f);
 			return true;
 		}
 	}
 
 	/**
 	 * Clean up after ourselves when a chunk is unloaded.
-	 * 
+	 *
 	 * @param event
 	 */
 	@SubscribeEvent
@@ -397,7 +401,7 @@ public class RealisticFluids extends DummyModContainer
 	}
 	/**
 	 * Clean up after ourselves when a world is unloaded
-	 * 
+	 *
 	 * @param event
 	 */
 	@SubscribeEvent
@@ -411,73 +415,120 @@ public class RealisticFluids extends DummyModContainer
 	}
 
 	@SubscribeEvent
+	public void chunkDataSave(final ChunkDataEvent.Save event)
+	{
+		final NBTTagCompound tag = event.getData();
+		final boolean[] valid = new boolean[16];
+		final ChunkData data = FluidData.getChunkData(event.getChunk());
+		//System.out.println("Saving chunk " + event.getChunk().xPosition + ", " + event.getChunk().zPosition);
+		for (int i = 0; i < 16; i++)
+		{
+			final String field = new String("chunkFluid" + String.valueOf(i));
+			//System.out.println(" - Section " + i + ": " + ((data.fluidArray[i] == null) ? " is empty... skipping." : " contains fluid and is being saved!"));
+			if (data.fluidArray[i] != null)
+			{
+				final int[] write = new int[4096];
+				if (data.updateFlags[i] != null)
+					for (int j = 0; j < 4096; j++)
+						if (data.updateFlags[i][j]) write[j] = data.fluidArray[i][j] | 0x1000000;
+						else write[j] = data.fluidArray[i][j];
+				else
+					System.arraycopy(data.fluidArray[i], 0, write, 0, 4096);
+
+				//System.err.println("     -   Saving into tag: " + field);
+				tag.setIntArray(field, write);
+				//System.err.println("     -   Done!");
+			}
+			else if (tag.hasKey("chunkFluid" + i)) tag.removeTag("chunkFluid" + i);
+		}
+	}
+
+	@SubscribeEvent
+	public void chunkDataLoad(final ChunkDataEvent.Load event)
+	{
+		final NBTTagCompound tag = event.getData();
+		final boolean[] valid = new boolean[16];
+		final ChunkData data = FluidData.getChunkData(event.getChunk());
+		for (int i = 0; i < 16; i++)
+		{
+			final String field = new String("chunkFluid" + String.valueOf(i));
+			if (tag.hasKey(field))
+			{
+				if (data.fluidArray[i] == null) data.fluidArray[i] = new int[4096];
+				if (data.updateFlags[i] == null) data.updateFlags[i] = new boolean[4096];
+				final int[] read = tag.getIntArray("chunkFluid" + i);
+				for (int j = 0; j < 4096; j++)
+				{
+					data.fluidArray[i][j] = read[j] & 0xFFFFFF;
+					if ((read[j] & 0xFF000000) != 0) data.updateFlags[i][j] = true;
+					else data.updateFlags[i][j] = false;
+				}
+			}
+		}
+	}
+
+	@SubscribeEvent
 	public void serverTick(final ServerTickEvent event)
 	{
 		_tickCounter += 1;
 		FluidEqualizer.WORKER.run();
-
 		if (event.phase == Phase.START)
 		{
-			final long timeCost = System.currentTimeMillis() - this.lastTime;
-			if (this.lastTime > 0)
-				if (timeCost > 500)
+			//First, try to slow the system down if we are running behind
+			final long timeCost = System.currentTimeMillis() - lastTime;
+			if (lastTime > 0)
+				if (timeCost > 200)
 					GLOBAL_RATE = Math.min(++GLOBAL_RATE, GLOBAL_RATE_MAX);
 				else if (timeCost < 40 && (_tickCounter % GLOBAL_RATE) == 1)
 					GLOBAL_RATE = Math.max(--GLOBAL_RATE, GLOBAL_RATE_AIM);
-			this.lastTime = System.currentTimeMillis();
+			lastTime = System.currentTimeMillis();
 		}
 
-		// System.out.println("Doing tick");
+		//Now ship all the updates off to the thread workers iff this is an update tick
 		if (event.phase == Phase.END && (tickCounter() % GLOBAL_RATE) == 0)
 		{
-			// FIND CHUNKS
 			for (final World w : MinecraftServer.getServer().worldServers)
 			{
-				if (w.playerEntities == null || w.playerEntities.size() == 0)
-					continue;
-
+				//Don't bother if there are no players in this dimension
+				if (w.playerEntities == null || w.playerEntities.size() == 0) continue;
+				//Now select all chunks near any player
 				for (final Object p : w.playerEntities)
 				{
 					final EntityPlayer player = (EntityPlayer) p;
 					final ChunkCache map = FluidData.worldCache.get(w);
-					if (map == null)
-						continue;
-
+					if (map == null) continue;
 					// iterate over all flagged chunks
 					for (final Chunk c : map.chunks.keySet())
 					{
-						if (!c.isChunkLoaded)
-							continue;// Just to be safe;
-
+						if (!c.isChunkLoaded) continue;// Just to be safe;
 						final int x = c.xPosition - (((int) player.posX) >> 4);
 						final int z = c.zPosition - (((int) player.posZ) >> 4);
 						final int dist = x * x + z * z;
 
-						if (dist <= UPDATE_RANGE)
-							map.priority.add(c);
+						//Register them appropriately
+						if (dist <= UPDATE_RANGE) map.priority.add(c);
 						else if (dist <= UPDATE_RANGE_FAR)
-							if (map.distant.size() < 512)
-								map.distant.add(c);
+							//Prevent flooding
+							if (map.distant.size() < 1024) map.distant.add(c);
 					}
 				}
 			}
-
+			//Now kick start the fluid updater thread delegator
 			FluidManager.delegator.myStartTick = tickCounter();
 			FluidManager.delegator.worlds = MinecraftServer.getServer().worldServers.clone();
 			FluidManager.delegator.performTasks();
-
 		}
 
 		// Set blocks for a little bit on the server thread
 		// This is triggered from using the setBlock call WITHOUT Immediacy
-		// NOTE: This is 100% utterly thread safe.
-		int toPerform = BlockTask.blockTasks.size() / 16;
-		toPerform = toPerform > 32 ? 32 : toPerform;
-
-		// Prevent lagging the system by allocating a max amount of time
-		while (System.currentTimeMillis() - this.lastTime < 10 && BlockTask.blockTasks.size() > 0)
-			for (int i = 0; i < Math.min(toPerform, BlockTask.blockTasks.size()); i++)
-				BlockTask.blockTasks.remove().set();
+		if (BlockTask.blockTasks.size() > 0)
+		{
+			int toPerform = BlockTask.blockTasks.size() / 16;
+			toPerform = toPerform > 32 ? 32 : toPerform;
+			// Prevent lagging the system by allocating a max amount of time
+			while (System.currentTimeMillis() - lastTime < 10 && BlockTask.blockTasks.size() > 0)
+				for (int i = 0; i < Math.min(toPerform, BlockTask.blockTasks.size()); i++)
+					BlockTask.blockTasks.remove().set();
+		}
 	}
-
 }

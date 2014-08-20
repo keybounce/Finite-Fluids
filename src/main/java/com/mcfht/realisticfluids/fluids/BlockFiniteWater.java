@@ -12,7 +12,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 public final class BlockFiniteWater extends BlockFiniteFluid {
 
 	public BlockFiniteWater(final Material material) {
-		super(material, RealisticFluids.waterVisc, RealisticFluids.WATER_UPDATE, 0);
+		super(material, RealisticFluids.waterVisc, RealisticFluids.WATER_UPDATE, 0, 1);
 		//this.setLightOpacity(1);
 		//this.setResistance(6F);
 	}

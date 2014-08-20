@@ -17,11 +17,12 @@ import com.mcfht.realisticfluids.fluids.BlockFiniteWater;
 
 /**
  * Handles virtually all fluid calculations. Manages worker threads.
- * 
+ *
  * @author FHT
- * 
+ *
  */
-public class FluidManager {
+public class FluidManager
+{
 	public static Delegator delegator = new Delegator();
 
 	public static class WorkerThread {
@@ -29,42 +30,42 @@ public class FluidManager {
 		FluidWorker worker = null;
 
 		public WorkerThread(final FluidWorker worker) {
-			this.thread = new Thread(worker);
+			thread = new Thread(worker);
 			this.worker = worker;
 		}
 	}
 
 	/**
 	 * Delegates tasks to different threads
-	 * 
+	 *
 	 * @author FHT
-	 * 
+	 *
 	 */
-	public static class Delegator {
+	public static class Delegator
+	{
 		public AtomicInteger sweepCost = new AtomicInteger(0);
 		public int myStartTick;
 		public World[] worlds;
 
 		// Dun saturate
-		public final int threads = Math.max(2,
-				(RealisticFluids.CORES - 2) >> 1 << 1);
+		public final int threads = Math.max(2,(RealisticFluids.CORES - 2) >> 1 << 1);
 
 		// Cycle through the available threads
 		public int threadIndex = 0;
 
-		public ArrayList<WorkerThread> threadPool = new ArrayList<WorkerThread>(
-				this.threads);
+		public ArrayList<WorkerThread> threadPool = new ArrayList<WorkerThread>(threads);
 
-		public void performTasks() {
+		public void performTasks()
+		{
 			// Ensure we have adequate threads
-			for (int i = 0; i < this.threads - this.threadPool.size(); i++)
-				this.threadPool.add(new WorkerThread(new FluidWorker()));
+			while (threadPool.size() < threads)
+				threadPool.add(new WorkerThread(new FluidWorker()));
 
 			// System.out.println("Operating with " + RealisticFluids.CORES +
 			// " cores, " + this.threads + " threads.");
 			// System.out.println("Interval: " + RealisticFluids.GLOBAL_RATE);
 
-			for (final World world : this.worlds) {
+			for (final World world : worlds) {
 				// There are no players, so there is no point
 				if (world.playerEntities == null
 						|| world.playerEntities.size() == 0)
@@ -79,14 +80,16 @@ public class FluidManager {
 				for (final Chunk c : chunks.priority) {
 					final ChunkData data = chunks.chunks.get(c);
 					if (data == null || !c.isChunkLoaded) {
-						System.err
-								.println("Attempting to do flow in inactive chunk! This should not happen!");
+						System.err.println("Attempting to do flow in inactive chunk! This should not happen!");
 						continue;
 					}
-					final WorkerThread wt;
 
-					wt = this.threadPool.get(this.threadIndex);
-					wt.worker.tasks.add(new Task(data, true, this.myStartTick));
+
+					while (threadPool.size() < threads)
+						threadPool.add(new WorkerThread(new FluidWorker()));
+
+					final WorkerThread wt = threadPool.get(threadIndex);
+					wt.worker.tasks.add(new Task(data, true, myStartTick));
 
 					// attempt to prevent task queue flooding and move new tasks
 					// forward
@@ -104,19 +107,17 @@ public class FluidManager {
 					if (data == null || !c.isChunkLoaded)
 						continue;
 
-					final WorkerThread wt = this.threadPool
-							.get(this.threadIndex + this.threads / 2);
-					wt.worker.tasks
-							.add(new Task(data, false, this.myStartTick));
+					final WorkerThread wt = threadPool.get(threadIndex + threads / 2);
+					wt.worker.tasks.add(new Task(data, false, myStartTick));
 				}
 
-				this.threadIndex = (this.threadIndex + 1) % (this.threads / 2);
+				threadIndex = (threadIndex + 1) % (threads / 2);
 			}
 
 			// Reset quota counter
-			this.sweepCost.set(0);
+			sweepCost.set(0);
 
-			for (final WorkerThread wt : this.threadPool)
+			for (final WorkerThread wt : threadPool)
 				if (wt.worker.tasks.size() > 0 && !wt.worker.running)
 					wt.thread.run();
 
@@ -131,8 +132,8 @@ public class FluidManager {
 		public Task(final ChunkData data, final boolean highPriority,
 				final int startTick) {
 			this.data = data;
-			this.isHighPriority = highPriority;
-			this.myStartTick = startTick;
+			isHighPriority = highPriority;
+			myStartTick = startTick;
 		}
 	}
 
@@ -146,13 +147,13 @@ public class FluidManager {
 		public void run() {
 			// System.out.println("Fluid Worker -> " + this.tasks.size() + ", "
 			// + this.forceQuit);
-			this.running = true;
+			running = true;
 
-			while (this.tasks.size() > 0 && !this.forceQuit) {
+			while (tasks.size() > 0 && !forceQuit) {
 
 				// System.out.println("Fluid Worker stuffing!");
 
-				final Task task = this.tasks.poll();
+				final Task task = tasks.poll();
 
 				if (task == null)
 					return;
@@ -173,13 +174,13 @@ public class FluidManager {
 								task.myStartTick) >> 2 : doTask(task.data,
 								task.isHighPriority, task.myStartTick));
 			}
-			this.running = false;
+			running = false;
 		}
 	}
 
 	/**
 	 * Performs updates within a chunk (or more precisely, a ChunkCache object
-	 * 
+	 *
 	 * @param w
 	 * @param c
 	 * @param data
@@ -190,8 +191,9 @@ public class FluidManager {
 	public static int doTask(final ChunkData data,
 			final boolean isHighPriority, final int startTime) {
 		final int interval = (startTime % RealisticFluids.GLOBAL_RATE);
-		int cost = 0;
-		int x, y, z;
+		final int cost = 0;
+		int cyc = 3;
+		final int x, y, z;
 
 		// Iterate over each
 		for (int i = 0; i < 16; i++) {
@@ -208,8 +210,7 @@ public class FluidManager {
 				continue;
 
 			data.workingUpdate[i] = new boolean[4096];
-			System.arraycopy(data.updateFlags[i], 0, data.workingUpdate[i], 0,
-					4096);
+			System.arraycopy(data.updateFlags[i], 0, data.workingUpdate[i], 0, 4096);
 			data.updateFlags[i] = new boolean[4096];
 
 			// cost += Math.max(16, t.updateCounter[i] >> 6); //Moved this to
@@ -219,6 +220,7 @@ public class FluidManager {
 			data.updateCounter[i] = false;
 
 			// ///////////////////////////////////////////////////////////////////////////////////
+			/*
 			for (int j = 0; j < 4096; j++)
 				if (data.workingUpdate[i][j]) {
 					cost++;
@@ -237,15 +239,86 @@ public class FluidManager {
 								data.w.rand, interval);
 
 				}
+				*/
+				cyc = (cyc + 7) & 0x3;
+				switch(cyc)
+				{
+					case  0: iterateForwards(data, i, interval);
+					case  1: iterateBackwards(data, i, interval);
+					case  2: iterateLeft(data, i, interval);
+					case  3: iterateRight(data, i, interval);
+					default: iterateForwards(data, i, interval);
+				}
+
 		}
+
 		// TODO: Make distant chunks re-render
 		return cost;
 	}
 
+	public static int iterateForwards(final ChunkData data, final int i, final int interval)
+	{
+		int cost = 0;
+		for (int j = 0; j < 4096; j++)
+			cost += tickCell(data, i, j , interval);
+		return cost;
+	}
+
+	public static int iterateBackwards(final ChunkData data, final int i, final int interval)
+	{
+		int cost = 0;
+		for (int k = 0; k < 16; k++)
+			for (int j = 255; j >= 0; j--)
+				cost += tickCell(data, i, j + (k << 4), interval);
+		return cost;
+	}
+
+	public static int iterateLeft(final ChunkData data, final int i, final int interval)
+	{
+		int cost = 0;
+		for (int j = 0; j < 16; j++)
+			for (int k = 15; k >= 0; k--)
+				for (int l = 0; l < 16; l++)
+					cost += tickCell(data, i, (j << 4) + (l << 4) + k, interval);
+		return cost;
+	}
+	public static int iterateRight(final ChunkData data, final int i, final int interval)
+	{
+		int cost = 0;
+		for (int j = 0; j < 16; j++)
+			for (int k = 15; k >= 0; k--)
+				for (int l = 0; l < 16; l++)
+					cost += tickCell(data, i, (j << 4) + (k << 4) + l, interval);
+		return cost;
+	}
+
+	public static int tickCell(final ChunkData data, final int i, final int j, final int interval)
+	{
+		if (data.workingUpdate[i][j]) {
+			data.workingUpdate[i][j] = false;
+
+		int x,y,z;
+
+		// Un-flag this block
+		// Rebuild the coordinates from the array position
+		x = (data.c.xPosition << 4) + (j & 0xF);
+		y = (i << 4) + ((j >> 8) & 0xF);
+		z = (data.c.zPosition << 4) + ((j >> 4) & 0xF);
+
+		final Block b = data.c.getBlock(x & 0xF, y, z & 0xF);
+		if (b instanceof BlockFiniteFluid)
+			// Tick the water block
+			((BlockFiniteFluid) b).doUpdate(data, x, y, z, data.w.rand, interval);
+		return 1;
+		}
+		return 0;
+	}
+
+
 	/**
 	 * Perform a specified number of random ticks in the 16x16x16 part of the
 	 * world.
-	 * 
+	 *
 	 * @param w
 	 * @param c
 	 * @param data
@@ -367,7 +440,7 @@ public class FluidManager {
 	/**
 	 * Handles all the fun things that can happen when playing with water, like
 	 * evaporation and unicorns.
-	 * 
+	 *
 	 * @param w
 	 * @param c
 	 * @param x
@@ -389,9 +462,9 @@ public class FluidManager {
 	 * RealisticFluids.MAX_FLUID, true); } else { w.setBlock(xx, y, zz,
 	 * Blocks.water); BlockFiniteFluid f = (BlockFiniteFluid) c.getBlock(x, y,
 	 * z); f.setLevel(w, xx, y, zz, f.viscosity, true); }
-	 * 
+	 *
 	 * }
-	 * 
+	 *
 	 * //Make water evaporate in deserts? if (b.getMaterial() == Material.water
 	 * && biome.temperature > 1F) { System.out.println("Evaporating..");
 	 * BlockFiniteFluid f = (BlockFiniteFluid) b; int l0 = f.getLevel(w, xx, y,

@@ -46,7 +46,7 @@ public class FluidData
 		 */
 		public ChunkCache()
 		{
-			this.chunks = new ConcurrentHashMap<Chunk, ChunkData>(1024);
+			chunks = new ConcurrentHashMap<Chunk, ChunkData>(1024);
 		}
 	}
 
@@ -80,10 +80,10 @@ public class FluidData
 			// Initialize
 			for (int i = 0; i < 16; i++)
 			{
-				this.updateCounter[i] = false;
-				this.fluidArray[i] = null; // Save memory
-				this.updateFlags[i] = null; // Save memory
-				this.workingUpdate[i] = null; // Save memory
+				updateCounter[i] = false;
+				fluidArray[i] = null; // Save memory
+				updateFlags[i] = null; // Save memory
+				workingUpdate[i] = null; // Save memory
 			}
 		}
 
@@ -97,10 +97,10 @@ public class FluidData
 		 */
 		public int getLevel(final int cx, final int cy, final int cz)
 		{
-			if (this.fluidArray[cy >> 4] == null)
-				this.fluidArray[cy >> 4] = new int[4096];
+			if (fluidArray[cy >> 4] == null)
+				fluidArray[cy >> 4] = new int[4096];
 
-			return this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)];
+			return fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)];
 		}
 
 		/**
@@ -113,10 +113,10 @@ public class FluidData
 		 */
 		public void setLevel(final int cx, final int cy, final int cz, final int l)
 		{
-			if (this.fluidArray[cy >> 4] == null)
-				this.fluidArray[cy >> 4] = new int[4096];
+			if (fluidArray[cy >> 4] == null)
+				fluidArray[cy >> 4] = new int[4096];
 
-			this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = l;
+			fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = l;
 		}
 
 		/**
@@ -130,12 +130,12 @@ public class FluidData
 		 */
 		public int[] addSetLevel(final int cx, final int cy, final int cz, final int l)
 		{
-			if (this.fluidArray[cy >> 4] == null)
-				this.fluidArray[cy >> 4] = new int[4096];
+			if (fluidArray[cy >> 4] == null)
+				fluidArray[cy >> 4] = new int[4096];
 
-			final int i = this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 4)];
+			final int i = fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 4)];
 
-			this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 4)] = (i + l > RealisticFluids.MAX_FLUID
+			fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 4)] = (i + l > RealisticFluids.MAX_FLUID
 					? RealisticFluids.MAX_FLUID
 					: i + l);
 			return new int[]
@@ -152,10 +152,10 @@ public class FluidData
 		public void markUpdate(final int cx, final int cy, final int cz)
 		{
 			final int _cy = cy >> 4;
-			if (this.updateFlags[_cy] == null)
-				this.updateFlags[_cy] = new boolean[4096];
-			this.updateCounter[_cy] = true;
-			this.updateFlags[_cy][cx + (cz << 4) + ((cy & 0xF) << 8)] = true;
+			if (updateFlags[_cy] == null)
+				updateFlags[_cy] = new boolean[4096];
+			updateCounter[_cy] = true;
+			updateFlags[_cy][cx + (cz << 4) + ((cy & 0xF) << 8)] = true;
 			// System.out.println("***********DONE************");
 		}
 
@@ -169,15 +169,33 @@ public class FluidData
 		 */
 		public void markUpdateImmediate(final int cx, final int cy, final int cz)
 		{
+			markUpdate(cx, cy, cz);
 
-			this.markUpdate(cx, cy, cz);
+			if (workingUpdate[cy >> 4] == null)
+				workingUpdate[cy >> 4] = new boolean[4096];
 
-			if (this.workingUpdate[cy >> 4] == null)
-				this.workingUpdate[cy >> 4] = new boolean[4096];
-
-			this.workingUpdate[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = true;
+			workingUpdate[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = true;
 			// System.out.println("***********DONE************");
 		}
+
+		public int[][] getDataForStore()
+		{
+			final int[][] out = new int[16][4096];
+
+			for (int i = 0; i < 16; i++)
+			{
+				if (fluidArray[i] == null)
+					continue;
+				//System.arraycopy(fluidArray[i], 0, out[i], 0, 4096);
+				for (int j = 0; j < 4096; j++)
+				{
+					out[i][j] = fluidArray[i][j];
+					if (updateFlags[i][j] || workingUpdate[i][j]) out[i][j] |= 0x1000000;
+				}
+			}
+			return out;
+		}
+
 	}
 
 	/**
@@ -192,6 +210,22 @@ public class FluidData
 	{
 		if (y < 255)
 			data.markUpdateImmediate(x & 0xF, y + 1, z & 0xF);
+		if (y > 0)
+			data.markUpdate(x & 0xF, y - 1, z & 0xF);
+
+		for (int i = 0; i < 4; i++)
+		{
+			final int x1 = (x + Util.cardinalX(i)), z1 = (z + Util.cardinalZ(i));
+			data = FluidData.forceData(data, x1, z1);
+			data.markUpdate(x1 & 0xF, y, z1 & 0xF);
+		}
+
+	}
+
+	public static void markNeighborsLaterAbove(ChunkData data, final int x, final int y, final int z)
+	{
+		if (y < 255)
+			data.markUpdate(x & 0xF, y + 1, z & 0xF);
 		if (y > 0)
 			data.markUpdate(x & 0xF, y - 1, z & 0xF);
 
@@ -260,7 +294,7 @@ public class FluidData
 
 	/**
 	 * Ensures that the current data object is current, and returns the correct
-	 * object if it is not.
+	 * object if it is not. Returns null on unloaded chunk.
 	 *
 	 * @param data0
 	 * @param x1
@@ -295,13 +329,9 @@ public class FluidData
 		{
 			Chunk cOut = data0.w.getChunkFromChunkCoords(x1 >> 4, z1 >> 4);
 			if (!cOut.isChunkLoaded)
-				;
-			{
 				// Or should this be load chunk?
 				cOut = data0.w.getChunkProvider().provideChunk(x1 >> 4, z1 >> 4);
-			}
-			if (cOut.xPosition != data0.c.xPosition || cOut.zPosition != data0.c.zPosition)
-				return getChunkData(cOut);
+			if (cOut.xPosition != data0.c.xPosition || cOut.zPosition != data0.c.zPosition) return getChunkData(cOut);
 			return data0;
 		} catch (final Exception e)
 		{
