@@ -11,13 +11,13 @@ import com.mcfht.realisticfluids.fluids.BlockFiniteFluid;
 
 /**
  * Contains some handy dandy thingies to make my life easier.
- * 
+ *
  * <p>
  * Also provides an interface which which to more easily access various methods
  * that are scattered around some of the horribly messy parts of my code.
- * 
+ *
  * @author FHT
- * 
+ *
  */
 public class Util
 {
@@ -48,7 +48,7 @@ public class Util
 
 	/**
 	 * Gets an 8-directional dx from an integer
-	 * 
+	 *
 	 * @param dir
 	 * @return
 	 */
@@ -58,7 +58,7 @@ public class Util
 	}
 	/**
 	 * Gets an 8-directional dz from an integer
-	 * 
+	 *
 	 * @param dir
 	 * @return
 	 */
@@ -84,7 +84,7 @@ public class Util
 
 	/**
 	 * Gets a cardinal (N-S) dx from an integer
-	 * 
+	 *
 	 * @param dir
 	 * @return
 	 */
@@ -94,7 +94,7 @@ public class Util
 	}
 	/**
 	 * Gets an cardinal (E-W) dz from an integer
-	 * 
+	 *
 	 * @param dir
 	 * @return
 	 */
@@ -106,7 +106,7 @@ public class Util
 	/**
 	 * Calculates a pseudo random X/Z vector, consecutive calls will cycleall 8
 	 * directions.
-	 * 
+	 *
 	 * @return
 	 */
 	public static int[] nextXZ()
@@ -118,7 +118,7 @@ public class Util
 
 	/**
 	 * Compares fluids. Assumes that b0 <b>is</b> a fluid
-	 * 
+	 *
 	 * @param b0
 	 * @param b1
 	 * @return
@@ -160,4 +160,13 @@ public class Util
 		return l == 0 ? 2 : (l == 1 ? 5 : (l == 2 ? 3 : (l == 3 ? 4 : 0)));
 	}
 
+
+	public static short ebsIndex(final int cx, final int cy, final int cz)
+	{
+		return (short) (cx + (cz << 4) + (cy << 8));
+	}
+	public static short xyzIndex(final int cx, final int y, final int cz)
+	{
+		return (short) (cx + (cz << 4) + ((y & 0xF) << 8));
+	}
 }

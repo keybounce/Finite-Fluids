@@ -50,6 +50,8 @@ public class FluidManager
 		// Dun saturate
 		public final int threads = Math.max(2,(RealisticFluids.CORES - 2) >> 1 << 1);
 
+		public int sleepTime = Math.max(3, Math.min(15, ((50 * RealisticFluids.GLOBAL_RATE - 1) + 20)/(threads+3)));
+
 		// Cycle through the available threads
 		public int threadIndex = 0;
 
@@ -90,7 +92,7 @@ public class FluidManager
 
 					final WorkerThread wt = threadPool.get(threadIndex);
 					wt.worker.tasks.add(new Task(data, true, myStartTick));
-
+					wt.worker.index = threadIndex;
 					// attempt to prevent task queue flooding and move new tasks
 					// forward
 					if (wt.worker.tasks.size() > 320)
@@ -116,7 +118,7 @@ public class FluidManager
 
 			// Reset quota counter
 			sweepCost.set(0);
-
+			sleepTime = Math.max(3, Math.min(15, ((50 * RealisticFluids.GLOBAL_RATE - 1) + 20)/(threads+3)));
 			for (final WorkerThread wt : threadPool)
 				if (wt.worker.tasks.size() > 0 && !wt.worker.running)
 					wt.thread.run();
@@ -141,16 +143,30 @@ public class FluidManager
 		public boolean running = false;
 		public boolean forceQuit = false;
 		public int cost;
+		public int index = 0;
 		public ConcurrentLinkedQueue<Task> tasks = new ConcurrentLinkedQueue<Task>();
+		public int tasksThisInterval = 0;
 
 		@Override
-		public void run() {
-			// System.out.println("Fluid Worker -> " + this.tasks.size() + ", "
-			// + this.forceQuit);
-			running = true;
+		public void run()
+		{
 
+			tasksThisInterval = tasks.size();
+
+			try { Thread.sleep(index * delegator.sleepTime); }
+			catch (final InterruptedException e) { run(); return; }
+
+			running = true;
+			int i = 0;
 			while (tasks.size() > 0 && !forceQuit) {
 
+				if (++i == 10)
+				{
+					//Give other threads on this core some time to work every now and then lol
+					try { Thread.sleep(2); }
+					catch (final InterruptedException e) { run(); return; }
+					i = 0;
+				}
 				// System.out.println("Fluid Worker stuffing!");
 
 				final Task task = tasks.poll();
@@ -161,8 +177,7 @@ public class FluidManager
 				// System.out.println("Has task! pri: " + task.isHighPriority +
 				// "(" + delegator.sweepCost.get() + ")");
 
-				if (!task.isHighPriority
-						&& delegator.sweepCost.get() > RealisticFluids.FAR_UPDATES)
+				if (!task.isHighPriority && delegator.sweepCost.get() > RealisticFluids.FAR_UPDATES)
 					return;
 
 				// System.out.println("Doing task!");
@@ -170,9 +185,8 @@ public class FluidManager
 				// task.myStartTick);
 
 				delegator.sweepCost.addAndGet(task.isHighPriority
-						? doTask(task.data, task.isHighPriority,
-								task.myStartTick) >> 2 : doTask(task.data,
-								task.isHighPriority, task.myStartTick));
+								? doTask(task.data, task.isHighPriority, task.myStartTick) >> 2
+								: doTask(task.data,	task.isHighPriority, task.myStartTick));
 			}
 			running = false;
 		}
@@ -188,11 +202,10 @@ public class FluidManager
 	 *            Do heavy equalization?
 	 * @return
 	 */
-	public static int doTask(final ChunkData data,
-			final boolean isHighPriority, final int startTime) {
+	public static int doTask(final ChunkData data, final boolean isHighPriority, final int startTime) {
 		final int interval = (startTime % RealisticFluids.GLOBAL_RATE);
-		final int cost = 0;
-		int cyc = 3;
+		int cost = 0;
+		//final int cyc = 3;
 		final int x, y, z;
 
 		// Iterate over each
@@ -205,6 +218,30 @@ public class FluidManager
 			// First of all, let's perform our own random ticks (maor control)
 			// do evaporation, seeping, refilling in rain, and so on.
 			doRandomTicks(data, i, 3, isHighPriority);
+
+			//No updates
+			if (data.updates[i] == null || data.updates[i].updates.pos <= 0) continue;
+
+			System.out.println("Ticking Chunk " + Util.intStr(data.c.xPosition, data.c.zPosition) + " segment " + i + ", theoretical updates: " + data.updates[i].updates.pos);
+
+			data.updates[i].updates.resetClone();
+			while (data.updates[i].updates.pos1 > 0)
+			{
+				final int index = data.updates[i].updates.poll();
+				if (index < 0) continue;
+				System.out.println("   -   Doing update for block index " + index + ", Flag: " + data.updates[i].updateFlags[index]);
+				cost += tickCell(data, i, index, interval);
+			}
+
+			/*
+			if (data.updates[i].currentData.pos > 0)
+				System.arraycopy(data.updates[i].currentData.data, 0, data.updates[i].updates.data, 0, data.updates[i].currentData.pos);
+			else
+				data.updates[i] = null;
+			 */
+
+
+			/*
 			// No updates, exit
 			if (!data.updateCounter[i] || data.updateFlags[i] == null)
 				continue;
@@ -220,7 +257,7 @@ public class FluidManager
 			data.updateCounter[i] = false;
 
 			// ///////////////////////////////////////////////////////////////////////////////////
-			/*
+
 			for (int j = 0; j < 4096; j++)
 				if (data.workingUpdate[i][j]) {
 					cost++;
@@ -239,17 +276,18 @@ public class FluidManager
 								data.w.rand, interval);
 
 				}
-				*/
+
 				cyc = (cyc + 7) & 0x3;
 				switch(cyc)
 				{
-					case  0: iterateForwards(data, i, interval);
-					case  1: iterateBackwards(data, i, interval);
-					case  2: iterateLeft(data, i, interval);
-					case  3: iterateRight(data, i, interval);
-					default: iterateForwards(data, i, interval);
+					case  0: cost += iterateForwards(data, i, interval);
+					case  1: cost += iterateBackwards(data, i, interval);
+					case  2: cost += iterateLeft(data, i, interval);
+					case  3: cost += iterateRight(data, i, interval);
+					default: cost += iterateForwards(data, i, interval);
 				}
 
+*/
 		}
 
 		// TODO: Make distant chunks re-render
@@ -294,8 +332,8 @@ public class FluidManager
 
 	public static int tickCell(final ChunkData data, final int i, final int j, final int interval)
 	{
-		if (data.workingUpdate[i][j]) {
-			data.workingUpdate[i][j] = false;
+		//if (data.workingUpdate[i][j]) {
+		//	data.workingUpdate[i][j] = false;
 
 		int x,y,z;
 
@@ -310,8 +348,7 @@ public class FluidManager
 			// Tick the water block
 			((BlockFiniteFluid) b).doUpdate(data, x, y, z, data.w.rand, interval);
 		return 1;
-		}
-		return 0;
+
 	}
 
 

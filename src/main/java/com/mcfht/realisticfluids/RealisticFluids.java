@@ -98,7 +98,7 @@ public class RealisticFluids extends DummyModContainer
 	/** Relative update rate of water */
 	public static int		WATER_UPDATE		= 1;
 	/** Runniness of water */
-	public static final int	waterVisc			= 3;
+	public static final int	waterVisc			= 4;
 	// LAVA
 
 	/** update rate of lava in the overworld */
@@ -187,7 +187,7 @@ public class RealisticFluids extends DummyModContainer
 
 		// System.out.println("***********START MARK***********");
 		// System.out.println(" -" +Util.intStr(x, y, z));
-		FluidData.getChunkData(c).markUpdate(x & 0xF, y, z & 0xF);
+		FluidData.getChunkData(c).markUpdateDelayed(x & 0xF, y, z & 0xF);
 	}
 
 	/**

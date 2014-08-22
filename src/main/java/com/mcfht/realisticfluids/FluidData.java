@@ -50,6 +50,125 @@ public class FluidData
 		}
 	}
 
+	static class PrimitiveIntFlagList
+	{
+		byte[] table0;
+		short[] data0;
+		short[] data1;
+
+		public static final byte EMPTY = 0;
+		public static final byte NEXT = 1;
+		public static final byte CANCEL = 2;
+
+		int pos = 0, pos1 = 0;
+
+		public PrimitiveIntFlagList(final int capacity)
+		{
+			data0 = new short[capacity];
+			data1 = new short[capacity];
+			table0 = new byte[capacity];
+			for (int i = 0; i < capacity; i++)
+			{
+				data0[i] = -1;
+				data1[i] = -1;
+			}
+		}
+	    /** Adds a new integer to the top of the list */
+	    public void add(final int i)
+	    {
+	    	if (table0[i] == EMPTY)
+	    	{
+		    	if (pos < 0) pos = 0;
+		    	data0[pos++] = (short) i;
+	    	}
+	    	table0[i] = NEXT;
+	    }
+	    public void immediate(final int val)
+	    {
+	    	if (table0[val] == NEXT) return;
+	    	table0[val] = NEXT;
+	    	if (pos1 < 0) pos1 = 0;
+	    	data1[pos1++] = (short) val;
+	    	//Flag it in both arrays, otherwise it may
+	    	//get skipped if we call resetClone before it is parsed
+	    	data0[pos++] = (short) val;
+	    }
+
+	    /** Removes and returns last added element to active array <b>(LIFO)</b>
+	     * 	<p>Works more like a stack than a queue, but poll it is because pop
+	     * 	sounds really lame.
+	     *
+	     *  <p><b>CARE not to create infinite loops of immediate updates!!!</b>
+	     */
+	    public int poll()
+	    {
+	    	if (pos1 < 0) return -2; //-2 = we are done!
+	    	pos1 -= 1;
+	    	final short out = data1[pos1];
+	    	//System.out.println("     - out = " + out);
+	    	if (out < 0 || table0[out] != NEXT) { table0[out] = EMPTY; return -1; } //-1 = bad mapping
+	    	//Now empty the cell
+	    	data1[pos1] = -1;
+	    	table0[out] = EMPTY;
+	    	return out;
+	    }
+
+	    /** Resets the list clone object */
+	    public void resetClone()
+	    {
+	    	//Copy the scheduled updates into the active tick queue
+	    	if (data1 == null) data1 = new short[data0.length];
+	    	System.arraycopy(data0, 0, data1, 0, pos);
+	    	pos1 = pos;	pos = 0;
+	    	//reset the data array (such that any deferred updates will be added to it :)
+	    	data0 = new short[4096];
+	    }
+
+	    /** Unmarks element at specified index*/
+	    public void remove(final int index)
+	    {
+	    	table0[index] = CANCEL;
+	    }
+
+   	  	/** Clears all entries from the list */
+   	  	public void clear()
+   	  	{
+   	  		data0 = new short[data0.length];
+   	  		pos = 0;
+   	  	}
+   	  	public short[] cloneArray()
+   	  	{
+   	  		final short[] out = new short[data0.length]; System.arraycopy(data0, 0, out, 0, data0.length);
+   	  		return out;
+   	  	}
+	}
+	static class UpdateCache
+	{
+		//Parent thingimy
+		byte[] updateFlags = new byte[4096];
+
+		public PrimitiveIntFlagList updates = new PrimitiveIntFlagList(4096);
+		public PrimitiveIntFlagList currentData;
+
+		public UpdateCache(){}
+		public void markUpdateImmediate(final int cx, final int cy, final int cz)
+		{
+			final int i = Util.ebsIndex(cx, cy, cz);
+			updates.immediate(i);
+		}
+		public void markUpdateDelayed(final int cx, final int cy, final int cz)
+		{
+			final int i = Util.ebsIndex(cx, cy, cz);
+			updates.add(i);
+
+		}
+		public void markUpdateLong(final int cx, final int cy, final int cz, final int delay)
+		{
+			final int i = Util.ebsIndex(cx, cy, cz);
+			if (updateFlags[i] > delay) updateFlags[i] = (byte) delay;
+		}
+	}
+
 	public static class ChunkData
 	{
 		// INSTANTIATED
@@ -67,6 +186,8 @@ public class FluidData
 		/** A simple counter telling us whether or not a given cube has updates */
 		public boolean[]	updateCounter	= new boolean[16];
 
+
+		public UpdateCache[] updates = new UpdateCache[16];
 		/**
 		 * Initialize a new Chunk Data object for the chunk in the given world
 		 *
@@ -80,6 +201,7 @@ public class FluidData
 			// Initialize
 			for (int i = 0; i < 16; i++)
 			{
+				updates[i] = null;
 				updateCounter[i] = false;
 				fluidArray[i] = null; // Save memory
 				updateFlags[i] = null; // Save memory
@@ -99,7 +221,6 @@ public class FluidData
 		{
 			if (fluidArray[cy >> 4] == null)
 				fluidArray[cy >> 4] = new int[4096];
-
 			return fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)];
 		}
 
@@ -149,19 +270,23 @@ public class FluidData
 		 * @param cy
 		 * @param cz
 		 */
-		public void markUpdate(final int cx, final int cy, final int cz)
+		public void markUpdateDelayed(final int cx, final int cy, final int cz)
 		{
 			final int _cy = cy >> 4;
+
+			if (updates[_cy] == null) updates[_cy] = new UpdateCache();
+			updates[_cy].markUpdateDelayed(cx, cy & 0xF, cz);
+
+			/*
 			if (updateFlags[_cy] == null)
 				updateFlags[_cy] = new boolean[4096];
 			updateCounter[_cy] = true;
 			updateFlags[_cy][cx + (cz << 4) + ((cy & 0xF) << 8)] = true;
+			*/
 			// System.out.println("***********DONE************");
 		}
-
 		/**
-		 * Marks update in cx, cy, cz, use to mark block above for fast falling
-		 * fluids
+		 * Marks update in cx, cy, cz
 		 *
 		 * @param cx
 		 * @param cy
@@ -169,13 +294,10 @@ public class FluidData
 		 */
 		public void markUpdateImmediate(final int cx, final int cy, final int cz)
 		{
-			markUpdate(cx, cy, cz);
+			final int _cy = cy >> 4;
+			if (updates[_cy] == null) updates[_cy] = new UpdateCache();
+			updates[_cy].markUpdateImmediate(cx, cy & 0xF, cz);
 
-			if (workingUpdate[cy >> 4] == null)
-				workingUpdate[cy >> 4] = new boolean[4096];
-
-			workingUpdate[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = true;
-			// System.out.println("***********DONE************");
 		}
 
 		public int[][] getDataForStore()
@@ -211,13 +333,13 @@ public class FluidData
 		if (y < 255)
 			data.markUpdateImmediate(x & 0xF, y + 1, z & 0xF);
 		if (y > 0)
-			data.markUpdate(x & 0xF, y - 1, z & 0xF);
+			data.markUpdateDelayed(x & 0xF, y - 1, z & 0xF);
 
 		for (int i = 0; i < 4; i++)
 		{
 			final int x1 = (x + Util.cardinalX(i)), z1 = (z + Util.cardinalZ(i));
 			data = FluidData.forceData(data, x1, z1);
-			data.markUpdate(x1 & 0xF, y, z1 & 0xF);
+			data.markUpdateDelayed(x1 & 0xF, y, z1 & 0xF);
 		}
 
 	}
@@ -225,15 +347,15 @@ public class FluidData
 	public static void markNeighborsLaterAbove(ChunkData data, final int x, final int y, final int z)
 	{
 		if (y < 255)
-			data.markUpdate(x & 0xF, y + 1, z & 0xF);
+			data.markUpdateDelayed(x & 0xF, y + 1, z & 0xF);
 		if (y > 0)
-			data.markUpdate(x & 0xF, y - 1, z & 0xF);
+			data.markUpdateDelayed(x & 0xF, y - 1, z & 0xF);
 
 		for (int i = 0; i < 4; i++)
 		{
 			final int x1 = (x + Util.cardinalX(i)), z1 = (z + Util.cardinalZ(i));
 			data = FluidData.forceData(data, x1, z1);
-			data.markUpdate(x1 & 0xF, y, z1 & 0xF);
+			data.markUpdateDelayed(x1 & 0xF, y, z1 & 0xF);
 		}
 
 	}
@@ -249,15 +371,15 @@ public class FluidData
 	public static void markNeighborsDiagonal(ChunkData data, final int x, final int y, final int z)
 	{
 		if (y < 255)
-			data.markUpdate(x & 0xF, y + 1, z & 0xF);
+			data.markUpdateDelayed(x & 0xF, y + 1, z & 0xF);
 		if (y > 0)
-			data.markUpdate(x & 0xF, y - 1, z & 0xF);
+			data.markUpdateDelayed(x & 0xF, y - 1, z & 0xF);
 
 		for (int i = 0; i < 8; i++)
 		{
 			final int x1 = (x + Util.intDirX(i)), z1 = (x + Util.intDirZ(i));
 			data = FluidData.forceData(data, x1, z1);
-			data.markUpdate(x1 & 0xF, y, z1 & 0xF);
+			data.markUpdateDelayed(x1 & 0xF, y, z1 & 0xF);
 		}
 	}
 
@@ -436,7 +558,7 @@ public class FluidData
 		final int l0 = data.getLevel(cx, y, cz);
 		final int m1 = Util.getMetaFromLevel(l1);
 
-		data.markUpdate(cx, y, cz);
+		data.markUpdateDelayed(cx, y, cz);
 		if (updateNeighbors) markNeighbors(data, x, y, z);
 
 		data.setLevel(cx, y, cz, l1);
