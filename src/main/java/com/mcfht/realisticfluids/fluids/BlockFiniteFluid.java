@@ -281,30 +281,33 @@ public class BlockFiniteFluid extends BlockLiquid {
 		    	l1 = FluidData.getLevel(data1, this, b1, x1 & 0xF, y0, z1 & 0xF);
 
 		    	//If it is a full block, compare pressures
-		    	if (l1 >= RealisticFluids.MAX_FLUID)
+		    	if (l1 > RealisticFluids.MAX_FLUID)
 		    	{
 		    		if (l0 >= RealisticFluids.MAX_FLUID - 1)
 		    		{
 			    		underPressure = true;
 			    		l0 = Math.max(RealisticFluids.MAX_FLUID, l0);
-			    		if ((p1 = l1 - pressureStep) > maxNeighbor)
+
+			    		if ((p1 = l1 - pressureStep) > l0)
 			    		{
 			    			l0 = p1;
-							maxNeighbor = p1;
+			    		}
+			    		if (l0 > maxNeighbor)
+			    		{
+							maxNeighbor = l0;
 							data1.markUpdateImmediate(x1 & 0xF, y0, z1 & 0xF);
 						}
 			    		else if ((p1 = l0 - pressureStep) > l1)
 			    		{
 			    			l1 = p1;
-			    			FluidData.setLevel(data1, this, x1, y0, z1, p1, false);
-			    			data1.markUpdateImmediate(x1 & 0xF, y0, z1 & 0xF);
+			    			FluidData.setPressure(data1, this, x1, y0, z1, p1, true);
+			    			//data1.markUpdateImmediate(x1 & 0xF, y0, z1 & 0xF);
 			    		}
 		    		}
 		    		else
 		    		{
 		    			final int[] from = moveToHighPressure(data0, this, x0, y0, z0, l0, 32);
 		    			final int[] target = moveToLowFluid(data0, this, x0, y0, z0, l0, 5, true);
-
 		    			if (from[0] != x0 || from[1] != y0 || from[2] != z0)
 		    			{
 		    				final int canPull = RealisticFluids.MAX_FLUID - l0;
@@ -319,20 +322,35 @@ public class BlockFiniteFluid extends BlockLiquid {
 		    				lN = Math.min(lN, RealisticFluids.MAX_FLUID) - canPull;
 		    				FluidData.setLevel(dataN, this, from[0], from[1], from[2], lN, true);
 		    				//Don't mark immediate updates for b1
+		    				FluidData.setPressure(data0, this, x0, y0, z0, RealisticFluids.MAX_FLUID, true);
 		    				FluidData.setLevel(data0, this, x0, y0, z0, RealisticFluids.MAX_FLUID, false);
 		    			}
 		    		}
 		    	}
-
-		    	else if (isValidFlowTarget(data1, l0, x1, y0, z1, 0, b1) )
+		    	else if (l1 < RealisticFluids.MAX_FLUID && isValidFlowTarget(data1, l0, x1, y0, z1, 0, b1) )
 		    	{
 	    			if (l0 > l1)
 		    		{
-						final int flow = (Math.min(l0, RealisticFluids.MAX_FLUID) - l1)/2;
+						int flow = (Math.min(l0, RealisticFluids.MAX_FLUID) - l1)/2;
 						if (l1 + flow >= efVisc && l0 - flow >= efVisc)
 						{
 							l0 = Math.min(l0, RealisticFluids.MAX_FLUID) - flow;
 							FluidData.setLevel(data1, this, x1, y0, z1, l1 + flow, true);
+						}
+						else
+						{
+							//Try to flow over ledge
+							final Block _b1 = data1.c.getBlock(x1 & 0xF, y0 - 1, z0 & 0xF);
+							if (Util.isSameFluid(this, _b1))
+							{
+								final int _l1 = FluidData.getLevel(data1, this, _b1, x1 & 0xF, y0 - 1, z1 & 0xF);
+								flow = RealisticFluids.MAX_FLUID - l0;
+								if (flow > 0)
+								{
+									l0 -= flow;
+									FluidData.setLevel(data1, this, x1, y0-1, z1, _l1 + flow, true);
+								}
+							}
 						}
 		    		}
 				}
@@ -341,35 +359,31 @@ public class BlockFiniteFluid extends BlockLiquid {
 
 
 	    	//////////////////////////FLOWING UP - PRESSURE///////////////////////////////
-
-	    	if (l0 >= RealisticFluids.MAX_FLUID)
+	    	y1 = y0 + (dy = 1);
+	    	if (y1 < 255 && l0 >= RealisticFluids.MAX_FLUID)
 	    	{
 	    		//l0 = maxNeighbor >= prevLevel ? maxNeighbor : RealisticFluids.MAX_FLUID;
 
 	    		//Check above//
-		    	y1 = y0 + (dy = 1);
+
 			    Block bA = null;
 			    bA = data0.c.getBlock(cx0, y1, cz0);
 			    final int lA = FluidData.getLevel(data0, this, bA, cx0, y1, cz0);
-
-		    	if (l0 >= RealisticFluids.MAX_FLUID && y1 <= 255)
-		    	{
-		    		if (Util.isSameFluid(this, bA))
-		    		{
-			 		    p1 = lA + pressureGain - pressureStep;
-			 		    if (p1 > maxNeighbor)
-			 		    {
-			 		    	maxNeighbor = p1;
-							data0.markUpdateImmediate(cx0, y0-1, cz0);
-							underPressure = true;
-			 		    }
-		    		}
-		    		else
-		    			if (bA != Blocks.air) bA = null;
-		    	}
+	    		if (Util.isSameFluid(this, bA))
+	    		{
+		 		    p1 = lA + pressureGain - pressureStep;
+		 		    if (p1 > maxNeighbor)
+		 		    {
+		 		    	maxNeighbor = p1;
+						data0.markUpdateImmediate(cx0, y0-1, cz0);
+						underPressure = true;
+		 		    }
+	    		}
+	    		else
+	    			if (bA != Blocks.air) bA = null;
 
 				//if (maxNeighbor < prevLevel) { l0 = RealisticFluids.MAX_FLUID; return; }
-				l0 = maxNeighbor;
+	    		l0 = maxNeighbor;
 
 				/*
 				//Now attempt to propagate pressure change down a couple of blocks?
@@ -392,7 +406,7 @@ public class BlockFiniteFluid extends BlockLiquid {
 
 				 */
 	    		//y1 = y0 + (dy = 1);
-		    	if (y1 <= 255 && bA != null && lA < RealisticFluids.MAX_FLUID)
+		    	if (bA != null && lA < RealisticFluids.MAX_FLUID)
 		    	{
 		    		int canPush = 0;
 		    		if (l0 > RealisticFluids.MAX_FLUID + pressureGain - pressureStep) {
@@ -450,12 +464,6 @@ public class BlockFiniteFluid extends BlockLiquid {
 
 
 	    	}*/
-
-
-
-
-
-
 		}
 		finally
 		{

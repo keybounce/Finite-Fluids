@@ -56,9 +56,14 @@ public class FluidData
 		short[] data0;
 		short[] data1;
 
+		public static final byte CANCEL = -1;
+		/** The value is not present */
 		public static final byte EMPTY = 0;
+		/** Next indicates that the value is only present in one array */
 		public static final byte NEXT = 1;
-		public static final byte CANCEL = 2;
+		/** The value is present in both arrays */
+		public static final byte NOW = 2;
+
 
 		int pos = 0, pos1 = 0;
 
@@ -76,22 +81,22 @@ public class FluidData
 	    /** Adds a new integer to the top of the list */
 	    public void add(final int i)
 	    {
-	    	if (table0[i] == EMPTY)
+	    	if (table0[i] <= EMPTY)
 	    	{
 		    	if (pos < 0) pos = 0;
 		    	data0[pos++] = (short) i;
+		    	table0[i] = NEXT;
 	    	}
-	    	table0[i] = NEXT;
 	    }
 	    public void immediate(final int val)
 	    {
-	    	if (table0[val] == NEXT) return;
-	    	table0[val] = NEXT;
-	    	if (pos1 < 0) pos1 = 0;
-	    	data1[pos1++] = (short) val;
-	    	//Flag it in both arrays, otherwise it may
-	    	//get skipped if we call resetClone before it is parsed
-	    	data0[pos++] = (short) val;
+	    	if (table0[val] <= EMPTY)
+	    	{
+		    	if (pos1 < 0) pos1 = 0;
+		    	data1[pos1++] = (short) val;
+		    	table0[val] = NEXT;
+	    	}
+
 	    }
 
 	    /** Removes and returns last added element to active array <b>(LIFO)</b>
@@ -105,9 +110,7 @@ public class FluidData
 	    	if (pos1 < 0) return -2; //-2 = we are done!
 	    	pos1 -= 1;
 	    	final short out = data1[pos1];
-	    	//System.out.println("     - out = " + out);
-	    	if (out < 0 || table0[out] != NEXT) { table0[out] = EMPTY; return -1; } //-1 = bad mapping
-	    	//Now empty the cell
+	    	if (out < 0 || table0[out] <= EMPTY) { table0[out] = EMPTY;  return -1; }  //-1 = bad mapping
 	    	data1[pos1] = -1;
 	    	table0[out] = EMPTY;
 	    	return out;
@@ -123,7 +126,6 @@ public class FluidData
 	    	//reset the data array (such that any deferred updates will be added to it :)
 	    	data0 = new short[4096];
 	    }
-
 	    /** Unmarks element at specified index*/
 	    public void remove(final int index)
 	    {
@@ -136,36 +138,20 @@ public class FluidData
    	  		data0 = new short[data0.length];
    	  		pos = 0;
    	  	}
-   	  	public short[] cloneArray()
-   	  	{
-   	  		final short[] out = new short[data0.length]; System.arraycopy(data0, 0, out, 0, data0.length);
-   	  		return out;
-   	  	}
 	}
 	static class UpdateCache
 	{
-		//Parent thingimy
-		byte[] updateFlags = new byte[4096];
-
 		public PrimitiveIntFlagList updates = new PrimitiveIntFlagList(4096);
-		public PrimitiveIntFlagList currentData;
-
 		public UpdateCache(){}
 		public void markUpdateImmediate(final int cx, final int cy, final int cz)
 		{
-			final int i = Util.ebsIndex(cx, cy, cz);
+			final int i = Util.ebsIndex(cx, cy & 0xF, cz);
 			updates.immediate(i);
 		}
 		public void markUpdateDelayed(final int cx, final int cy, final int cz)
 		{
-			final int i = Util.ebsIndex(cx, cy, cz);
+			final int i = Util.ebsIndex(cx, cy & 0xF, cz);
 			updates.add(i);
-
-		}
-		public void markUpdateLong(final int cx, final int cy, final int cz, final int delay)
-		{
-			final int i = Util.ebsIndex(cx, cy, cz);
-			if (updateFlags[i] > delay) updateFlags[i] = (byte) delay;
 		}
 	}
 
@@ -331,7 +317,7 @@ public class FluidData
 	public static void markNeighbors(ChunkData data, final int x, final int y, final int z)
 	{
 		if (y < 255)
-			data.markUpdateImmediate(x & 0xF, y + 1, z & 0xF);
+			data.markUpdateDelayed(x & 0xF, y + 1, z & 0xF);
 		if (y > 0)
 			data.markUpdateDelayed(x & 0xF, y - 1, z & 0xF);
 
@@ -559,6 +545,7 @@ public class FluidData
 		final int m1 = Util.getMetaFromLevel(l1);
 
 		data.markUpdateDelayed(cx, y, cz);
+
 		if (updateNeighbors) markNeighbors(data, x, y, z);
 
 		data.setLevel(cx, y, cz, l1);
@@ -580,6 +567,21 @@ public class FluidData
 		RealisticFluids.setBlock(data.w, x, y, z, f1, m1, 2);
 		return l0;
 	}
+
+	public static int setPressure(final ChunkData data, final Block f1, final int x, final int y, final int z, final int l1, final boolean immediate)
+	{
+		final int cx = x & 0xF; final int cz = z & 0xF;
+		final Block b0 = data.c.getBlock(cx, y, cz);
+		final int l0 = data.getLevel(cx, y, cz);
+		final int m1 = 0;
+		if (immediate) data.markUpdateImmediate(cx, y, cz);
+		else data.markUpdateDelayed(cx, y, cz);
+		data.setLevel(cx, y, cz, l1);
+		RealisticFluids.setBlock(data.w, x, y, z, f1, m1, 2);
+		return l0;
+	}
+
+
 
 	/**
 	 * Merges top and bottom fluid blocks

@@ -102,7 +102,8 @@ public class FluidManager
 				chunks.priority.clear();
 
 				// Now do thingimy stuffs...
-				while (chunks.distant.size() > 0) {
+				while (chunks.distant.size() > 0)
+				{
 					final Chunk c = chunks.distant.poll();
 
 					final ChunkData data = chunks.chunks.get(c);
@@ -203,6 +204,7 @@ public class FluidManager
 	 * @return
 	 */
 	public static int doTask(final ChunkData data, final boolean isHighPriority, final int startTime) {
+		if (!data.c.isChunkLoaded) return 0;
 		final int interval = (startTime % RealisticFluids.GLOBAL_RATE);
 		int cost = 0;
 		//final int cyc = 3;
@@ -222,14 +224,15 @@ public class FluidManager
 			//No updates
 			if (data.updates[i] == null || data.updates[i].updates.pos <= 0) continue;
 
-			System.out.println("Ticking Chunk " + Util.intStr(data.c.xPosition, data.c.zPosition) + " segment " + i + ", theoretical updates: " + data.updates[i].updates.pos);
+			//System.out.println("Ticking Chunk " + Util.intStr(data.c.xPosition, data.c.zPosition) + " segment " + i + ", theoretical updates: " + data.updates[i].updates.pos);
 
 			data.updates[i].updates.resetClone();
 			while (data.updates[i].updates.pos1 > 0)
 			{
+				if (!data.c.isChunkLoaded) return cost;
 				final int index = data.updates[i].updates.poll();
 				if (index < 0) continue;
-				System.out.println("   -   Doing update for block index " + index + ", Flag: " + data.updates[i].updateFlags[index]);
+				//System.out.println("   -   Doing update for block index " + index + ", Flag: " + data.updates[i].updateFlags[index]);
 				cost += tickCell(data, i, index, interval);
 			}
 
@@ -293,7 +296,7 @@ public class FluidManager
 		// TODO: Make distant chunks re-render
 		return cost;
 	}
-
+/*
 	public static int iterateForwards(final ChunkData data, final int i, final int interval)
 	{
 		int cost = 0;
@@ -329,15 +332,11 @@ public class FluidManager
 					cost += tickCell(data, i, (j << 4) + (k << 4) + l, interval);
 		return cost;
 	}
+ 	*/
 
 	public static int tickCell(final ChunkData data, final int i, final int j, final int interval)
 	{
-		//if (data.workingUpdate[i][j]) {
-		//	data.workingUpdate[i][j] = false;
-
 		int x,y,z;
-
-		// Un-flag this block
 		// Rebuild the coordinates from the array position
 		x = (data.c.xPosition << 4) + (j & 0xF);
 		y = (i << 4) + ((j >> 8) & 0xF);
@@ -348,9 +347,7 @@ public class FluidManager
 			// Tick the water block
 			((BlockFiniteFluid) b).doUpdate(data, x, y, z, data.w.rand, interval);
 		return 1;
-
 	}
-
 
 	/**
 	 * Perform a specified number of random ticks in the 16x16x16 part of the
