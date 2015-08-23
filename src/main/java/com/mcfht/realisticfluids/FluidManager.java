@@ -69,9 +69,10 @@ public class FluidManager
 			for (int i = 0; i < this.threads - this.threadPool.size(); i++)
 				this.threadPool.add(new WorkerThread(new FluidWorker()));
 
-			System.out.println("Operating with " + RealisticFluids.CORES + " cores, " + this.threads + " threads.");
-			System.out.println("Interval: " + RealisticFluids.GLOBAL_RATE);
-
+			// System.out.println("Operating with " + RealisticFluids.CORES +
+			// " cores, " + this.threads + " threads.");
+			// System.out.println("Interval: " + RealisticFluids.GLOBAL_RATE);
+			
 			for (final World world : this.worlds)
 			{
 				// There are no players, so there is no point
