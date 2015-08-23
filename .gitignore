@@ -18,4 +18,6 @@ gradlew
 gradlew.bat
 cmd.lnk
 forge-1.7.10-10.13.0.1188-changelog.txt
-.metadata
+.metadata/
+.gradle/
+forge-1.7.10-10.13.4.1492-1.7.10-changelog.txt
