@@ -130,13 +130,18 @@ public class FluidManager
 			}
 
 			this.sweepCost.set(0);
+			System.out.print("Worker task size count:");
 
 			for (final WorkerThread wt : this.threadPool)
+			{
+				System.out.printf(" %d", wt.worker.tasks.size());
 				if (wt.worker.tasks.size() > 0 && !wt.worker.running)
 					// System.out.println("Restarting thread, " +
 					// wt.worker.tasks.size() + " tasks...");
 					wt.thread.run();
 
+			}
+			System.out.println("");
 		}
 	}
 
