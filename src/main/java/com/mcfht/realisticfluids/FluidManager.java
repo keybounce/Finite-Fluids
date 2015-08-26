@@ -63,6 +63,8 @@ public class FluidManager
 
 		public ArrayList<WorkerThread>	threadPool	= new ArrayList<WorkerThread>(this.threads);
 
+		private Boolean FirstRunFlag = false; /* Debug */
+		
 		public void performTasks()
 		{
 			// Ensure we have adequate threads
@@ -114,6 +116,12 @@ public class FluidManager
 					if (data == null || !c.isChunkLoaded)
 						continue;
 
+					if (FirstRunFlag == false)
+					{
+						System.out.printf("*CORES*, in use %d, %d\n", RealisticFluids.CORES, this.threads);
+						FirstRunFlag = true;
+					}
+					
 					final WorkerThread wt = this.threadPool.get(this.threadIndex + this.threads / 2);
 					wt.worker.tasks.add(new Task(data, false, this.myStartTick));
 				}
@@ -122,13 +130,18 @@ public class FluidManager
 			}
 
 			this.sweepCost.set(0);
+			System.out.print("Worker task size count:");
 
 			for (final WorkerThread wt : this.threadPool)
+			{
+				System.out.printf(" %d", wt.worker.tasks.size());
 				if (wt.worker.tasks.size() > 0 && !wt.worker.running)
 					// System.out.println("Restarting thread, " +
 					// wt.worker.tasks.size() + " tasks...");
 					wt.thread.run();
 
+			}
+			System.out.println("");
 		}
 	}
 
@@ -173,8 +186,13 @@ public class FluidManager
 				// "(" + delegator.sweepCost.get() + ")");
 
 				if (!task.isHighPriority && delegator.sweepCost.get() > RealisticFluids.FAR_UPDATES)
+				{
+					System.out.printf("Aborting low priority queue! Sweep cost %d, Far Updates %d\n",
+							delegator.sweepCost.get(), RealisticFluids.FAR_UPDATES);
+				
 					return;
-
+				}
+				
 				// System.out.println("Doing task!");
 				// this.cost = 32 + doTask(task.data, task.isHighPriority,
 				// task.myStartTick);
@@ -275,6 +293,11 @@ public class FluidManager
 						continue;
 					// System.out.println("Doing trivial stuff");
 					ticksLeft -= doTask(data, false, this.myStartTime);
+				}
+				if (ticksLeft < 1)
+				{
+					System.out.printf("Aborted a distant queue! Remaining map size %d",
+							map.distant.size());
 				}
 			}
 		}
@@ -387,8 +410,13 @@ public class FluidManager
 				// Make sure we don't overstep the equalization quota, Trivial
 				// unless QUOTAS are set low
 				if (equalizationQuota-- <= 0)
+				{
+					System.out.printf("BlockTicks hit equalization quota and aborted! ");
+					System.out.printf("ChunkX %d, Chunk Z %d, ", data.c.xPosition, data.c.zPosition);
+					System.out.println((isHighPriority ? "*HIGH* priority" : "Low priority"));
 					continue;
-
+				}
+				
 				// Benefit large bodies of water by trying to find surface
 				// blocks
 				for (int j = 0; y < 255 && j < 8 && data.w.getBlock(x, y + 1, z) instanceof BlockFiniteFluid; j++)
@@ -445,28 +473,44 @@ public class FluidManager
 	 * @param z
 	 * @param b
 	 */
-	/*
-	 * public static void doWaterFun(World w, Chunk c, int x, int y, int z,
-	 * Block b) { boolean isWater = b != Blocks.air; int xx = x +
-	 * (c.xPosition<<4), zz = z + (c.zPosition<<4); BiomeGenBase biome =
-	 * c.getBiomeGenForWorldCoords(x, z, w.getWorldChunkManager()); if (y <= 64
-	 * && (w.isRaining() || w.isThundering()) && biome.rainfall > 0F &&
-	 * w.canBlockSeeTheSky(x, y, z)) { System.out.println("Rain Increasing...");
-	 * if (isWater) { BlockFiniteFluid f = ((BlockFiniteFluid)b); int l0 =
-	 * f.getLevel(w, xx, y, zz); l0 += y < 64 ? RealisticFluids.MAX_FLUID/6 :
-	 * RealisticFluids.MAX_FLUID; f.setLevel(w, xx, y, zz, l0, true); if (l0 >
-	 * RealisticFluids.MAX_FLUID) f.setLevel(w, xx, y, zz, l0 -
-	 * RealisticFluids.MAX_FLUID, true); } else { w.setBlock(xx, y, zz,
-	 * Blocks.water); BlockFiniteFluid f = (BlockFiniteFluid) c.getBlock(x, y,
-	 * z); f.setLevel(w, xx, y, zz, f.viscosity, true); }
-	 * 
-	 * }
-	 * 
-	 * //Make water evaporate in deserts? if (b.getMaterial() == Material.water
-	 * && biome.temperature > 1F) { System.out.println("Evaporating..");
-	 * BlockFiniteFluid f = (BlockFiniteFluid) b; int l0 = f.getLevel(w, xx, y,
-	 * zz); f.setLevel(w, xx, y, z, l0 - RealisticFluids.MAX_FLUID/2, true);
-	 * //ChunkDataMap.setWaterLevel(w, c, x, y, z, ChunkDataMap.getWaterLevel(w,
-	 * c, x, y, z) - (FiniteWater.MAX_FLUID/3)); } }
-	 */
+//
+//	public static void doWaterFunEvap(World w, Chunk c, int x, int y, int z, Block b)
+//	{
+//		boolean isWater = b != Blocks.air;
+//		int xx = x + (c.xPosition<<4),
+//				zz = z + (c.zPosition<<4);
+//		BiomeGenBase biome = c.getBiomeGenForWorldCoords(x, z, w.getWorldChunkManager());
+//		if (y <= 64	&& (w.isRaining() || w.isThundering())
+//				&& biome.rainfall > 0F && w.canBlockSeeTheSky(x, y, z)) 
+//		{
+//			System.out.println("Rain Increasing...");
+//			if (isWater) 
+//			{
+//				BlockFiniteFluid f = ((BlockFiniteFluid)b);
+//				int l0 = f.getLevel(w, xx, y, zz);
+//				
+//				l0 += (y < 64 ? RealisticFluids.MAX_FLUID/6 : RealisticFluids.MAX_FLUID);
+//				f.setLevel(w, xx, y, zz, l0, true);
+//				if (l0 > RealisticFluids.MAX_FLUID)
+//					f.setLevel(w, xx, y, zz, l0 - RealisticFluids.MAX_FLUID, true);
+//			} else {
+//				w.setBlock(xx, y, zz, Blocks.water);
+//				BlockFiniteFluid f = (BlockFiniteFluid) c.getBlock(x, y, z);
+//				f.setLevel(w, xx, y, zz, f.viscosity, true);
+//			}
+//
+//		}
+//
+//			//Make water evaporate in deserts?
+//		if (b.getMaterial() == Material.water && biome.temperature > 1F)
+//		{
+//			System.out.println("Evaporating..");
+//			BlockFiniteFluid f = (BlockFiniteFluid) b;
+//			int l0 = f.getLevel(w, xx, y, zz);
+//			
+//			f.setLevel(w, xx, y, z, l0 - RealisticFluids.MAX_FLUID/2, true);
+//			// ChunkDataMap.setWaterLevel(w, c, x, y, z, ChunkDataMap.getWaterLevel(w, c, x, y, z) - (FiniteWater.MAX_FLUID/3));
+//		}
+//	}
+
 }
