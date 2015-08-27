@@ -63,13 +63,22 @@ public class FluidManager
 
 		public ArrayList<WorkerThread>	threadPool	= new ArrayList<WorkerThread>(this.threads);
 
-		private Boolean FirstRunFlag = false; /* Debug */
-		
+		private Boolean FirstRunFlag = true; /* Debug */
+
 		public void performTasks()
 		{
+			{
+				if (FirstRunFlag)
+				{
+					System.out.printf("Currently have %d threads, want %d\n", this.threadPool.size(), this.threads);
+				}
+			}
 			// Ensure we have adequate threads
 			for (int i = 0; i < this.threads - this.threadPool.size(); i++)
+			{
 				this.threadPool.add(new WorkerThread(new FluidWorker()));
+				System.out.printf("Just added thread. i %d, pool size %d\n", i, this.threadPool.size());
+			}
 
 			// System.out.println("Operating with " + RealisticFluids.CORES +
 			// " cores, " + this.threads + " threads.");
@@ -116,10 +125,10 @@ public class FluidManager
 					if (data == null || !c.isChunkLoaded)
 						continue;
 
-					if (FirstRunFlag == false)
+					if (FirstRunFlag)
 					{
 						System.out.printf("*CORES*, in use %d, %d\n", RealisticFluids.CORES, this.threads);
-						FirstRunFlag = true;
+						FirstRunFlag = false;
 					}
 					
 					final WorkerThread wt = this.threadPool.get(this.threadIndex + this.threads / 2);
@@ -141,7 +150,7 @@ public class FluidManager
 					wt.thread.run();
 
 			}
-			System.out.println("");
+			System.out.printf("\n");
 		}
 	}
 
@@ -187,7 +196,7 @@ public class FluidManager
 
 				if (!task.isHighPriority && delegator.sweepCost.get() > RealisticFluids.FAR_UPDATES)
 				{
-					System.out.printf("Aborting low priority queue! Sweep cost %d, Far Updates %d\n",
+					System.out.printf("Fluid Worker aborting low priority queue! Sweep cost %d, Far Updates %d\n",
 							delegator.sweepCost.get(), RealisticFluids.FAR_UPDATES);
 				
 					return;
@@ -296,7 +305,7 @@ public class FluidManager
 				}
 				if (ticksLeft < 1)
 				{
-					System.out.printf("Aborted a distant queue! Remaining map size %d",
+					System.out.printf("Worker Trivial aborted a distant queue! Remaining map size %d",
 							map.distant.size());
 				}
 			}
