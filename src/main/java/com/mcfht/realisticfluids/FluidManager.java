@@ -78,6 +78,8 @@ public class FluidManager
 			for (int i = 0; i < missing; i++)
 			{
 				this.threadPool.add(new WorkerThread(new FluidWorker()));
+				System.out.printf("Just added thread. i %d, pool size %d\n", i, this.threadPool.size());
+
 			}
 
 			// System.out.println("Operating with " + RealisticFluids.CORES +
