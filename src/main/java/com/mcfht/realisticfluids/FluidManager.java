@@ -66,8 +66,11 @@ public class FluidManager
 		public void performTasks()
 		{
 			// Ensure we have adequate threads
-			for (int i = 0; i < this.threads - this.threadPool.size(); i++)
+			int missing = this.threads - this.threadPool.size();
+			for (int i = 0; i < missing; i++)
+			{
 				this.threadPool.add(new WorkerThread(new FluidWorker()));
+			}
 
 			// System.out.println("Operating with " + RealisticFluids.CORES +
 			// " cores, " + this.threads + " threads.");
