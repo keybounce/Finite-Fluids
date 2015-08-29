@@ -67,12 +67,6 @@ public class FluidManager
 
 		public void performTasks()
 		{
-			{
-				if (FirstRunFlag)
-				{
-					System.out.printf("Currently have %d threads, want %d\n", this.threadPool.size(), this.threads);
-				}
-			}
 			// Ensure we have adequate threads
 			int missing = this.threads - this.threadPool.size();
 			for (int i = 0; i < missing; i++)
@@ -127,11 +121,6 @@ public class FluidManager
 					if (data == null || !c.isChunkLoaded)
 						continue;
 
-					if (FirstRunFlag)
-					{
-						System.out.printf("*CORES*, in use %d, %d\n", RealisticFluids.CORES, this.threads);
-						FirstRunFlag = false;
-					}
 					
 					final WorkerThread wt = this.threadPool.get(this.threadIndex + this.threads / 2);
 					wt.worker.tasks.add(new Task(data, false, this.myStartTick));
@@ -153,6 +142,11 @@ public class FluidManager
 
 			}
 			System.out.printf("\n");
+			if (FirstRunFlag)
+			{
+				System.out.printf("*CORES*, in use %d, %d\n", RealisticFluids.CORES, this.threads);
+				FirstRunFlag = false;
+			}
 		}
 	}
 
