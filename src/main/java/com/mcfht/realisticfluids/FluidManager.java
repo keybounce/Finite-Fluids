@@ -400,13 +400,13 @@ public class FluidManager
 			// p_147458_3_, p_147458_4_, p_147458_5_, p_147458_6_);
 			// Do rainfall and evaporation
 			// First, try to move up a few blocks (aka to the top of stuff)
-			/*
-			 * if (c.heightMap != null && c.heightMap[x + (z << 4)] < y + 16 &&
-			 * c.heightMap[x + (z << 4)] < 255) { Block b1 = c.getBlock(x,
-			 * c.heightMap[x + (z << 4)] + 1, y); if (b ==
-			 * RealisticFluids.finiteWater || b == Blocks.air) doWaterFun(w, c,
-			 * x, c.heightMap[x + (z << 4)] + 1, z, b); }
-			 */
+
+//			if (c.heightMap != null && c.heightMap[x + (z << 4)] < y + 16 && c.heightMap[x + (z << 4)] < 255)
+//			{
+//				Block b1 = c.getBlock(x, c.heightMap[x + (z << 4)] + 1, y);
+//				if (b == RealisticFluids.finiteWater || b == Blocks.air)
+//					doWaterFun(w, c, x, c.heightMap[x + (z << 4)] + 1, z, b);
+//			}
 
 			// doWaterFun(data, b, x, y, z);
 			// Only bother doing the next part with fluids
