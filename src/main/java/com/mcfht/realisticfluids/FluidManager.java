@@ -395,7 +395,7 @@ public class FluidManager
 				{
   					System.out.printf("BlockTicks hit equalization quota and aborted! ");
   					System.out.printf("ChunkX %d, Chunk Z %d, ", data.c.xPosition, data.c.zPosition);
-+ 					System.out.printf((isHighPriority ? "*HIGH* priority\n" : "Low priority\n"));
+					System.out.printf((isHighPriority ? "*HIGH* priority\n" : "Low priority\n"));
   					continue;
   				}
 				// Benefit large bodies of water by trying to find surface
