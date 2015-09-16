@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="org.eclipse.jdt.launching.localJavaApplication">
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_PATHS">
+<listEntry value="/Minecraft"/>
+</listAttribute>
+<listAttribute key="org.eclipse.debug.core.MAPPED_RESOURCE_TYPES">
+<listEntry value="4"/>
+</listAttribute>
+<booleanAttribute key="org.eclipse.jdt.launching.ATTR_USE_START_ON_FIRST_THREAD" value="true"/>
+<stringAttribute key="org.eclipse.jdt.launching.MAIN_TYPE" value="GradleStartServer"/>
+<stringAttribute key="org.eclipse.jdt.launching.PROJECT_ATTR" value="Minecraft"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dfml.coreMods.load=com.mcfht.realisticfluids.ModLaunchWrapper -Dfastcraft.debug.fwel -Xms1080m -Xmx3300m -XX:MaxPermSize=250m -XX:+UseConcMarkSweepGC -XX:+ExplicitGCInvokesConcurrentAndUnloadsClasses -XX:MaxHeapFreeRatio=25 -XX:MinHeapFreeRatio=22 -XX:CMSInitiatingOccupancyFraction=80 -XX:-CMSPrecleaningEnabled -XX:NewSize=800m -XX:MaxNewSize=800m -XX:SurvivorRatio=3 -XX:TargetSurvivorRatio=80 -XX:SoftRefLRUPolicyMSPerMB=1 -XX:+PrintTenuringDistribution -XX:MaxTenuringThreshold=4 -XX:+PrintCommandLineFlags -XX:+PrintHeapAtGC -XX:+PrintGCDetails -Xloggc:GC.log -XX:+PrintGCDateStamps"/>
+<stringAttribute key="org.eclipse.jdt.launching.WORKING_DIRECTORY" value="${workspace_loc}"/>
+</launchConfiguration>

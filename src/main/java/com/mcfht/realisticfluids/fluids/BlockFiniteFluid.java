@@ -3,6 +3,7 @@ package com.mcfht.realisticfluids.fluids;
 import java.util.Random;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockDynamicLiquid;
 import net.minecraft.block.BlockFalling;
 import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.BlockPistonBase;
@@ -28,7 +29,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  * 
  * @author FHT
  */
-public class BlockFiniteFluid extends BlockLiquid
+public class BlockFiniteFluid extends BlockDynamicLiquid
 {
 	/** Tendency of this liquid to flow */
 	public final int	viscosity;
