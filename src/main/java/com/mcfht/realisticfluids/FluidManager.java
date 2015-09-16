@@ -185,7 +185,7 @@ public class FluidManager
 				final Task task = this.tasks.poll();
 
 				if (task == null)
-					return;
+					continue;
 
 				// System.out.println("Has task! pri: " + task.isHighPriority +
 				// "(" + delegator.sweepCost.get() + ")");
@@ -195,9 +195,9 @@ public class FluidManager
 					System.out.printf("Fluid Worker aborting low priority queue! Sweep cost %d, Far Updates %d\n",
 							delegator.sweepCost.get(), RealisticFluids.FAR_UPDATES);
 				
-					return;
+					break;
 				}
-				
+
 				// System.out.println("Doing task!");
 				// this.cost = 32 + doTask(task.data, task.isHighPriority,
 				// task.myStartTick);
@@ -277,10 +277,10 @@ public class FluidManager
 				final ChunkCache map = FluidData.worldCache.get(world);
 
 				if (map == null)
-					// System.err.println("Map es Null!");
+					// System.err.println("Map is Null!");
 					continue;
 				if (map.distant.size() <= 0)
-					// System.err.println("Nwo distant updwates!");
+					// System.err.println("No distant updates!");
 					continue;
 
 				int ticksLeft = RealisticFluids.FAR_UPDATES; // Give ourselves a
@@ -418,10 +418,9 @@ public class FluidManager
 				{
 					System.out.printf("BlockTicks hit equalization quota and aborted! ");
 					System.out.printf("ChunkX %d, Chunk Z %d, ", data.c.xPosition, data.c.zPosition);
-					System.out.println((isHighPriority ? "*HIGH* priority" : "Low priority"));
+					System.out.printf((isHighPriority ? "*HIGH* priority\n" : "Low priority\n"));
 					continue;
 				}
-				
 				// Benefit large bodies of water by trying to find surface
 				// blocks
 				for (int j = 0; y < 255 && j < 8 && data.w.getBlock(x, y + 1, z) instanceof BlockFiniteFluid; j++)
