@@ -2,7 +2,7 @@
 {
   "modid": "realisticfluids",
   "name": "Realistic Fluids Overhaul",
-  "description": "Realistic Fluids Overhaul",
+  "description": "Flowing, finite water and lava",
   "version": "${version}",
   "mcversion": "${mcversion}",
   "url": "",
