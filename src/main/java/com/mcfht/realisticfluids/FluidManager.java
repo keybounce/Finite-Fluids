@@ -202,8 +202,8 @@ public class FluidManager
 				// this.cost = 32 + doTask(task.data, task.isHighPriority,
 				// task.myStartTick);
 
-				delegator.sweepCost.addAndGet(task.isHighPriority ? doTask(task.data, task.isHighPriority, task.myStartTick) >> 2 : doTask(
-						task.data, task.isHighPriority, task.myStartTick));
+				delegator.sweepCost.addAndGet(task.isHighPriority ? doTask(task.data, task.isHighPriority, task.myStartTick) >> 2
+																  : doTask(task.data, task.isHighPriority, task.myStartTick));
 			}
 			this.running = false;
 		}
