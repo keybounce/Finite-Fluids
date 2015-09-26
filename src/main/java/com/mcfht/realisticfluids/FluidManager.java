@@ -137,16 +137,43 @@ public class FluidManager
             this.sweepCost.set(0);
             System.out.print("Worker task size count:");
 
+            // This is NOT threading!
+            // Java needs thread.start, not thread.run, to multi-task.
+            // After that, the thread needs a signalling system to allow it to pause
+            // when the queue is empty and restart when stuff is in the queue.
+            // Finally, there needs to be a volatile variable for the workers to
+            // write and the server to read, otherwise there is no proper transmission
+            // of data to the server thread.
+            //
+            // That will be alpha 4; alpha 3 is just fixing streams compatibility and
+            // lets see if there's a reasonable set of rainfall/evaporation.
+            // Also: No drain out the void!
+
             for (final WorkerThread wt : this.threadPool)
             {
-                System.out.printf(" %d", wt.worker.tasks.size());
                 if (wt.worker.tasks.size() > 0 && !wt.worker.running)
                     // System.out.println("Restarting thread, " +
                     // wt.worker.tasks.size() + " tasks...");
-                    wt.thread.run();
+                    try {
+                        wt.thread.run();
+                    } catch (final Exception e)
+                    {
+                        System.out.println("Error restarting thread!");
+                        // Do not permit the thread to be stuck in a failed state. If the thread
+                        // has taken an exception, it may never get a chance to reset it's flags.
+                        //
+                        // Java won't restart it if it is already started. We just need to make sure
+                        // that it must end in a state of "exited and ready to restart".
+                        //
+                        // Worst case: Clean exit with "forceQuit" set true by mistake. This will
+                        // be corrected on the next server tick.
+                        //
+                        wt.worker.forceQuit = true; // Force it to exit
+                        wt.worker.running = false; // Force a restart until it does
+                    }
+
 
             }
-            System.out.printf("\n");
         }
     }
 
@@ -174,8 +201,7 @@ public class FluidManager
         @Override
         public void run()
         {
-            // System.out.println("Fluid Worker -> " + this.tasks.size() + ", "
-            // + this.forceQuit);
+            System.out.println("Fluid Worker -> " + this.tasks.size() + ", " + this.forceQuit);
 
             while (this.tasks.size() > 0 && !this.forceQuit)
             {
@@ -210,11 +236,9 @@ public class FluidManager
                     adjCost = thisCost >> 2;
                 }
                 int totalCost = delegator.sweepCost.addAndGet(adjCost);
-                System.out.printf("Chunk %6d, %6d had cost %5d adjusted %5d for total %5d\n",
-                        task.data.c.xPosition, task.data.c.zPosition, thisCost, adjCost, totalCost);
             }
-            System.out.printf("Thread returning\n");
             this.running = false;
+            this.forceQuit = false;
         }
     }
     /**
