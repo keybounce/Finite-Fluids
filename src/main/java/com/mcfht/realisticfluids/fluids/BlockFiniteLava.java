@@ -121,8 +121,10 @@ public final class BlockFiniteLava extends BlockFiniteFluid
 	}
 	/**
 	 * Makes lava flow a little bit more dangerously
+	 * ** CHANGE! Since we inherit from vanilla DynamicLiquid, use that
+	 * routine's behavior instead.
 	 */
-	@Override
+/*	@Override
 	public int breakInteraction(final World w, final Block b1, final int m1, final int x0, final int y0, final int z0, final int l0,
 			final int x1, final int y1, final int z1)
 	{
@@ -173,6 +175,7 @@ public final class BlockFiniteLava extends BlockFiniteFluid
 		}
 		return 0;
 	}
+*/
 
 	public int canBurnAndBreak(final Block b)
 	{
