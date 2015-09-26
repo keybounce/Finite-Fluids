@@ -341,6 +341,7 @@ public class RealisticFluids extends DummyModContainer
 
 	public static void setBlock(final World world, final int x, final int y, final int z, final Block block, final int meta, final int flag)
 	{
+		validateModWater(world, x, y, z, block);
 		setBlock(world, x, y, z, block, meta, flag, true);
 	}
 	/**
@@ -398,6 +399,7 @@ public class RealisticFluids extends DummyModContainer
 		/** Perform this block task. Thread Safe. */
 		public boolean set()
 		{
+			validateModWater(w, x, y, z, b);
 			setBlock(this.w, this.c, this.ebs, this.x, this.y, this.z, this.b, this.m, this.f);
 			return true;
 		}

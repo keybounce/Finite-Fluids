@@ -410,7 +410,7 @@ public class FluidEqualizer
 				// Now mark all update flags at this layer?
 				// data.updateFlags[y0 >> 4][i] = true;
 			}
-			System.out.println("Did layer smoothing!");
+			// System.out.println("Did layer smoothing!");
 			return 64;
 		}
 

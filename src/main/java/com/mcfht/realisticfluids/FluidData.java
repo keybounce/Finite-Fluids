@@ -413,10 +413,10 @@ public class FluidData
             {
                 if (b0 != f1)
                 {
-                    if (b0.isAir(data.w, x, y, z) || b0 instanceof BlockFiniteFluid) // Second place
+                    //if (b0.isAir(data.w, x, y, z) || b0 instanceof BlockFiniteFluid) // Second place
                     {
-                        RealisticFluids.setBlock(data.w, x, y, z, f1, m1, 2, true); // that clobbers mod stuff
                         RealisticFluids.validateModWater(data.w, x, y, z, f1);
+                        RealisticFluids.setBlock(data.w, x, y, z, f1, m1, 2, true); // that clobbers mod stuff
                     }
                     return l0;
                 }
@@ -429,7 +429,7 @@ public class FluidData
         // liquid. This could be air, or the other type (water overriding lava, etc), or it could be
         // trying to place into a mod liquid (Streams, super-hot Lava, etc).
         // Require that the destination can only be air or "normal" liquids.
-        if (b0.isAir(data.w, x, y, z) || b0 instanceof BlockFiniteFluid)
+        // if (b0.isAir(data.w, x, y, z) || b0 instanceof BlockFiniteFluid)
         {
             RealisticFluids.validateModWater(data.w, x, y, z, f1);
             RealisticFluids.setBlock(data.w, x, y, z, f1, m1, 2); //!! This is where mod liquids are wrecked!
