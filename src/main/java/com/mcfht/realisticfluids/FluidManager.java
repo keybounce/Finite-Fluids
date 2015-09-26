@@ -218,8 +218,8 @@ public class FluidManager
 
                 if (!task.isHighPriority && delegator.sweepCost.get() > RealisticFluids.FAR_UPDATES)
                 {
-                    System.out.printf("Fluid Worker aborting low priority queue! Sweep cost %d, Far Updates %d\n",
-                            delegator.sweepCost.get(), RealisticFluids.FAR_UPDATES);
+                    // System.out.printf("Fluid Worker aborting low priority queue! Sweep cost %d, Far Updates %d\n",
+                    //         delegator.sweepCost.get(), RealisticFluids.FAR_UPDATES);
                 
                     break;
                 }
@@ -449,9 +449,9 @@ public class FluidManager
                 // unless QUOTAS are set low
                 if (equalizationQuota-- <= 0)
                 {
-                    System.out.printf("BlockTicks hit equalization quota and aborted! ");
-                    System.out.printf("ChunkX %d, Chunk Z %d, ", data.c.xPosition, data.c.zPosition);
-                    System.out.printf((isHighPriority ? "*HIGH* priority\n" : "Low priority\n"));
+                    // System.out.printf("BlockTicks hit equalization quota and aborted! ");
+                    // System.out.printf("ChunkX %d, Chunk Z %d, ", data.c.xPosition, data.c.zPosition);
+                    // System.out.printf((isHighPriority ? "*HIGH* priority\n" : "Low priority\n"));
                     continue;
                 }
                 // Benefit large bodies of water by trying to find surface
