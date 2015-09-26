@@ -19,6 +19,7 @@ import com.google.common.eventbus.Subscribe;
 import com.mcfht.realisticfluids.FluidData.ChunkCache;
 import com.mcfht.realisticfluids.FluidData.ChunkData;
 import com.mcfht.realisticfluids.asm.PatchBlockRegistry;
+import com.mcfht.realisticfluids.fluids.BlockFiniteFluid;
 
 import cpw.mods.fml.common.DummyModContainer;
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -205,6 +206,8 @@ public class RealisticFluids extends DummyModContainer
 	public static void setBlock(final World w, final Chunk c, ExtendedBlockStorage ebs, int x, int y, int z, final Block b, final int m,
 			final int flag)
 	{
+		RealisticFluids.validateModWater(w, x, y, z, b);
+
 		// EXTREME HAX
 		if (ebs == null)
 			ebs = c.getBlockStorageArray()[y >> 4] = new ExtendedBlockStorage(y & 0xFFFFFFF0, !c.worldObj.provider.hasNoSky);
@@ -300,6 +303,8 @@ public class RealisticFluids extends DummyModContainer
 	public static void setBlock(final World w, final int x, final int y, final int z, final Block b, final int m, final int flag,
 			final boolean immediate)
 	{
+		// Lets try to figure out what's going on with Streams.
+		validateModWater(w, x, y, z, b);
 		Chunk c = w.getChunkFromChunkCoords(x >> 4, z >> 4);
 		if (c == null || !c.isChunkLoaded)
 			c = w.getChunkProvider().provideChunk(x >> 4, z >> 4);
@@ -313,6 +318,20 @@ public class RealisticFluids extends DummyModContainer
 			setMetadata(w, c, ebs, x, y, z, m, flag);
 		else
 			setBlock(w, c, ebs, x, y, z, b, m, flag);
+	}
+	
+	/*
+	 * Args: World, x,y,z, and (currently ignored) block to change to.
+	 * Checks: Block at that location is air, a finite fluid, or ...
+	 */
+	public static void validateModWater(final World w, final int x, final int y, final int z, final Block b)
+	{
+		Block old=w.getBlock(x, y, z);
+		if (old.isAir(w, x, y, z))
+			return;
+		if (old instanceof BlockFiniteFluid)
+			return;
+		throw new RuntimeException("Wrong fluid type!");
 	}
 
 	public static void setBlockMetadata(final World world, final int x, final int y, final int z, final int meta, final int flag)
