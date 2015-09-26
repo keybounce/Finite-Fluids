@@ -100,7 +100,10 @@ public class FluidData
             if (this.fluidArray[cy >> 4] == null)
                 this.fluidArray[cy >> 4] = new int[4096];
 
-            return this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)];
+            if ((w.getBlock(cx, cy, cz) instanceof BlockFiniteFluid))
+                return this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)];
+
+            return 0;
         }
 
         /**
