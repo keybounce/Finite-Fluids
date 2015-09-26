@@ -321,7 +321,7 @@ public class RealisticFluids extends DummyModContainer
 	}
 	
 	/*
-	 * Args: World, x,y,z, and (currently ignored) block to change to.
+	 * Args: World, x,y,z, and block to change to.
 	 * Checks: Block at that location is air, a finite fluid, or ...
 	 */
 	public static void validateModWater(final World w, final int x, final int y, final int z, final Block b)
@@ -330,6 +330,8 @@ public class RealisticFluids extends DummyModContainer
 		if (old.isAir(w, x, y, z))
 			return;
 		if (old instanceof BlockFiniteFluid)
+			return;
+		if (null == b)
 			return;
 		throw new RuntimeException("Wrong fluid type!");
 	}
