@@ -333,7 +333,7 @@ public class RealisticFluids extends DummyModContainer
 			return;
 		if (null == b)
 			return;
-		throw new RuntimeException("Wrong fluid type!");
+		// throw new RuntimeException("Wrong fluid type!");
 	}
 
 	public static void setBlockMetadata(final World world, final int x, final int y, final int z, final int meta, final int flag)
