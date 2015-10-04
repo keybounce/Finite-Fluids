@@ -27,6 +27,23 @@ public class FluidData
     /** A map assigning Chunk Data to the corresponding World object */
     public static ConcurrentHashMap<World, ChunkCache>	worldCache	= new ConcurrentHashMap<World, ChunkCache>(16);
 
+    /* Volatile variable just for forcing threaded memory flushing. */
+    public static volatile int sanityFlush=0;
+
+    /* Just to make sure that threads have a chance to flush memory. */
+    public static void sanitySyncFlush()
+    {
+                        // Technically, this could just be a write, no read. 
+        sanityFlush++;  // It is not necessary that this have any value. 
+    }
+
+    /* Refresh read caches; do not need to flush write caches */
+    public static int sanitySyncRead()
+    {
+        int x=sanityFlush;
+        return x;
+    }
+
     /**
      * A cache which maps Chunk Data to each Chunk, and also contains thread
      * safe updating queues of near and distant chunks.
@@ -57,11 +74,14 @@ public class FluidData
         // INSTANTIATED
         /** Array of fluid levels */
         public int[][]		fluidArray		= new int[16][4096];
+        volatile boolean [] fluidGuard      = new boolean[16];
 
         /** A map of update flags, divided into EBS arrays */
         public boolean[][]	updateFlags		= new boolean[16][4096];
+        volatile boolean [] updateGuard     = new boolean[16];
         /** Array of flags to be parsed during THIS sweep */
         public boolean[][]	workingUpdate	= new boolean[16][4096];
+        volatile boolean [] workingGuard    = new boolean[16];
 
         public World		w;
         public Chunk		c;
@@ -97,15 +117,25 @@ public class FluidData
          * @param cz
          * @return
          */
-        public int getLevel(final int cx, final int cy, final int cz)
+        /*
+         * Warning: Call sanity first!
+         * Returns actual fluid level
+         * Known issue: test is redundant after sanity (this is for diff-making-sense)
+         */
+        public int getFluid(final int cx, final int cy, final int cz)
         {
-            if (this.fluidArray[cy >> 4] == null)
-                this.fluidArray[cy >> 4] = new int[4096];
-            if ((c.getBlock(cx, cy, cz) instanceof BlockFiniteFluid))
+//            Block b0=c.getBlock(cx, cy, cz);
+//            if (b0 instanceof BlockFiniteFluid)
                 return this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)];
-            return 0;
+//            throw new RuntimeException("Sanity failure! getFluid on non-fluid block");
+// Silly me. Sanity actually calls this, and depends on getting the raw value.
         }
 
+        /*
+         * Warning: Call sanity first!
+         * Sets actual fluid level
+         * Caller must clear block if set to zero
+         */
         /**
          * Gets level in cx cy cz
          * 
@@ -114,15 +144,55 @@ public class FluidData
          * @param cz
          * @return
          */
-        public void setLevel(final int cx, final int cy, final int cz, final int l)
+        public void setFluid(final int cx, final int cy, final int cz, final int l)
         {
-            if (this.fluidArray[cy >> 4] == null)
-                this.fluidArray[cy >> 4] = new int[4096];
 
             this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = l;
         }
 
 // diff-mark fluid-level
+
+        /**
+         * Gets post-sanity level in cx cy cz
+         * 
+         * @param cx
+         * @param cy
+         * @param cz
+         * @return fluid level
+         */
+        public int getLevel(final int cx, final int cy, final int cz)
+        {
+            sanityLevelBlock(cx, cy, cz);
+            return getFluid(cx, cy, cz);
+        }
+
+        /**
+         * Set level in cx cy cz
+         * 
+         * @param cx
+         * @param cy
+         * @param cz
+         * @param l
+         * @return
+         */
+        public void setLevel(final int cx, final int cy, final int cz, final int l)
+        {
+            // This does not need a synchronized because we don't *READ* and modify.
+            // We just set a new value. Well, that's not entirely true.
+            // Feel free to point out any problems that might happen from a read much earlier,
+            // and only being modified now. In response, I'll say that the alterations are per-chunk,
+            // and each chunk is local to a given thread/CPU. We still need to flush our data out
+            // for the next loop.
+            //
+            // Sadface. That isn't accurate. We can flow out across chunk lines. Sadface.
+            //
+            sanityLevelBlock(cx, cy, cz);
+            setFluid(cx, cy, cz, l);
+            if (0 == l)
+                // c.func_150807_a /* setBlockIDWithMetadata */(cx, cy, cz, Blocks.air, 0);
+                System.out.printf("SetLevel to zero, should be matched with setblock for air");
+            sanitySyncFlush();
+        }
 
         /**
          * Tries to put the specified amount of fluid into the cell, and returns
@@ -135,6 +205,24 @@ public class FluidData
          */
         public int[] addSetLevel(final int cx, final int cy, final int cz, final int l)
         {
+            // ** This routine is not actually used **
+            // Synchronization of this routine is questionable at best.
+            // Again, it works if everything is chunk-local implying single thread.
+            if (l < 0)
+                throw new RuntimeException ("Attempted to flow negative fluid into a block");
+            int oldLevel = getLevel(cx, cy, cz);    // Does a read sync
+            int newLevel = oldLevel + l;
+            int remainder = newLevel - RealisticFluids.MAX_FLUID;
+            
+            if (remainder < 0)
+                remainder = 0;
+            if (newLevel > RealisticFluids.MAX_FLUID)
+                newLevel = RealisticFluids.MAX_FLUID;
+            
+            setLevel(cx, cy, cz, newLevel);         // Does a write flush sync
+            
+            return new int[] {newLevel, remainder};
+        /*
             if (this.fluidArray[cy >> 4] == null)
                 this.fluidArray[cy >> 4] = new int[4096];
 
@@ -145,7 +233,103 @@ public class FluidData
                     : i + l);
             return new int[]
             {i + l, Math.max(0, i + l - RealisticFluids.MAX_FLUID)};
+        */
         }
+
+        /*
+         * Warning: Call sanity first!
+         * Returns a value from 0 to 8; 0 implies non-fluid (not necessarily air)
+         * 1 = almost empty to 1/8th; 8 = more than 7/8th up to MAX.
+         */
+        public int getFluid8th(final int cx, final int cy, final int cz)
+        {
+            int fluid = getFluid(cx, cy, cz);
+            if (0 == fluid)
+                return 0;   // Technically, this isn't needed :-).
+            int wholePart = (fluid-1) * 8 / RealisticFluids.MAX_FLUID; // -1 gets rounding correct; 
+                                                       // consider fluid of exactly 1/8th.
+            return 1+wholePart;
+        }
+
+        /*
+         * Warning: Call sanity first!
+         * Takes a level from 0 to 8; caller must change block if set to 0
+         */
+        public void setFluid8th (final int cx, final int cy, final int cz, final int level8)
+        {
+            setFluid (cx, cy, cz, level8 * (RealisticFluids.MAX_FLUID >> 3));
+        }
+
+/*
+ * New rules for access!
+ *
+ * The getFluid / setFluid routines are now the low-level access to the fluid array.
+ * Callers must call sanityLevelBlock before accessing them.
+ * All of the getLevel / setLevel calls are responsible for calling them; callers of those
+ * are responsible for air block conversion on zero.
+ *
+ * In other words: the *Fluid routines are the low-level, raw routines, like C _ calls.
+ * The *Level routines do all housekeeping, and are the high-level accessors.
+ *
+ * Ordering invariant: Fluid array must either be accurate, or 0.
+ * When changing a fluid, change the fluid data first, and block second.
+ * If checking the array and block, if fluid level is 0, assume block is accurate.
+ * If fluid is non-zero, and block is NOT FLUID, assume block is valid and fluid is leftover.
+ * (may have been changed by some other block / action elsewhere)
+ */
+
+        /*
+         * sanityLevelBlock does all checking for valid access.
+         * Call this before any fluid level access
+         */
+        public void sanityLevelBlock(final int cx, final int cy, final int cz)
+        {
+            // This can read from adjacent chunks, so it can cross chunks and cross threads.
+            // Therefore, full synchronization (double-checked locking) is needed.
+            //
+            sanitySyncRead(); // Read from a volatile
+            if (this.fluidArray[cy >> 4] == null)
+            {
+                synchronized(this)
+                {
+                    // Synchronized locks code paths;
+                    // Read test of flag forces updates of all data;
+                    // "&&" forces testing AFTER fluidGuard is tested.
+                    if (false == fluidGuard[cy >> 4] && this.fluidArray[cy >> 4] == null)
+                    {
+                        this.fluidArray[cy >> 4] = new int[4096];
+                        fluidGuard[cy >> 4] = true;
+                    }
+                }
+            }
+
+            // Guaranteed: fluidArray[] has valid data at this point,
+            // without itself needing to be volatile.
+
+            int level = getFluid (cx, cy, cz);
+            int meta=c.getBlockMetadata(cx, cy, cz);
+            Block b0=c.getBlock(cx, cy, cz);
+            if (b0 instanceof BlockFiniteFluid)
+            {
+                // Case 1: Test for fluid block, and 0 level.
+                // Set level based on block.
+                if (0 == level)
+                {
+                    int eights=8 - meta; // Normal 0=full, and 7=tiny
+                    if (meta > 7)   // Exception is falling liquid
+                        eights=8;    // they are treated as full
+                    setFluid8th(cx, cy, cz, eights);
+                    sanitySyncFlush();
+                }
+            } else {    // Case 2: Not a BlockFiniteFluid; force level to be zero
+                if (0 != level)
+                {
+                    setFluid(cx, cy, cz, 0);
+                    sanitySyncFlush();
+                }
+            }
+        }
+
 
         /**
          * Marks update in cx, cy, cz
@@ -156,8 +340,21 @@ public class FluidData
          */
         public void markUpdate(final int cx, final int cy, final int cz)
         {
+            sanitySyncRead(); // Read from a volatile
             if (this.updateFlags[cy >> 4] == null)
-                this.updateFlags[cy >> 4] = new boolean[4096];
+            {
+                synchronized(this)
+                {
+                    // Synchronized locks code paths;
+                    // Read test of flag forces updates of all data;
+                    // "&&" forces testing AFTER fluidGuard is tested.
+                    if (false == updateGuard[cy >> 4] && this.updateFlags[cy >> 4] == null)
+                    {
+                        this.updateFlags[cy >> 4] = new boolean[4096];
+                        updateGuard[cy >> 4] = true;
+                    }
+                }
+            }
             this.updateCounter[cy >> 4] = true;
             this.updateFlags[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = true;
             // System.out.println("***********DONE************");
@@ -173,14 +370,24 @@ public class FluidData
          */
         public void markUpdateImmediate(final int cx, final int cy, final int cz)
         {
-
             this.markUpdate(cx, cy, cz);
-
+            // And again, set a shared singleton array element
+            sanitySyncRead(); // Read from a volatile
             if (this.workingUpdate[cy >> 4] == null)
-                this.workingUpdate[cy >> 4] = new boolean[4096];
-
+            {
+                synchronized(this)
+                {
+                    // Synchronized locks code paths;
+                    // Read test of flag forces updates of all data;
+                    // "&&" forces testing AFTER fluidGuard is tested.
+                    if (false == workingGuard[cy >> 4] && this.workingUpdate[cy >> 4] == null)
+                    {
+                        this.workingUpdate[cy >> 4] = new boolean[4096];
+                        workingGuard[cy >> 4] = true;
+                    }
+                }
+            }
             this.workingUpdate[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = true;
-            // System.out.println("***********DONE************");
         }
     }
 

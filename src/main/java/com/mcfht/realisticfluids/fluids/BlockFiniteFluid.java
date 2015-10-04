@@ -62,9 +62,27 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
     @Override
     public void onBlockAdded(final World w, final int x, final int y, final int z)
     {
-        RealisticFluids.markBlockForUpdate(w, x, y, z);
-        FluidData.setLevelWorld(FluidData.getChunkData(w.getChunkFromChunkCoords(x >> 4, z >> 4)), this, x, y, z,
-                RealisticFluids.MAX_FLUID, true);
+        // Old code (broken):
+        // RealisticFluids.markBlockForUpdate(w, x, y, z);
+        // FluidData.setLevelWorld(FluidData.getChunkData(w.getChunkFromChunkCoords(x >> 4, z >> 4)), this, x, y, z,
+        //        RealisticFluids.MAX_FLUID, true);
+        //
+        // Problem: we can be called after a water block (any mod water) is placed into the world.
+        //
+        // We have to first call the vanilla water onBlockAdded (it's super()), to let it do any
+        // special interactions for water placement (lava? Nether prohibitation?).
+        // Then, we have to see if the block that is finally there at the end is a realistic fluid block.
+        // If so, then we can do our stuff.
+
+        super.onBlockAdded(w, x, y, z);
+        final Block b1 = w.getBlock(x, y, z);
+        if (b1 instanceof BlockFiniteFluid)
+        {
+            RealisticFluids.markBlockForUpdate(w, x, y, z);
+            FluidData.setLevelWorld(FluidData.getChunkData(w.getChunkFromChunkCoords(x >> 4, z >> 4)),
+                                this, x, y, z, RealisticFluids.MAX_FLUID, true);
+        }
+
     }
 
     @Override
