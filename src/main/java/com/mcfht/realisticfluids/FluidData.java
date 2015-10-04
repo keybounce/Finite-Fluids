@@ -1,5 +1,7 @@
 package com.mcfht.realisticfluids;
 
+// This is the old fluid system. Fluid access has no sanity.
+
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -99,10 +101,8 @@ public class FluidData
         {
             if (this.fluidArray[cy >> 4] == null)
                 this.fluidArray[cy >> 4] = new int[4096];
-
             if ((c.getBlock(cx, cy, cz) instanceof BlockFiniteFluid))
                 return this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)];
-
             return 0;
         }
 
@@ -121,6 +121,8 @@ public class FluidData
 
             this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = l;
         }
+
+// diff-mark fluid-level
 
         /**
          * Tries to put the specified amount of fluid into the cell, and returns
