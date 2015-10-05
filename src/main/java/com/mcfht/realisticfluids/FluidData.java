@@ -287,7 +287,7 @@ public class FluidData
             // This can read from adjacent chunks, so it can cross chunks and cross threads.
             // Therefore, full synchronization (double-checked locking) is needed.
             //
-            sanitySyncRead(); // Read from a volatile
+            boolean junk = fluidGuard[cy >> 4]; // Read from a volatile
             if (this.fluidArray[cy >> 4] == null)
             {
                 synchronized(this)
@@ -340,7 +340,7 @@ public class FluidData
          */
         public void markUpdate(final int cx, final int cy, final int cz)
         {
-            sanitySyncRead(); // Read from a volatile
+            boolean junk = updateGuard[cy >> 4]; // Read from a volatile
             if (this.updateFlags[cy >> 4] == null)
             {
                 synchronized(this)
@@ -372,7 +372,7 @@ public class FluidData
         {
             this.markUpdate(cx, cy, cz);
             // And again, set a shared singleton array element
-            sanitySyncRead(); // Read from a volatile
+            boolean junk = workingGuard[cy >> 4]; // Read from a volatile
             if (this.workingUpdate[cy >> 4] == null)
             {
                 synchronized(this)
