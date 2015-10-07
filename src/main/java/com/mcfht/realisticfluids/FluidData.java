@@ -1,4 +1,7 @@
 package com.mcfht.realisticfluids;
+/* for the editor
+:set ai et ts=4 sw=4
+*/
 
 // Conversion to Fluid Sanity / getLevel vs getFluid in progress.
 // Known issues/ TODO:
@@ -21,6 +24,10 @@ package com.mcfht.realisticfluids;
 //
 //      We now explictly check both the fluid data AND the blocks before trying to
 //      assume what's going on.
+//
+// 4. Volatiles for data synchronization are broken! It's allocating a single volatile
+//      array that contains normal boolean flags. Fixing ... may be simple?
+//      -- Baah, first attempt failed.
 //
 //  Other issues that I can think of that I did not properly document as I went along:
 //
