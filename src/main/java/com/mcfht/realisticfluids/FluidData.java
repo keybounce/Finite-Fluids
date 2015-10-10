@@ -87,6 +87,20 @@ public class FluidData
         return x;
     }
 
+    /* Helper class. */
+
+    public static class VolatileBool{
+        volatile boolean value;
+
+        public VolatileBool[] create(int size)
+        {
+            VolatileBool[] array = new VolatileBool[size];
+            for(int k=0;k<size;k++)
+                array[k]=new VolatileBool();
+            return array;
+        }
+    }
+
     /**
      * A cache which maps Chunk Data to each Chunk, and also contains thread
      * safe updating queues of near and distant chunks.
@@ -117,14 +131,14 @@ public class FluidData
         // INSTANTIATED
         /** Array of fluid levels */
         public int[][]		fluidArray		= new int[16][4096];
-        volatile boolean [] fluidGuard      = new boolean[16];
+        VolatileBool [] fluidGuard          = VolatileBool.create(16);
 
         /** A map of update flags, divided into EBS arrays */
         public boolean[][]	updateFlags		= new boolean[16][4096];
-        volatile boolean [] updateGuard     = new boolean[16];
+        VolatileBool [] updateGuard         = VolatileBool.create(16);
         /** Array of flags to be parsed during THIS sweep */
         public boolean[][]	workingUpdate	= new boolean[16][4096];
-        volatile boolean [] workingGuard    = new boolean[16];
+        VolatileBool [] workingGuard        = VolatileBool.create(16);
 
         public World		w;
         public Chunk		c;
