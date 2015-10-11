@@ -245,9 +245,9 @@ public class FluidData
             //
             sanityLevelBlock(cx, cy, cz);
             setFluid(cx, cy, cz, l);
-            if (0 == l)
+            // if (0 == l)
                 // c.func_150807_a /* setBlockIDWithMetadata */(cx, cy, cz, Blocks.air, 0);
-                System.out.printf("SetLevel to zero, should be matched with setblock for air");
+                // System.out.printf("SetLevel to zero, should be matched with setblock for air");
             sanitySyncFlush();
         }
 
@@ -692,8 +692,10 @@ public class FluidData
                 {   // This should no longer happen.
                     // Implies both are realistic, and different.
                     // Possible cases: Block 8 and block 9 waters.
-                    System.out.println("Impossible case 1 seen: b0, f1, xyz: " + b0 + ", " + f1
-                                        + ", " + x + ", " + y + ", " + z);
+                    // System.out.println("Impossible case 1 seen: b0, f1, xyz: " + b0 + ", " + f1
+                       //                 + ", " + x + ", " + y + ", " + z);
+                    // Yep, block 8 can show up in the middle of a tall lump of water that "should"
+                    //  be solid 9's. I don't know why.
                     //if (b0.isAir(data.w, x, y, z) || b0 instanceof BlockFiniteFluid) // Second place
                     {
                         RealisticFluids.setBlock(data.w, x, y, z, f1, m1, 2, true); // that clobbers mod stuff
@@ -704,10 +706,9 @@ public class FluidData
                     RealisticFluids.setBlock(data.w, x, y, z, null, m1, -2, true);
                     return l0;
                 }
-            }
+            } else {
             // Both realistic, same material, same meta.
             // Do nothing
-             else {
                  return l0;
             }
         }

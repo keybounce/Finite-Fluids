@@ -135,7 +135,7 @@ public class FluidManager
             }
 
             this.sweepCost.set(0);
-            System.out.print("Worker task size count:");
+            // System.out.print("Worker task size count:");
 
             // This is NOT threading!
             // Java needs thread.start, not thread.run, to multi-task.
@@ -201,7 +201,7 @@ public class FluidManager
         @Override
         public void run()
         {
-            System.out.println("Fluid Worker -> " + this.tasks.size() + ", " + this.forceQuit);
+            // System.out.println("Fluid Worker -> " + this.tasks.size() + ", " + this.forceQuit);
 
             while (this.tasks.size() > 0 && !this.forceQuit)
             {
