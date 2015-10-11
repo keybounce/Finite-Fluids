@@ -303,14 +303,13 @@ public class RealisticFluids extends DummyModContainer
 	public static void setBlock(final World w, final int x, final int y, final int z, final Block b, final int m, final int flag,
 			final boolean immediate)
 	{
-		// Lets try to figure out what's going on with Streams.
-		validateModWater(w, x, y, z, b);
 		Chunk c = w.getChunkFromChunkCoords(x >> 4, z >> 4);
 		if (c == null || !c.isChunkLoaded)
 			c = w.getChunkProvider().provideChunk(x >> 4, z >> 4);
 		final ExtendedBlockStorage ebs = c.getBlockStorageArray()[y >> 4];
 		if (!immediate)
 		{
+            validateModWater(w, x, y, z, b);
 			BlockTask.blockTasks.add(new BlockTask(w, c, ebs, x, y, z, b, m, flag));
 			return;
 		}
@@ -343,7 +342,6 @@ public class RealisticFluids extends DummyModContainer
 
 	public static void setBlock(final World world, final int x, final int y, final int z, final Block block, final int meta, final int flag)
 	{
-		validateModWater(world, x, y, z, block);
 		setBlock(world, x, y, z, block, meta, flag, true);
 	}
 	/**

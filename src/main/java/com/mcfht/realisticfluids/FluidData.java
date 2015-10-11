@@ -655,6 +655,13 @@ public class FluidData
         final Block b0 = data.c.getBlock(cx, y, cz);
         final int l0 = data.getLevel(cx, y, cz);
 
+        // Destination air, or finite fluid, is good. Otherwise, complain.
+        if (! (b0.isAir(data.w, x, y, z) || b0 instanceof BlockFiniteFluid))
+        {
+            System.out.println("Protecting non-finite block " + b0 + " at " + x + ", " + y + ", " + z);
+            return l1;  // pretend that we flowed as much as we were trying to ...
+        }
+
         // SLEDGEHAMMER
         if (Math.abs(l0 - l1) <= 4)
         {
@@ -677,21 +684,31 @@ public class FluidData
 
         if (Util.isSameFluid(f1, b0))
         {
+            // Both blocks are realistic, and same materials
             final int m0 = Util.getMetaFromLevel(l0);
             if (m0 != m1)
             {
                 if (b0 != f1)
-                {
+                {   // This should no longer happen.
+                    // Implies both are realistic, and different.
+                    // Possible cases: Block 8 and block 9 waters.
+                    System.out.println("Impossible case 1 seen: b0, f1, xyz: " + b0 + ", " + f1
+                                        + ", " + x + ", " + y + ", " + z);
                     //if (b0.isAir(data.w, x, y, z) || b0 instanceof BlockFiniteFluid) // Second place
                     {
-                        RealisticFluids.validateModWater(data.w, x, y, z, f1);
                         RealisticFluids.setBlock(data.w, x, y, z, f1, m1, 2, true); // that clobbers mod stuff
                     }
                     return l0;
+                } else {
+                    // Both realistic, same fluid, different meta, same block.
+                    RealisticFluids.setBlock(data.w, x, y, z, null, m1, -2, true);
+                    return l0;
                 }
-                RealisticFluids.validateModWater(data.w, x, y, z, f1);
-                RealisticFluids.setBlock(data.w, x, y, z, null, m1, -2, true);
-                return l0;
+            }
+            // Both realistic, same material, same meta.
+            // Do nothing
+             else {
+                 return l0;
             }
         }
         // If we are here, then we are putting finite fluid into a block that does not have the same
@@ -699,8 +716,9 @@ public class FluidData
         // trying to place into a mod liquid (Streams, super-hot Lava, etc).
         // Require that the destination can only be air or "normal" liquids.
         // if (b0.isAir(data.w, x, y, z) || b0 instanceof BlockFiniteFluid)
+        //
+        // New: By now, we should not have a non-finite fluid. Still can be air.
         {
-            RealisticFluids.validateModWater(data.w, x, y, z, f1);
             RealisticFluids.setBlock(data.w, x, y, z, f1, m1, 2); //!! This is where mod liquids are wrecked!
         }
         return l0;
