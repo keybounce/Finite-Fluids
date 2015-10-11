@@ -90,9 +90,9 @@ public class FluidData
     /* Helper class. */
 
     public static class VolatileBool{
-        volatile boolean value;
+        public volatile boolean value;
 
-        public VolatileBool[] create(int size)
+        public static VolatileBool[] create(int size)
         {
             VolatileBool[] array = new VolatileBool[size];
             for(int k=0;k<size;k++)
@@ -344,7 +344,7 @@ public class FluidData
             // This can read from adjacent chunks, so it can cross chunks and cross threads.
             // Therefore, full synchronization (double-checked locking) is needed.
             //
-            boolean junk = fluidGuard[cy >> 4]; // Read from a volatile
+            boolean junk = fluidGuard[cy >> 4].value; // Read from a volatile
             if (this.fluidArray[cy >> 4] == null)
             {
                 synchronized(this)
@@ -352,10 +352,10 @@ public class FluidData
                     // Synchronized locks code paths;
                     // Read test of flag forces updates of all data;
                     // "&&" forces testing AFTER fluidGuard is tested.
-                    if (false == fluidGuard[cy >> 4] && this.fluidArray[cy >> 4] == null)
+                    if (false == fluidGuard[cy >> 4].value && this.fluidArray[cy >> 4] == null)
                     {
                         this.fluidArray[cy >> 4] = new int[4096];
-                        fluidGuard[cy >> 4] = true;
+                        fluidGuard[cy >> 4].value = true;
                     }
                 }
             }
@@ -397,7 +397,7 @@ public class FluidData
          */
         public void markUpdate(final int cx, final int cy, final int cz)
         {
-            boolean junk = updateGuard[cy >> 4]; // Read from a volatile
+            boolean junk = updateGuard[cy >> 4].value; // Read from a volatile
             if (this.updateFlags[cy >> 4] == null)
             {
                 synchronized(this)
@@ -405,10 +405,10 @@ public class FluidData
                     // Synchronized locks code paths;
                     // Read test of flag forces updates of all data;
                     // "&&" forces testing AFTER fluidGuard is tested.
-                    if (false == updateGuard[cy >> 4] && this.updateFlags[cy >> 4] == null)
+                    if (false == updateGuard[cy >> 4].value && this.updateFlags[cy >> 4] == null)
                     {
                         this.updateFlags[cy >> 4] = new boolean[4096];
-                        updateGuard[cy >> 4] = true;
+                        updateGuard[cy >> 4].value = true;
                     }
                 }
             }
@@ -429,7 +429,7 @@ public class FluidData
         {
             this.markUpdate(cx, cy, cz);
             // And again, set a shared singleton array element
-            boolean junk = workingGuard[cy >> 4]; // Read from a volatile
+            boolean junk = workingGuard[cy >> 4].value; // Read from a volatile
             if (this.workingUpdate[cy >> 4] == null)
             {
                 synchronized(this)
@@ -437,10 +437,10 @@ public class FluidData
                     // Synchronized locks code paths;
                     // Read test of flag forces updates of all data;
                     // "&&" forces testing AFTER fluidGuard is tested.
-                    if (false == workingGuard[cy >> 4] && this.workingUpdate[cy >> 4] == null)
+                    if (false == workingGuard[cy >> 4].value && this.workingUpdate[cy >> 4] == null)
                     {
                         this.workingUpdate[cy >> 4] = new boolean[4096];
-                        workingGuard[cy >> 4] = true;
+                        workingGuard[cy >> 4].value = true;
                     }
                 }
             }
