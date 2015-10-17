@@ -76,7 +76,7 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
 
         super.onBlockAdded(w, x, y, z);
         final Block b1 = w.getBlock(x, y, z);
-        if (b1 instanceof BlockFiniteFluid)
+        if (b1 == this)
         {
             RealisticFluids.markBlockForUpdate(w, x, y, z);
             FluidData.setLevelWorld(FluidData.getChunkData(w.getChunkFromChunkCoords(x >> 4, z >> 4)),

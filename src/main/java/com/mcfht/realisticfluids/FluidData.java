@@ -465,7 +465,7 @@ public class FluidData
 
         for (int i = 0; i < 4; i++)
         {
-            final int x1 = (x + Util.cardinalX(i)), z1 = (x + Util.cardinalZ(i));
+            final int x1 = (x + Util.cardinalX(i)), z1 = (z + Util.cardinalZ(i));
             data = FluidData.forceCurrentChunkData(data, x1, z1);
             data.markUpdate(x1 & 0xF, y, z1 & 0xF);
         }
