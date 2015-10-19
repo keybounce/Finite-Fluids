@@ -327,7 +327,7 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
             if ((b1 == Blocks.fence || b1 == Blocks.nether_brick_fence || b1 == Blocks.iron_bars))
                 return (byte) (this.doDoubleFlow(data, x0, y0, z0, x1 + dx, y1 + dy, z1 + dz) ? 2 : 0);
 
-        // FIXME REDO DOOR INTERACTIONS!!!
+        // BreakInteraction should now mimic vanilla perfectly.
         final byte temp = (byte) this.breakInteraction(data.w, b1, m, x0, y0, z0, l0, x1, y1, z1);
         if (temp != 0)
             return temp;
@@ -355,11 +355,45 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
 
     public boolean canBreak(final Block b)
     {
-        return !(b != Blocks.wooden_door && b != Blocks.iron_door && b != Blocks.standing_sign && b != Blocks.ladder && b != Blocks.reeds
-                ? (b.getMaterial() == Material.portal ? true : b.getMaterial().blocksMovement())
-                : true);
+        throw new RuntimeException("Call must be converted!");
+        /* 
+        return !
+          (b != Blocks.wooden_door && b != Blocks.iron_door && b != Blocks.standing_sign
+                                          && b != Blocks.ladder && b != Blocks.reeds
+            ?
+                (b.getMaterial() == Material.portal 
+                            ? true 
+                            : b.getMaterial().blocksMovement())
+            : true); */
     }
 
+    public boolean canBreak(World w, int x, int y, int z)
+    {
+        return func_149809_q(w, x, y, z);
+    }
+    
+    // Non-private version of Mojang's code.
+    // Not marked as @override because original is private.
+    boolean func_149809_q(World w, int x, int y, int z)
+    {
+        Material material = w.getBlock(x, y, z).getMaterial();
+        return material == this.blockMaterial ? false 
+                : (material == Material.lava ? false 
+                        : !this.func_149807_p(w, x, y, z));
+    }
+    
+    // Non-private version of Mojang's code; uses getMaterial() accessor.
+    // Not marked as @override because original is private.
+    boolean func_149807_p(World w, int x, int y, int z)
+    {
+        Block block = w.getBlock(x, y, z);
+        return block != Blocks.wooden_door && block != Blocks.iron_door && block != Blocks.standing_sign
+                        && block != Blocks.ladder && block != Blocks.reeds 
+                ? (block.getMaterial() == Material.portal ? true 
+                        : block.getMaterial().blocksMovement()) : true;
+
+    }
+    
     @Override
     public void velocityToAddToEntity(final World w, final int x, int y, final int z, final Entity e, final Vec3 vec)
     {
@@ -499,7 +533,7 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
             final int x1, final int y1, final int z1)
     {
         // Check for torches, plants, etc. similar to vanilla water
-        if (this.canBreak(b1))
+        if (this.canBreak(w, x1, y1, z1))
         {
             if (y0 - y1 < 0 || l0 > this.flowBreak)
             {
