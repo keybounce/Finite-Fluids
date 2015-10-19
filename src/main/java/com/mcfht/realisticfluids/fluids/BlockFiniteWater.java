@@ -19,6 +19,7 @@ public final class BlockFiniteWater extends BlockFiniteFluid {
 		//this.setResistance(6F);
 	}
 
+	/* 
 	//Getting some strange method not found errors...
 	int field_149815_a;
     boolean[] field_149814_b = new boolean[4];
@@ -104,5 +105,5 @@ public final class BlockFiniteWater extends BlockFiniteFluid {
     {
     	return super.disableStats();
     } 
-	
+	*/
 }
