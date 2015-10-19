@@ -628,7 +628,9 @@ public class FluidData
     public static int setLevelWorld(final ChunkData data, final BlockFiniteFluid f0, final int x, final int y, final int z, final int l0,
             final boolean updateNeighbors)
     {
-        return setLevel(data, f0, x & 0xF, z & 0xF, x, y, z, l0, updateNeighbors);
+        if (0 == l0)
+             return setLevel(data, Blocks.air, x & 0xF, z & 0xF, x, y, z, l0, updateNeighbors);
+        else return setLevel(data, f0, x & 0xF, z & 0xF, x, y, z, l0, updateNeighbors);
     }
 
     public static int setLevel(final ChunkData data, Block f1, final int cx, final int cz, final int x, final int y, final int z, int l1,
@@ -642,7 +644,10 @@ public class FluidData
         {
             // System.out.println("Set a block to air!");
             data.setLevel(cx, y, cz, 0);
-            RealisticFluids.setBlock(data.w, x, y, z, Blocks.air, 0, 2);
+            if (old instanceof BlockFiniteFluid || Blocks.air == f1)
+                RealisticFluids.setBlock(data.w, x, y, z, Blocks.air, 0, 2);
+            else if (old instanceof BlockAir)
+            	return 0;
             if (updateNeighbors)
                 markNeighbors(data, x, y, z);
             return 0;
