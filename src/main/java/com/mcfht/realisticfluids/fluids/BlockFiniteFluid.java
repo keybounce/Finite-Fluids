@@ -312,7 +312,10 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
     public byte checkFlow(ChunkData data, final int x0, final int y0, final int z0, final int dx, final int dy, final int dz,
             final Block b1, final int m, final int l0)
     {
-        if (b1 == Blocks.air || Util.isSameFluid(this, b1))
+        if (b1 == Blocks.air || 
+                // Util.isSameFluid(this, b1)   // Old: Same finite fluid
+                this.getMaterial() == b1.getMaterial()  // New: Same type of (possibly mod) fluid.
+           )
             return 1;
 
         final int x1 = x0 + dx;
