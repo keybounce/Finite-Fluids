@@ -49,6 +49,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockAir;
 import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
@@ -643,6 +644,7 @@ public class FluidData
         if (l1 <= 0) // We are emptying the block
         {
             // System.out.println("Set a block to air!");
+            Block old= data.w.getBlock(x, y, z);
             data.setLevel(cx, y, cz, 0);
             if (old instanceof BlockFiniteFluid || Blocks.air == f1)
                 RealisticFluids.setBlock(data.w, x, y, z, Blocks.air, 0, 2);
