@@ -608,6 +608,11 @@ public class FluidData
         return a;
     }
 
+    public static int getLevelWorld(final ChunkData data, final BlockFiniteFluid f0, final int x, final int y, final int z)
+    {
+        return getLevel(data, f0, x&0xf, y, z&0xf);
+    }
+    
     public static Block convertFlowingStill(final Block f0, final int level)
     {
         if (! (f0 instanceof BlockFiniteFluid))
