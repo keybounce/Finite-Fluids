@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
@@ -332,7 +333,9 @@ public class RealisticFluids extends DummyModContainer
 			return;
 		if (null == b)
 			return;
-		// throw new RuntimeException("Wrong fluid type!");
+		if (Blocks.air == b)
+		    return;
+		throw new RuntimeException("Bad/unknown case in validateModWater! Aborting to prevent world damage");
 	}
 
 	public static void setBlockMetadata(final World world, final int x, final int y, final int z, final int meta, final int flag)
