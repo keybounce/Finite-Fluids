@@ -665,7 +665,7 @@ public class FluidData
         // Destination air, or finite fluid, is good. Otherwise, complain.
         if (! (b0.isAir(data.w, x, y, z) || b0 instanceof BlockFiniteFluid))
         {
-            System.out.println("Protecting non-finite block " + b0 + " at " + x + ", " + y + ", " + z);
+            // System.out.println("Protecting non-finite block " + b0 + " at " + x + ", " + y + ", " + z);
             return l1;  // pretend that we flowed as much as we were trying to ...
         }
 

@@ -250,6 +250,14 @@ public class RealisticFluids extends DummyModContainer
 	 */
 	public static void setMetadata(final World w, final Chunk c, ExtendedBlockStorage ebs, int x, int y, int z, final int m, final int flag)
 	{
+        // Destination air, or finite fluid, is good. Otherwise, complain.
+        Block b0 = w.getBlock(x, y, z);
+	    if (! (b0.isAir(w, x, y, z) || b0 instanceof BlockFiniteFluid))
+        {
+            System.out.println("Meta-data non-finite fluid protection " + b0 + " at " + x + ", " + y + ", " + z);
+            return;
+        }
+
 		// EXTREME HAX
 		if (ebs == null)
 			// 2 bitshifts where one & is enough (2x more overhead lol)...
