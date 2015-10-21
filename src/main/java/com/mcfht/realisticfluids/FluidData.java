@@ -15,29 +15,24 @@ package com.mcfht.realisticfluids;
 //      In particular, Minecraft.setBlock() will call FiniteFluids.onBlockPlaced()!
 //      Warning for infinite loops!
 //
-// 3. Mod fluids are still being clobbered. That has not been addressed yet. So far,
-//      this branch has just been concerned with getting fluid level access cleaned up.
-//
-//      Reminder: The old problem was that fluid levels in newly loaded chunks would
-//      always appear to be zero in the chunks. Zero fluid plus existing blocks would
-//      eventually get "mostly cleaned", but only after a lot of extra processing.
-//
-//      We now explictly check both the fluid data AND the blocks before trying to
-//      assume what's going on.
+// 3. (Mod fluids are now protected from destruction).
 //
 // 4. Volatiles for data synchronization are broken! It's allocating a single volatile
 //      array that contains normal boolean flags. Fixing ... may be simple?
 //      -- Baah, first attempt failed.
+//      -- Should be fixed now, an array of helpers that are volatile.
 //
 //  Other issues that I can think of that I did not properly document as I went along:
 //
 //  1. ValidateModWater() needs to be inserted for testing before we just clobber blocks.
 //      Current plan: Treat same material mod liquids as "infinite sinks" -- flowing
 //      fuilds will just disappear into them and go out of the world.
+//      ** CHANGE: Now we only absorb when it's a small amount, and on top.
 //  2. When mod waters generate runoff water -- such as digging out from a Stream block --
 //      then there will just be infinite generation. Deal with it. This can be considered
 //      a bonus. If the water just goes into a pool, no problem. There's no pressure, so
 //      it won't flood upwards.
+//      ** UPDATE: The flow only happens at the rate of block ticks, and is small enough to not be an issue.
 //  3. Eventually there will have to be evaporation coded.
 //  4. Ideally, there should be some sort of "infinite source" block, so that singleton
 //      blocks on the sides of cliff-faces can have something like normal flow behavior.
