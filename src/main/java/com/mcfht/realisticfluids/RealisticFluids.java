@@ -481,8 +481,8 @@ public class RealisticFluids extends DummyModContainer
 						if (!c.isChunkLoaded)
 							continue;// Just to be safe;
                         // CHANGE: Square, not circular, range checking
-						final int x = abs(c.xPosition - (((int) player.posX) >> 4));
-						final int z = abs(c.zPosition - (((int) player.posZ) >> 4));
+						final int x = Math.abs(c.xPosition - (((int) player.posX) >> 4));
+						final int z = Math.abs(c.zPosition - (((int) player.posZ) >> 4));
 						if (x <= UPDATE_RANGE && z <= UPDATE_RANGE)
 							map.priority.add(c);
 						else if (x <= UPDATE_RANGE_FAR && z <= UPDATE_RANGE_FAR)
