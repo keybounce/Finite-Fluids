@@ -30,8 +30,8 @@ public class FluidManager
 
     public static WorkerTrivial		TWorker		= new WorkerTrivial();
     public static Thread			TRIVIAL		= new Thread(TWorker);
-	
-	public static boolean			FlowEnabled	= false;
+
+    public static boolean			FlowEnabled	= false;
 
     public static class WorkerThread
     {
@@ -153,12 +153,12 @@ public class FluidManager
 
             for (final WorkerThread wt : this.threadPool)
             {
-                if (wt.worker.tasks.size() > 0 && !wt.worker.running)
+                // if (wt.worker.tasks.size() > 0 && !wt.worker.running)
                     // System.out.println("Restarting thread, " +
                     // wt.worker.tasks.size() + " tasks...");
-                    try {
+                    // try {
                         wt.thread.run();
-                    } catch (final Exception e)
+                    /*} catch (final Exception e)
                     {
                         System.out.println("Error restarting thread!");
                         // Do not permit the thread to be stuck in a failed state. If the thread
@@ -172,7 +172,7 @@ public class FluidManager
                         //
                         wt.worker.forceQuit = true; // Force it to exit
                         wt.worker.running = false; // Force a restart until it does
-                    }
+                    }*/
 
 
             }
@@ -367,51 +367,51 @@ public class FluidManager
             if (data.c.getBlockStorageArray()[i] == null)
                 continue;
 
-			// First of all, let's perform our own random ticks (more control)
+            // First of all, let's perform our own random ticks (more control)
             // do evaporation, seeping, refilling in rain, and so on.
-			if (FlowEnabled)
-			{
-				doRandomTicks(data, i, 3, isHighPriority);
-			}
+            if (FlowEnabled)
+            {
+                doRandomTicks(data, i, 3, isHighPriority);
+            }
             // No updates, exit
             if (!data.updateCounter[i] || data.updateFlags[i] == null)
                 continue;
 
-			// Reset the cube flag
-			data.updateCounter[i] = false;
+            // Reset the cube flag
+            data.updateCounter[i] = false;
 
-			if (FlowEnabled)
-			{
-				data.workingUpdate[i] = new boolean[4096];
-				System.arraycopy(data.updateFlags[i], 0, data.workingUpdate[i], 0, 4096);
-			}
-			data.updateFlags[i] = new boolean[4096];	// Yes, this is GC churn. These will still get set, just ignored.
+            if (FlowEnabled)
+            {
+                data.workingUpdate[i] = new boolean[4096];
+                System.arraycopy(data.updateFlags[i], 0, data.workingUpdate[i], 0, 4096);
+            }
+            data.updateFlags[i] = new boolean[4096];	// Yes, this is GC churn. These will still get set, just ignored.
 
             // cost += Math.max(16, t.updateCounter[i] >> 6); //Moved this to
             // the end
 
             // ///////////////////////////////////////////////////////////////////////////////////
-			if (FlowEnabled)
-			{
-				for (int j = 0; j < 4096; j++)
-					if (data.workingUpdate[i][j])
-					{
-						cost++;
-						// Un-flag this block
-						data.workingUpdate[i][j] = false;
+            if (FlowEnabled)
+            {
+                for (int j = 0; j < 4096; j++)
+                    if (data.workingUpdate[i][j])
+                    {
+                        cost++;
+                        // Un-flag this block
+                        data.workingUpdate[i][j] = false;
 
-						// Rebuild the coordinates from the array position
-						x = (data.c.xPosition << 4) + (j & 0xF);
-						y = (i << 4) + ((j >> 8) & 0xF);
-						z = (data.c.zPosition << 4) + ((j >> 4) & 0xF);
+                        // Rebuild the coordinates from the array position
+                        x = (data.c.xPosition << 4) + (j & 0xF);
+                        y = (i << 4) + ((j >> 8) & 0xF);
+                        z = (data.c.zPosition << 4) + ((j >> 4) & 0xF);
 
-						final Block b = data.c.getBlock(x & 0xF, y, z & 0xF);
-						if (b instanceof BlockFiniteFluid)
-							// Tick the water block
-							((BlockFiniteFluid) b).doUpdate(data, x, y, z, data.w.rand, interval);
+                        final Block b = data.c.getBlock(x & 0xF, y, z & 0xF);
+                        if (b instanceof BlockFiniteFluid)
+                            // Tick the water block
+                            ((BlockFiniteFluid) b).doUpdate(data, x, y, z, data.w.rand, interval);
 
-					}
-			}
+                    }
+            }
         }
         // TODO: Make distant chunks re-render
         return cost;
