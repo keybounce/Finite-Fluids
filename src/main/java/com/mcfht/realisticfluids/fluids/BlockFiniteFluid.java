@@ -144,14 +144,17 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
 
         data = FluidData.forceCurrentChunkData(data, x0, z0);
         int l0 = FluidData.getLevel(data, this, x0 & 0xF, y0, z0 & 0xF);
+        int l1=l0;  // Normally reset below. But if y0=0, this is needed.
         final int _l0 = l0;
         try
         {
             // First, try to flow downwards
             int y1 = y0 - 1;
             // Ensure we do not flow out of the world
-            // if (y1 < 0)
-               // return; //  We need to flow sideways.
+            if (y1 < 0)
+                return; //  ** Todo: We need to flow sideways. But the code has 
+                        //  horrible assumptions, and constantly refers to results from
+                        // the block underneath us. So, for now, pretend it's "do nothing".
             if (y1 > 255)
             {       // This should only happen ... ?!??! Never???
                 // FluidData.setLevelWorld(data, this, x0, y0, z0, 0, true);
@@ -160,7 +163,7 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
 
             // Now check if we can flow into the block below, etcetera
             Block b1 = data.c.getBlock(x0 & 0xF, y1, z0 & 0xF);
-            int l1 = FluidData.getLevel(data, this, x0 & 0xF, y1, z0 & 0xF);
+            l1 = FluidData.getLevel(data, this, x0 & 0xF, y1, z0 & 0xF);
             // Emulate surface tension for water and lava
             byte flowResult = this.checkFlow(data, x0, y0, z0, 0, -1, 0, b1, data.c.getBlockMetadata(x0 & 0xF, y1, z0 & 0xF), l0);
 
