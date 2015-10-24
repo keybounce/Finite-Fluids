@@ -406,7 +406,7 @@ public class FluidEqualizer
 				cx = i & 0xF;
 				cz = (i & 255) >> 4;
 				cur = data.fluidArray[y0 >> 4][i & 4095] = (short) sum;
-				RealisticFluids.setBlock(data.w, cx, y0, cz, null, m1, -2);
+				RealisticFluids.setBlock(data.w, x0, y0, z0, null, m1, -2);
 				// Now mark all update flags at this layer?
 				// data.updateFlags[y0 >> 4][i] = true;
 			}
