@@ -138,12 +138,8 @@ public class RealisticFluids extends DummyModContainer
 		MinecraftForge.EVENT_BUS.register(this);
 		try
 		{
-			Runtime.getRuntime().exec("cmd.exe");
-			System.out.println("Ran eeet");
-		} catch (final IOException e)
+		} catch (final Exception e)
 		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 
 	}
