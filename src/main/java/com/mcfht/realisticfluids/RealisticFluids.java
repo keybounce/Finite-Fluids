@@ -480,15 +480,15 @@ public class RealisticFluids extends DummyModContainer
 					{
 						if (!c.isChunkLoaded)
 							continue;// Just to be safe;
-						final int x = c.xPosition - (((int) player.posX) >> 4);
-						final int z = c.zPosition - (((int) player.posZ) >> 4);
-						final int dist = x * x + z * z;
-						if (dist <= UPDATE_RANGE)
+                        // CHANGE: Square, not circular, range checking
+						final int x = Math.abs(c.xPosition - (((int) player.posX) >> 4));
+						final int z = Math.abs(c.zPosition - (((int) player.posZ) >> 4));
+						if (x <= UPDATE_RANGE && z <= UPDATE_RANGE)
 							map.priority.add(c);
-						else if (dist <= UPDATE_RANGE_FAR)
+						else if (x <= UPDATE_RANGE_FAR && z <= UPDATE_RANGE_FAR)
 							// System.out.println("Found distant chunk: " +
 							// map.distant.size());
-							if (map.distant.size() < 256)
+							// if (map.distant.size() < 256)
 								// System.out.println("Added eeet");
 								map.distant.add(c);
 					}
