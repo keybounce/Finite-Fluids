@@ -377,8 +377,8 @@ public class FluidEqualizer
 			int cx, cz;
 
 			// Make 100% sure the target fluid data is valid
-			if (data.fluidArray[y0 >> 4] == null)
-				data.fluidArray[y0 >> 4] = new int[4096];
+			// if (data.fluidArray[y0 >> 4] == null)
+			//    data.fluidArray[y0 >> 4] = new int[4096];
 
 			for (int i = y0 * 256; i < (y0 * 256) + 256; i++)
 			{
@@ -405,8 +405,11 @@ public class FluidEqualizer
 			{
 				cx = i & 0xF;
 				cz = (i & 255) >> 4;
-				cur = data.fluidArray[y0 >> 4][i & 4095] = (short) sum;
-				RealisticFluids.setBlock(data.w, x0, y0, z0, null, m1, -2);
+				// cur = data.fluidArray[y0 >> 4][i & 4095] = (short) sum;
+			    data.setFluid(cx, y0, cz, sum);
+                // RealisticFluids.setBlock(data.w, cx, y0, cx, null, m1, -2);
+                RealisticFluids.setBlock(data.w, cx + data.c.xPosition*16,
+                                            y0, cz + data.c.zPosition*16, null, m1, -2);
 				// Now mark all update flags at this layer?
 				// data.updateFlags[y0 >> 4][i] = true;
 			}
