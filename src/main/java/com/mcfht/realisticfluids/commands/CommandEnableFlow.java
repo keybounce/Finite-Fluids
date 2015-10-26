@@ -3,8 +3,10 @@
  */
 package com.mcfht.realisticfluids.commands;
 
+import com.google.common.eventbus.Subscribe;
 import com.mcfht.realisticfluids.FluidManager;
 
+import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
@@ -21,6 +23,13 @@ public class CommandEnableFlow extends CommandBase implements ICommand
     /* (non-Javadoc)
      * @see net.minecraft.command.ICommand#getCommandName()
      */
+    
+    @Subscribe
+    public void serverStarting(FMLServerStartingEvent evt)
+    {
+        evt.registerServerCommand(new CommandEnableFlow());
+    }
+    
     @Override
     public String getCommandName()
     {
