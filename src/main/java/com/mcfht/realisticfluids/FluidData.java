@@ -197,9 +197,12 @@ public class FluidData
          * @param cz
          * @return
          */
-        public void setFluid(final int cx, final int cy, final int cz, final int l)
+        public void setFluid(final int cx, final int cy, final int cz,  int l)
         {
-
+            if (l < 0)  // FIXME Breakpoint
+            {
+                l=l;
+            }
             this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = l;
         }
 
@@ -340,6 +343,7 @@ public class FluidData
             // This can read from adjacent chunks, so it can cross chunks and cross threads.
             // Therefore, full synchronization (double-checked locking) is needed.
             //
+            @SuppressWarnings("unused")
             boolean junk = fluidGuard[cy >> 4].value; // Read from a volatile
             if (this.fluidArray[cy >> 4] == null)
             {
@@ -393,6 +397,7 @@ public class FluidData
          */
         public void markUpdate(final int cx, final int cy, final int cz)
         {
+            @SuppressWarnings("unused")
             boolean junk = updateGuard[cy >> 4].value; // Read from a volatile
             if (this.updateFlags[cy >> 4] == null)
             {
@@ -425,6 +430,7 @@ public class FluidData
         {
             this.markUpdate(cx, cy, cz);
             // And again, set a shared singleton array element
+            @SuppressWarnings("unused")
             boolean junk = workingGuard[cy >> 4].value; // Read from a volatile
             if (this.workingUpdate[cy >> 4] == null)
             {
