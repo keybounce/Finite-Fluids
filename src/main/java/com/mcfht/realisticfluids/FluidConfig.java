@@ -43,6 +43,10 @@ public class FluidConfig
 		RealisticFluids.ASM_DOOR = config.getBoolean("patchVanillaDoors", "3 - Core Mods", true,
 				"Force vanilla doors to throw block updates when opened (allowing water to flow through them)");
 
+        // /////////////// Absorpotion / Evaporation / Rainfall //////
+        RealisticFluids.ABSORB = config.getInt("AbsorptionThreshold", "1 - General",
+                RealisticFluids.ABSORB, 0, RealisticFluids.MAX_FLUID,
+                    "Level at which flowing water will be absorbed by mod water");
 		config.save();
 	}
 
