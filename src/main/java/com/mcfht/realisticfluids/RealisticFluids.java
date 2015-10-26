@@ -91,12 +91,12 @@ public class RealisticFluids extends DummyModContainer
 
 	// //////////////// FLUID SETTINGS //////////////////////
 	/** The number of fluid levels for each cell */
-	public final static int	MAX_FLUID			= 1 << 20;
+	public final static int MAX_FLUID           = 1 << 20;
 	/** How little liquid can be in a fluid before it is absorbed into a mod fluid */
-	public final static int ABSORB             = MAX_FLUID >> 3;   // 1/8th block; 1/16th was too little.
+	public static int       ABSORB              = MAX_FLUID/12;
 	// WATER
 	/** Relative update rate of water */
-	public static int		WATER_UPDATE		= 1;
+	public static int		WATER_UPDATE        = 1;
 	/** Runniness of water */
 	public static final int	waterVisc			= 4;
 	// LAVA
