@@ -6,6 +6,7 @@ package com.mcfht.realisticfluids.commands;
 import com.google.common.eventbus.Subscribe;
 import com.mcfht.realisticfluids.FluidManager;
 
+import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommand;
@@ -23,14 +24,14 @@ public class CommandEnableFlow extends CommandBase implements ICommand
     /* (non-Javadoc)
      * @see net.minecraft.command.ICommand#getCommandName()
      */
-    
-    @Subscribe
-    public void serverStarting(FMLServerStartingEvent evt)
-    {
-        System.out.println("*** ENABLE FLOW COMMAND ***");
-        evt.registerServerCommand(this);
-    }
-    
+//    
+//    @EventHandler
+//    public void serverStarting(FMLServerStartingEvent evt)
+//    {
+//        System.out.println("*** ENABLE FLOW COMMAND ***");
+//        evt.registerServerCommand(new CommandEnableFlow());
+//    }
+//    
     @Override
     public String getCommandName()
     {

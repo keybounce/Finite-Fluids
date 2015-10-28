@@ -20,14 +20,18 @@ import com.google.common.eventbus.Subscribe;
 import com.mcfht.realisticfluids.FluidData.ChunkCache;
 import com.mcfht.realisticfluids.FluidData.ChunkData;
 import com.mcfht.realisticfluids.asm.PatchBlockRegistry;
+import com.mcfht.realisticfluids.commands.CommandEnableFlow;
 import com.mcfht.realisticfluids.fluids.BlockFiniteFluid;
 
 import cpw.mods.fml.common.DummyModContainer;
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.LoadController;
+import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.ModMetadata;
+import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.TickEvent.Phase;
 import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
@@ -58,6 +62,7 @@ import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
  * - FHT
  * 
  */
+@Mod(modid = "Realistic Fluids")
 public class RealisticFluids extends DummyModContainer
 {
 	// /////////////////////// GENERAL SETTINGS //////////////////////
@@ -143,6 +148,13 @@ public class RealisticFluids extends DummyModContainer
 		}
 
 	}
+
+    @EventHandler
+    public void serverStarting(FMLServerStartingEvent evt)
+    {
+        System.out.println("*** ENABLE FLOW COMMAND ***");
+        evt.registerServerCommand(new CommandEnableFlow());
+    }
 
 	/** Hidden internal tick counter */
 	private static int	_tickCounter	= 0;
