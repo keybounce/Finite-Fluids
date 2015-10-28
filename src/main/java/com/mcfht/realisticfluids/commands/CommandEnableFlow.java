@@ -27,7 +27,8 @@ public class CommandEnableFlow extends CommandBase implements ICommand
     @Subscribe
     public void serverStarting(FMLServerStartingEvent evt)
     {
-        evt.registerServerCommand(new CommandEnableFlow());
+        System.out.println("*** ENABLE FLOW COMMAND ***");
+        evt.registerServerCommand(this);
     }
     
     @Override
