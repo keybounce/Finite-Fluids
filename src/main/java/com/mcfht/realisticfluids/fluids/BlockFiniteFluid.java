@@ -5,7 +5,6 @@ import java.util.Random;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockDynamicLiquid;
 import net.minecraft.block.BlockFalling;
-import net.minecraft.block.BlockLiquid;
 import net.minecraft.block.BlockPistonBase;
 import net.minecraft.block.material.Material;
 import net.minecraft.entity.Entity;
@@ -37,6 +36,13 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
     public int			flowRate;
     /** Amount of fluid needed to break things */
     public final int	flowBreak	= RealisticFluids.MAX_FLUID >> 3;
+
+    // Debug!
+    static int minwater = RealisticFluids.MAX_FLUID;
+    static int minlava = RealisticFluids.MAX_FLUID;
+    
+    static int minwaterledge = RealisticFluids.MAX_FLUID;
+    static int minlavaledge = RealisticFluids.MAX_FLUID;
 
     /**
      * Initialize a new fluid.
@@ -167,6 +173,30 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
             // Emulate surface tension for water and lava
             byte flowResult = this.checkFlow(data, x0, y0, z0, 0, -1, 0, b1, data.c.getBlockMetadata(x0 & 0xF, y1, z0 & 0xF), l0);
 
+            // DEBUG: Track what the flow levels are / what absorption should be.
+            if (0 == flowResult)
+            {
+                if (this.getMaterial() == b1.getMaterial())
+                {
+                    if (Material.lava == this.getMaterial())
+                    {
+                        minlava = adjustMinFluid(minlava, "lava", _l0);
+                    } else {
+                        minwater = Math.min(RealisticFluids.MAX_FLUID,
+                                        adjustMinFluid(minwater, "water", _l0));
+                    }
+                } else { // TODO visible mark on the scrollbar
+                    if (Material.lava == this.getMaterial())
+                    {
+                        minlavaledge = adjustMinFluid(minlavaledge, "lava ledge", _l0);
+                    } else {
+                        minwaterledge = Math.min(RealisticFluids.MAX_FLUID,
+                                        adjustMinFluid(minwaterledge, "water ledge", _l0));
+                    }
+                    
+                }
+            }
+            
             if (flowResult != 0 && y0 > 0) // do not flow downward at y=0
             {
                 if (flowResult > 1)
@@ -291,6 +321,17 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
                 data.markUpdate(x0 & 0xF, y0, z0 & 0xF);
             }
         }
+    }
+
+    private int adjustMinFluid(int currentMin, String string, int test) // FIXME Breakpoint
+    {
+        if (test < 5)
+            test = test;    // TODO mark eclipse for breakpoint
+        if (test > currentMin)
+            return currentMin + 1;
+        System.out.println("Min: " + string + " old " + currentMin + " new " + test +
+                " Divisor: " + String.valueOf((float)RealisticFluids.MAX_FLUID / test));
+        return Math.min(currentMin + 50, (int)(test + 50));    // Does not give "min", but some fluctuation. Testing.
     }
 
     public boolean doDoubleFlow(final ChunkData data, final int x0, final int y0, final int z0, final int x1, final int y1, final int z1)
