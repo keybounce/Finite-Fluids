@@ -455,6 +455,9 @@ public class RealisticFluids extends DummyModContainer
 	@SubscribeEvent
 	public void serverTick(final ServerTickEvent event)
 	{
+    // FIXME
+    if (FluidManager.FlowEnabled) // NOTE! There is a small segment at the end that happens anyways
+    {
 		_tickCounter += 1;
 		FluidEqualizer.WORKER.run();
 
@@ -523,11 +526,15 @@ public class RealisticFluids extends DummyModContainer
 			 * FluidManager.TRIVIAL.run();
 			 */
 		}
+    }   // NOTE! End of "If Flow Enabled" -- backlogged block updates still happen!
 
 		// Set blocks for a little bit on the server thread
 		// This is triggered from using the setBlock call WITHOUT Immediacy
 		// NOTE: This is 100% utterly thread safe.
-		int toPerform = BlockTask.blockTasks.size() / 16;
+		int toPerform = BlockTask.blockTasks.size() / 8;
+        if (BlockTask.blockTasks.size() <= 16)
+            toPerform = BlockTask.blockTasks.size();
+
 		toPerform = toPerform > 32 ? 32 : toPerform;
 
 		// Prevent lagging the system by allocating a max amount of time
