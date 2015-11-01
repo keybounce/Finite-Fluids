@@ -365,7 +365,7 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
                     && (FluidData.getLevelWorld(data, this, x0, y0, z0) < RealisticFluids.ABSORB)
            )
         {
-            System.out.println("Absorbing fluid in mod liquid at " + x0 + ", " + y0 + ", " + z0);
+            // System.out.println("Absorbing fluid in mod liquid at " + x0 + ", " + y0 + ", " + z0);
             return 1;
         }
             // TODO: Need to test ledges. We have access to the dynamic adjustments, use them.
