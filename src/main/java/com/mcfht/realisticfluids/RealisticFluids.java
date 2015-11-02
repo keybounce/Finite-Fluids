@@ -156,6 +156,8 @@ public class RealisticFluids extends DummyModContainer
     {
         System.out.println("*** ENABLE FLOW COMMAND ***");
         evt.registerServerCommand(new CommandEnableFlow());
+        System.out.println("*** Deflood COMMAND ***");
+        evt.registerServerCommand(new CommandDeflood());
     }
 
 	/** Hidden internal tick counter */
