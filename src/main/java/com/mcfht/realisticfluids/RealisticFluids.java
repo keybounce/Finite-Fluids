@@ -115,6 +115,8 @@ public class RealisticFluids extends DummyModContainer
 
 	// //////////////////////////ASM SETTINGS///////////////////////
 	public static boolean	ASM_DOOR			= true;
+	
+	int countSinceTickRan                       = 0;
 
 	public RealisticFluids()
 	{
@@ -458,11 +460,10 @@ public class RealisticFluids extends DummyModContainer
     // FIXME
     if (FluidManager.FlowEnabled) // NOTE! There is a small segment at the end that happens anyways
     {
-		_tickCounter += 1;
-		FluidEqualizer.WORKER.run();
-
 		if (event.phase == Phase.START)
 		{
+	        _tickCounter += 1;
+	        countSinceTickRan++;
 			final long timeCost = System.currentTimeMillis() - this.lastTime;
 			if (this.lastTime > 0)
 				if (timeCost > 500)
@@ -473,8 +474,9 @@ public class RealisticFluids extends DummyModContainer
 		}
 
 		// System.out.println("Doing tick");
-		if (event.phase == Phase.END && (tickCounter() % GLOBAL_RATE) == 0)
+		if (event.phase == Phase.END && (countSinceTickRan >= GLOBAL_RATE) )
 		{
+	        FluidEqualizer.WORKER.run();
 			// FIND CHUNKS
 			for (final World w : MinecraftServer.getServer().worldServers)
 			{
