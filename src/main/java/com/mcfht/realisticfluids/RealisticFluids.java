@@ -20,6 +20,7 @@ import com.google.common.eventbus.Subscribe;
 import com.mcfht.realisticfluids.FluidData.ChunkCache;
 import com.mcfht.realisticfluids.FluidData.ChunkData;
 import com.mcfht.realisticfluids.asm.PatchBlockRegistry;
+import com.mcfht.realisticfluids.commands.CommandDeflood;
 import com.mcfht.realisticfluids.commands.CommandEnableFlow;
 import com.mcfht.realisticfluids.fluids.BlockFiniteFluid;
 
