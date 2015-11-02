@@ -36,7 +36,7 @@ public class CommandDeflood extends CommandBase implements ICommand
     @Override
     public String getCommandName()
     {
-        return "Deflood";
+        return "deflood";
     }
 
     /* (non-Javadoc)
@@ -46,7 +46,7 @@ public class CommandDeflood extends CommandBase implements ICommand
     public String getCommandUsage(ICommandSender p_71518_1_)
     {
         // Fixme needs localizaion
-        return "Deflood";
+        return "deflood";
     }
 
     /* (non-Javadoc)
@@ -67,7 +67,7 @@ public class CommandDeflood extends CommandBase implements ICommand
             System.out.println("Processing on Server side");
             if(args.length != 0)
             {
-                sender.addChatMessage(new ChatComponentText("Usage: Deflood. Attempt to remove floods on top of mod fluids."));
+                sender.addChatMessage(new ChatComponentText("Usage: deflood. Attempt to remove floods on top of mod fluids."));
                 return;
             }
             // Step 1: Save the old vaues for absorb
@@ -79,6 +79,7 @@ public class CommandDeflood extends CommandBase implements ICommand
             RealisticFluids.tickChunks();
             RealisticFluids.tickChunks();
             // Step 4: Restore Absorb.
+            RealisticFluids.ABSORB = oldAbsorb;
         }
     }
 }
