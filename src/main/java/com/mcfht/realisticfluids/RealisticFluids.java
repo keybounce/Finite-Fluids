@@ -66,6 +66,7 @@ import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
 @Mod(modid = "Realistic Fluids")
 public class RealisticFluids extends DummyModContainer
 {
+// Warning: Almost all of these settings are overrridden by the config file!
 	// /////////////////////// GENERAL SETTINGS //////////////////////
 	/** Max update quota per tick. TODO NOT MAX */
 	public static int		MAX_UPDATES			= 1024;
@@ -99,7 +100,7 @@ public class RealisticFluids extends DummyModContainer
 	/** The number of fluid levels for each cell */
 	public final static int MAX_FLUID           = 1 << 20;
 	/** How little liquid can be in a fluid before it is absorbed into a mod fluid */
-	public static int       ABSORB              = MAX_FLUID/12;
+	public static int       ABSORB              = MAX_FLUID/15;
 	// WATER
 	/** Relative update rate of water */
 	public static int		WATER_UPDATE        = 1;
