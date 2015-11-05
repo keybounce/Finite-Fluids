@@ -45,8 +45,8 @@ public class FluidConfig
 
         // /////////////// Absorpotion / Evaporation / Rainfall //////
         RealisticFluids.ABSORB = config.getInt("AbsorptionThreshold", "1 - General",
-                RealisticFluids.ABSORB, 0, RealisticFluids.MAX_FLUID,
-                    "Level at which flowing water will be absorbed by mod water");
+                RealisticFluids.MAX_FLUID/15, 0, RealisticFluids.MAX_FLUID,
+                    "Level at which flowing water will be absorbed by mod water. For Streams, 1/15*MAX will prevent floods; 1/4th max will effectively squash worldgen floods. Less will permit extra watergen for steam engines/etc.");
 		config.save();
 	}
 
