@@ -20,6 +20,7 @@ import com.google.common.eventbus.Subscribe;
 import com.mcfht.realisticfluids.FluidData.ChunkCache;
 import com.mcfht.realisticfluids.FluidData.ChunkData;
 import com.mcfht.realisticfluids.asm.PatchBlockRegistry;
+import com.mcfht.realisticfluids.commands.CommandDeflood;
 import com.mcfht.realisticfluids.commands.CommandEnableFlow;
 import com.mcfht.realisticfluids.fluids.BlockFiniteFluid;
 
@@ -65,6 +66,7 @@ import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
 @Mod(modid = "Realistic Fluids")
 public class RealisticFluids extends DummyModContainer
 {
+// Warning: Almost all of these settings are overrridden by the config file!
 	// /////////////////////// GENERAL SETTINGS //////////////////////
 	/** Max update quota per tick. TODO NOT MAX */
 	public static int		MAX_UPDATES			= 1024;
@@ -98,7 +100,7 @@ public class RealisticFluids extends DummyModContainer
 	/** The number of fluid levels for each cell */
 	public final static int MAX_FLUID           = 1 << 20;
 	/** How little liquid can be in a fluid before it is absorbed into a mod fluid */
-	public static int       ABSORB              = MAX_FLUID/12;
+	public static int       ABSORB              = MAX_FLUID/15;
 	// WATER
 	/** Relative update rate of water */
 	public static int		WATER_UPDATE        = 1;
@@ -115,6 +117,8 @@ public class RealisticFluids extends DummyModContainer
 
 	// //////////////////////////ASM SETTINGS///////////////////////
 	public static boolean	ASM_DOOR			= true;
+	
+	int countSinceTickRan                       = 0;
 
 	public RealisticFluids()
 	{
@@ -154,6 +158,8 @@ public class RealisticFluids extends DummyModContainer
     {
         System.out.println("*** ENABLE FLOW COMMAND ***");
         evt.registerServerCommand(new CommandEnableFlow());
+        System.out.println("*** Deflood COMMAND ***");
+        evt.registerServerCommand(new CommandDeflood());
     }
 
 	/** Hidden internal tick counter */
@@ -455,92 +461,93 @@ public class RealisticFluids extends DummyModContainer
 	@SubscribeEvent
 	public void serverTick(final ServerTickEvent event)
 	{
-    // FIXME
-    if (FluidManager.FlowEnabled) // NOTE! There is a small segment at the end that happens anyways
-    {
-		_tickCounter += 1;
-		FluidEqualizer.WORKER.run();
-
-		if (event.phase == Phase.START)
-		{
-			final long timeCost = System.currentTimeMillis() - this.lastTime;
-			if (this.lastTime > 0)
-				if (timeCost > 500)
-					GLOBAL_RATE = Math.min(++GLOBAL_RATE, GLOBAL_RATE_MAX);
-				else if (timeCost < 40 && (_tickCounter % GLOBAL_RATE) == 1)
-					GLOBAL_RATE = Math.max(--GLOBAL_RATE, GLOBAL_RATE_AIM);
-			this.lastTime = System.currentTimeMillis();
-		}
-
-		// System.out.println("Doing tick");
-		if (event.phase == Phase.END && (tickCounter() % GLOBAL_RATE) == 0)
-		{
-			// FIND CHUNKS
-			for (final World w : MinecraftServer.getServer().worldServers)
-			{
-				if (w.playerEntities == null || w.playerEntities.size() == 0)
-					continue;
-				for (final Object p : w.playerEntities)
-				{
-					final EntityPlayer player = (EntityPlayer) p;
-					final ChunkCache map = FluidData.worldCache.get(w);
-					if (map == null)
-						continue;
-					// iterate over all flagged chunks
-					for (final Chunk c : map.chunks.keySet())
-					{
-						if (!c.isChunkLoaded)
-							continue;// Just to be safe;
-                        // CHANGE: Square, not circular, range checking
-						final int x = Math.abs(c.xPosition - (((int) player.posX) >> 4));
-						final int z = Math.abs(c.zPosition - (((int) player.posZ) >> 4));
-						if (x <= UPDATE_RANGE && z <= UPDATE_RANGE)
-							map.priority.add(c);
-						else if (x <= UPDATE_RANGE_FAR && z <= UPDATE_RANGE_FAR)
-							// System.out.println("Found distant chunk: " +
-							// map.distant.size());
-							// if (map.distant.size() < 256)
-								// System.out.println("Added eeet");
-								map.distant.add(c);
-					}
-				}
-			}
-
-			FluidManager.delegator.myStartTick = tickCounter();
-			FluidManager.delegator.worlds = MinecraftServer.getServer().worldServers.clone();
-			FluidManager.delegator.performTasks();
-
-			/*
-			 * FluidManager.PWorker.quota = tickQuota;
-			 * FluidManager.PWorker.myStartTime = tickCounter();
-			 * FluidManager.PWorker.worlds =
-			 * MinecraftServer.getServer().worldServers.clone(); // Running task
-			 * like this is fine, since OS will just try to catch // up threads
-			 * at some point // In the long run I will switch to using thread
-			 * pools probably FluidManager.PRIORITY.run();
-			 * 
-			 * FluidManager.TWorker.quota = tickQuota;
-			 * FluidManager.TWorker.myStartTime = tickCounter();
-			 * FluidManager.TWorker.worlds =
-			 * MinecraftServer.getServer().worldServers.clone();
-			 * FluidManager.TRIVIAL.run();
-			 */
-		}
-    }   // NOTE! End of "If Flow Enabled" -- backlogged block updates still happen!
-
-		// Set blocks for a little bit on the server thread
-		// This is triggered from using the setBlock call WITHOUT Immediacy
-		// NOTE: This is 100% utterly thread safe.
-		int toPerform = BlockTask.blockTasks.size() / 8;
-        if (BlockTask.blockTasks.size() <= 16)
-            toPerform = BlockTask.blockTasks.size();
-
-		toPerform = toPerform > 32 ? 32 : toPerform;
-
-		// Prevent lagging the system by allocating a max amount of time
-		while (System.currentTimeMillis() - this.lastTime < 10 && BlockTask.blockTasks.size() > 0)
-			for (int i = 0; i < Math.min(toPerform, BlockTask.blockTasks.size()); i++)
-				BlockTask.blockTasks.remove().set();
+	    // FIXME
+	    if (FluidManager.FlowEnabled) // NOTE! There is a small segment at the end that happens anyways
+	    {
+	        if (event.phase == Phase.START)
+	        {
+	            _tickCounter += 1;
+	            countSinceTickRan++;
+	            final long timeCost = System.currentTimeMillis() - this.lastTime;
+	            if (this.lastTime > 0)
+	                if (timeCost > 500)
+	                    GLOBAL_RATE = Math.min(++GLOBAL_RATE, GLOBAL_RATE_MAX);
+	                else if (timeCost < 40 && (_tickCounter % GLOBAL_RATE) == 1)
+	                    GLOBAL_RATE = Math.max(--GLOBAL_RATE, GLOBAL_RATE_AIM);
+	            this.lastTime = System.currentTimeMillis();
+	        }
+	        
+	        // System.out.println("Doing tick");
+	        if (event.phase == Phase.END && (countSinceTickRan >= GLOBAL_RATE) )
+	        {
+	            FluidEqualizer.WORKER.run();
+	            tickChunks();
+	            
+	            /*
+	             * FluidManager.PWorker.quota = tickQuota;
+	             * FluidManager.PWorker.myStartTime = tickCounter();
+	             * FluidManager.PWorker.worlds =
+	             * MinecraftServer.getServer().worldServers.clone(); // Running task
+	             * like this is fine, since OS will just try to catch // up threads
+	             * at some point // In the long run I will switch to using thread
+	             * pools probably FluidManager.PRIORITY.run();
+	             * 
+	             * FluidManager.TWorker.quota = tickQuota;
+	             * FluidManager.TWorker.myStartTime = tickCounter();
+	             * FluidManager.TWorker.worlds =
+	             * MinecraftServer.getServer().worldServers.clone();
+	             * FluidManager.TRIVIAL.run();
+	             */
+	        }
+	    }   // NOTE! End of "If Flow Enabled" -- backlogged block updates still happen!
+	    
+	    // Set blocks for a little bit on the server thread
+	    // This is triggered from using the setBlock call WITHOUT Immediacy
+	    // NOTE: This is 100% utterly thread safe.
+	    int toPerform = BlockTask.blockTasks.size() / 16;
+	    toPerform = toPerform > 32 ? 32 : toPerform;
+	    
+	    // Prevent lagging the system by allocating a max amount of time
+	    while (System.currentTimeMillis() - this.lastTime < 10 && BlockTask.blockTasks.size() > 0)
+	        for (int i = 0; i < Math.min(toPerform, BlockTask.blockTasks.size()); i++)
+	            BlockTask.blockTasks.remove().set();
 	}
+
+    public static void tickChunks() // Called from command Deflood
+    {
+        for (final World w : MinecraftServer.getServer().worldServers)
+        {
+            if (w.playerEntities == null || w.playerEntities.size() == 0)
+                continue;
+            for (final Object p : w.playerEntities)
+            {
+                final EntityPlayer player = (EntityPlayer) p;
+                final ChunkCache map = FluidData.worldCache.get(w);
+                if (map == null)
+                    continue;
+                // iterate over all flagged chunks
+                for (final Chunk c : map.chunks.keySet())
+                {
+                    if (!c.isChunkLoaded)
+                        continue;// Just to be safe;
+                    // CHANGE: Square, not circular, range checking
+                    final int x = Math.abs(c.xPosition - (((int) player.posX) >> 4));
+                    final int z = Math.abs(c.zPosition - (((int) player.posZ) >> 4));
+                    if (x <= UPDATE_RANGE && z <= UPDATE_RANGE)
+                        map.priority.add(c);
+                    else if (x <= UPDATE_RANGE_FAR && z <= UPDATE_RANGE_FAR)
+                        // System.out.println("Found distant chunk: " +
+                        // map.distant.size());
+                        // if (map.distant.size() < 256)
+                        // System.out.println("Added eeet");
+                        map.distant.add(c);
+                }
+            }
+        }
+        
+        FluidManager.delegator.myStartTick = tickCounter();
+        FluidManager.delegator.worlds = MinecraftServer.getServer().worldServers.clone();
+        FluidManager.delegator.performTasks();
+    }
 
 }
