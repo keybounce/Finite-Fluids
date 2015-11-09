@@ -38,35 +38,35 @@ import cpw.mods.fml.common.gameevent.TickEvent.Phase;
 import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
 
 /* ~~~~~~~~~~~~~~~~~~General Notes on Code~~~~~~~~~~~~~~~~~~~~
- * 
+ *
  * I have a very particular naming scheme when I code.
- * 
+ *
  * abc0 refers to the FIRST or ORIGIN or whatever
  * abc1 refers to the TARGET or NEXT
  * abcn refers to the Nth target
- * 
- * For example, if we are changing fluid level; l0 is the current level, 
+ *
+ * For example, if we are changing fluid level; l0 is the current level,
  * l1 is the next level, b0 is the target block, etcetera
- * 
+ *
  * If you see "i" or "j" or "k", or a seriously shortened word (aka "dist" = "distance")
  * then it is a counter, or temp variable. The full word is regarded as a parameter or local
- * 
+ *
  * I also like to use specific letters for a range of specific things. For example,
  * world = w, Block = b, Meta = m, Random = r, Level = l, and so on.
- * 
+ *
  * Parameters which I deem to be "unclear" typically get a full name, since it
  * just helps, you know.
- * 
- * 
- * That's about all that needs to be said on this matter, so enjoy perusing. 
- * 
+ *
+ *
+ * That's about all that needs to be said on this matter, so enjoy perusing.
+ *
  * - FHT
- * 
+ *
  */
 @Mod(modid = "Realistic Fluids")
 public class RealisticFluids extends DummyModContainer
 {
-// Warning: Almost all of these settings are overrridden by the config file!
+// Warning: Almost all of these settings are overridden by the config file!
 	// /////////////////////// GENERAL SETTINGS //////////////////////
 	/** Max update quota per tick. TODO NOT MAX */
 	public static int		MAX_UPDATES			= 1024;
@@ -162,8 +162,12 @@ public class RealisticFluids extends DummyModContainer
         evt.registerServerCommand(new CommandDeflood());
     }
 
-	/** Hidden internal tick counter */
-	private static int	_tickCounter	= 0;
+    /** Hidden internal tick counter */
+    private static int	_tickCounter	= 0;
+
+    public enum RainType {NONE, SIMPLE};
+
+    public static RainType RAINTYPE        = RainType.SIMPLE;
 	/** Returns the current tick-time of this instance */
 	public static int tickCounter()
 	{
@@ -177,7 +181,7 @@ public class RealisticFluids extends DummyModContainer
 	 * Vanilla world.setBlock calls are not necessarily thread reliable. This
 	 * implementation allows us to schedule updates for the server thread, AND
 	 * allows us to set blocks a little more reliably in the EBS directly.
-	 * 
+	 *
 	 * ONLY FLAG IMMEDIACY FROM AN ENVIRONMENT WHERE WE ARE DEFINITELY THREAD
 	 * SAFE AND DO NOT CARE ABOUT THINGS LIKE HEIGHTMAPS AND LIGHTING.
 	 */
@@ -186,7 +190,7 @@ public class RealisticFluids extends DummyModContainer
 	 * Marks block for update in world coordinates. Assumes block is fluid!
 	 * Thread Safe. WARNING: THIS STATIC METHOD IS SLOW-ER. Use
 	 * {@link ChunkData#markUpdate} where possible.
-	 * 
+	 *
 	 * @param w
 	 * @param x
 	 * @param y
@@ -209,7 +213,7 @@ public class RealisticFluids extends DummyModContainer
 	 * Utterly ignores all kinds of updates which only take up out precious
 	 * clocks, and typically do not matter at all when dealing with fluids
 	 * themselves.
-	 * 
+	 *
 	 * @param w
 	 * @param c
 	 * @param ebs
@@ -223,6 +227,7 @@ public class RealisticFluids extends DummyModContainer
 	public static void setBlock(final World w, final Chunk c, ExtendedBlockStorage ebs, int x, int y, int z, final Block b, final int m,
 			final int flag)
 	{
+	    int realY = y;
 		RealisticFluids.validateModWater(w, x, y, z, b);
 
 		// EXTREME HAX
@@ -244,6 +249,9 @@ public class RealisticFluids extends DummyModContainer
 		// Warning will not flag changes very far through the system!
 		ebs.setExtBlockMetadata(x, y, z, m);
 		ebs.func_150818_a(x, y, z, b); // If there was a block
+		if (Blocks.air == b)
+		     decHeightMapForAir (c, x, realY, z);
+		else setMinimumHeightMap(c, x, realY, z);
 
 		// Allow skipping relights
 
@@ -252,7 +260,7 @@ public class RealisticFluids extends DummyModContainer
 	}
 	/**
 	 * Same as above, but metadata optimized
-	 * 
+	 *
 	 * @param w
 	 * @param c
 	 * @param ebs
@@ -301,18 +309,18 @@ public class RealisticFluids extends DummyModContainer
 	 * skips some redundant world.setBlock calls, allows skipping of light
 	 * recalculations, and allows unimportant block updates to deferred to the
 	 * server tick at a later time.
-	 * 
+	 *
 	 * <p>
 	 * Only supports flags 2 and 3, however negative versions will skip lighting
 	 * recalculations.
-	 * 
+	 *
 	 * <p>
 	 * Flag immediacy for fluid updates. Immediacy forces all kinds of hacky
 	 * things, like skipping relights and heightmap updates, and hence should
 	 * ~only~ be used with fluids! Not flagging immediacy will ship the
 	 * operation out to the server tick, where it will eventually be performed
 	 * (much more thread safe).
-	 * 
+	 *
 	 * @param w
 	 * @param x
 	 * @param y
@@ -344,6 +352,24 @@ public class RealisticFluids extends DummyModContainer
 			setBlock(w, c, ebs, x, y, z, b, m, flag);
 	}
 	
+	// Support routines. Attempt to maintain the heightMap when water or air is placed.
+
+    public static void setMinimumHeightMap(Chunk c, int cx, int y, int cz)
+    {
+        // this.heightMap[z << 4 | x] = y;
+        int heightMapIdx = cz<<4 | cx;
+        if (c.heightMap[heightMapIdx] >= y )
+            return;
+        c.heightMap[heightMapIdx] = y;
+    }
+
+    public static void decHeightMapForAir(Chunk c, int cx, int airY, int cz)
+    {
+        int heightMapIdx = cz<<4 | cx;
+        if (c.heightMap[heightMapIdx] == airY + 1)
+                c.heightMap[heightMapIdx]--;
+    }
+
 	/*
 	 * Args: World, x,y,z, and block to change to.
 	 * Checks: Block at that location is air, a finite fluid, or ...
@@ -373,7 +399,7 @@ public class RealisticFluids extends DummyModContainer
 	}
 	/**
 	 * Simple queue implementation to prevent duplicate entries. TODO Benchmark
-	 * 
+	 *
 	 * @author FHT
 	 * @param <E>
 	 */
@@ -390,9 +416,9 @@ public class RealisticFluids extends DummyModContainer
 
 	/**
 	 * Block Task Object for multiple thread access stuffs
-	 * 
+	 *
 	 * @author FHT
-	 * 
+	 *
 	 */
 	private static class BlockTask
 	{
@@ -434,7 +460,7 @@ public class RealisticFluids extends DummyModContainer
 
 	/**
 	 * Clean up after ourselves when a chunk is unloaded.
-	 * 
+	 *
 	 * @param event
 	 */
 	@SubscribeEvent
@@ -445,7 +471,7 @@ public class RealisticFluids extends DummyModContainer
 	}
 	/**
 	 * Clean up after ourselves when a world is unloaded
-	 * 
+	 *
 	 * @param event
 	 */
 	@SubscribeEvent
@@ -491,7 +517,7 @@ public class RealisticFluids extends DummyModContainer
 	             * like this is fine, since OS will just try to catch // up threads
 	             * at some point // In the long run I will switch to using thread
 	             * pools probably FluidManager.PRIORITY.run();
-	             * 
+	             *
 	             * FluidManager.TWorker.quota = tickQuota;
 	             * FluidManager.TWorker.myStartTime = tickCounter();
 	             * FluidManager.TWorker.worlds =

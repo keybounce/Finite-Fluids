@@ -1,5 +1,7 @@
 package com.mcfht.realisticfluids;
 
+import com.mcfht.realisticfluids.RealisticFluids.RainType;
+
 import net.minecraftforge.common.config.Configuration;
 
 public class FluidConfig
@@ -46,7 +48,22 @@ public class FluidConfig
         // /////////////// Absorpotion / Evaporation / Rainfall //////
         RealisticFluids.ABSORB = config.getInt("AbsorptionThreshold", "1 - General",
                 RealisticFluids.MAX_FLUID/15, 0, RealisticFluids.MAX_FLUID,
-                    "Level at which flowing water will be absorbed by mod water. For Streams, 1/15*MAX will prevent floods; 1/4th max will effectively squash worldgen floods. Less will permit extra watergen for steam engines/etc.");
+                    "Level at which flowing water will be absorbed by mod water.\n"
+                    + "For Streams, 1/15*MAX will prevent almost all floods.\n"
+                    + "Smaller values (try around 1/20th max) will permit extra watergen for steam engines/etc.\n"
+                    + "1/4th max will effectively squash worldgen floods; smaller will put some worldgen excess into oceans\n"
+                    + "Occasionally a stream will have an infinite gen spot; try 1/6th to 1/2 max to keep that under control.\n"
+                    + "If rainfall is not NONE, this can be very large.\n"
+                    + "Warning: set to " + RealisticFluids.MAX_FLUID + " at own risk\n"
+                    );
+        RealisticFluids.RAINTYPE = RainType.valueOf(
+                config.getString("Raintype", "4 - Rainfall and Evaporation", "SIMPLE",
+                        "Rainfall type. NONE = no rain or evaporation.\n"
+                        + "SIMPLE = simple rain in low biomes, no evaporation\n"
+                        + "SIMPLE attempts to refill biomes that are submerged back to sea level; the test is approximate \n"
+                        + "as Minecraft does not actually have a well-defined sea level concept. Overworld works, \n"
+                        + "mod dimensions are _hopefully_ supported well enough not to break badly\n")
+                        .toUpperCase());
 		config.save();
 	}
 

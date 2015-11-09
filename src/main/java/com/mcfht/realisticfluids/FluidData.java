@@ -264,6 +264,8 @@ public class FluidData
             // ** This routine is not actually used **
             // Synchronization of this routine is questionable at best.
             // Again, it works if everything is chunk-local implying single thread.
+            //
+            // ** DANGER ** Does not seem to ever adjust the meta-data of the block in question!
             if (l < 0)
                 throw new RuntimeException ("Attempted to flow negative fluid into a block");
             int oldLevel = getLevel(cx, cy, cz);    // Does a read sync
@@ -310,6 +312,7 @@ public class FluidData
         /*
          * Warning: Call sanity first!
          * Takes a level from 0 to 8; caller must change block if set to 0
+         * DANGER! Might not ever adjust block meta-data to match
          */
         public void setFluid8th (final int cx, final int cy, final int cz, final int level8)
         {
