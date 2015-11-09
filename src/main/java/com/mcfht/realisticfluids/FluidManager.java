@@ -1,25 +1,33 @@
 package com.mcfht.realisticfluids;
 
 import java.util.ArrayList;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
+import net.minecraft.crash.CrashReport;
+import net.minecraft.crash.CrashReportCategory;
 import net.minecraft.init.Blocks;
+import net.minecraft.util.ReportedException;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
+import net.minecraftforge.common.BiomeManager;
 
 import com.mcfht.realisticfluids.FluidData.ChunkCache;
 import com.mcfht.realisticfluids.FluidData.ChunkData;
+import com.mcfht.realisticfluids.RealisticFluids.RainType;
 import com.mcfht.realisticfluids.fluids.BlockFiniteFluid;
 import com.mcfht.realisticfluids.fluids.BlockFiniteWater;
 
 /**
  * Handles virtually all fluid calculations. Manages worker threads.
- * 
+ *
  * @author FHT
- * 
+ *
  */
 public class FluidManager
 {
@@ -47,9 +55,9 @@ public class FluidManager
 
     /**
      * Delegates tasks to different threads
-     * 
+     *
      * @author FHT
-     * 
+     *
      */
     public static class Delegator
     {
@@ -237,6 +245,7 @@ public class FluidManager
                 {
                     adjCost = thisCost >> 2;
                 }
+                @SuppressWarnings("unused")
                 int totalCost = delegator.sweepCost.addAndGet(adjCost);
             }
             this.running = false;
@@ -245,9 +254,9 @@ public class FluidManager
     }
     /**
      * Thread object to perform high priority updates
-     * 
+     *
      * @author 4HT
-     * 
+     *
      */
     public static class WorkerPriority implements Runnable
     {
@@ -289,9 +298,9 @@ public class FluidManager
 
     /**
      * Thread object to perform Trivial (aka distant) updates
-     * 
+     *
      * @author 4HT
-     * 
+     *
      */
     public static class WorkerTrivial implements Runnable
     {
@@ -345,7 +354,7 @@ public class FluidManager
 
     /**
      * Performs updates within a chunk (or more precisely, a ChunkCache object
-     * 
+     *
      * @param w
      * @param c
      * @param data
@@ -371,7 +380,7 @@ public class FluidManager
             // do evaporation, seeping, refilling in rain, and so on.
             if (FlowEnabled)
             {
-                doRandomTicks(data, i, 3, isHighPriority);
+                doRandomMinichunkTicks(data, i, 3, isHighPriority);
             }
             // No updates, exit
             if (!data.updateCounter[i] || data.updateFlags[i] == null)
@@ -413,6 +422,12 @@ public class FluidManager
                     }
             }
         }
+        // Finally, overall rainfall. This is per-chunk, not per-mini chunk, so it must be outside that loop
+        if (FlowEnabled)
+        {
+            doChunkRainfall(data, 3, isHighPriority);
+        }
+
         // TODO: Make distant chunks re-render
         return cost;
     }
@@ -420,7 +435,7 @@ public class FluidManager
     /**
      * Perform a specified number of random ticks in the 16x16x16 part of the
      * world.
-     * 
+     *
      * @param w
      * @param c
      * @param data
@@ -428,9 +443,10 @@ public class FluidManager
      * @param number
      * @param isHighPriority
      */
-    public static void doRandomTicks(final ChunkData data, final int ebsY, final int number, final boolean isHighPriority)
+    public static void doRandomMinichunkTicks(final ChunkData data, final int ebsY, final int number, final boolean isHighPriority)
     {
-
+        if (!FlowEnabled)
+            return;     // Nothing happens if fluid flow is off.
         int equalizationQuota = isHighPriority ? RealisticFluids.EQUALIZE_NEAR : RealisticFluids.EQUALIZE_FAR;
         for (int i = 0; i < number; i++)
         {
@@ -444,14 +460,15 @@ public class FluidManager
             // p_147458_3_, p_147458_4_, p_147458_5_, p_147458_6_);
             // Do rainfall and evaporation
             // First, try to move up a few blocks (aka to the top of stuff)
-            /*
-             * if (c.heightMap != null && c.heightMap[x + (z << 4)] < y + 16 &&
-             * c.heightMap[x + (z << 4)] < 255) { Block b1 = c.getBlock(x,
-             * c.heightMap[x + (z << 4)] + 1, y); if (b ==
-             * RealisticFluids.finiteWater || b == Blocks.air) doWaterFun(w, c,
-             * x, c.heightMap[x + (z << 4)] + 1, z, b); }
-             */
-
+/*              // OLD CODE, disabled, reformatted.
+            if (c.heightMap != null && c.heightMap[x + (z << 4)] < y + 16
+                    && c.heightMap[x + (z << 4)] < 255)
+            {
+                Block b1 = c.getBlock(x, c.heightMap[x + (z << 4)] + 1, y);
+                if (b == RealisticFluids.finiteWater || b == Blocks.air)
+                    doWaterFun(w, c, x, c.heightMap[x + (z << 4)] + 1, z, b);
+            }
+*/
             // doWaterFun(data, b, x, y, z);
             // Only bother doing the next part with fluids
             if (b instanceof BlockFiniteFluid && FluidEqualizer.tasks.size() < RealisticFluids.EQUALIZE_GLOBAL)
@@ -487,6 +504,134 @@ public class FluidManager
         }
     }
 
+/*
+ * Updated idea:
+ * If config is simple,
+ * And is raining (** How to test in a mod dimension??? **)
+ * And the biome at X/Z has a base height of 0 or less
+ * And the biome at X/Z permits rain
+ * And a given X/Z (three checks per chunk)'s top height is lessthan or equal to sea level (** How to test sea level?? **)
+ *
+ * world.isRaining -- test for rain
+ * ... something to determine the biome at x/z, check the root height of the biome for 0 or less
+ * (Need to know how to find the biome at x/z, there's a method for the root height)
+ * Walk Y from 255 down, find the first non-air block, see if that is below sea level
+ * (Need to figure out how to determine sea level -- "average ground level" isn't, and it's also not sea level)
+ * world.canLightningStrikeAt (x,y,z) -- test for sky exposure
+ * And if so, plop some rainwater down.
+ */
+    private static void doChunkRainfall(ChunkData data, int count, boolean isHighPriority)
+    {
+        // Test for simple config
+        if (RealisticFluids.RAINTYPE == RainType.NONE)
+            return;
+        // Test for raining
+        if (! data.w.isRaining())
+            return;
+        // Loop count times
+        for (int i=0; i<count; i++)
+            doRainOnce(data, isHighPriority);
+    }
+
+    /*
+     * Since I'm going to make massive loops on this, I'm commenting out the try block.
+     * The time cost would be significant.
+     *
+     * GRR. WASTED. Turns out I need to loop over isAirBlock, and that requires going through
+     * Block with world coordinates, and can be overridden. So I can't shortcut.
+     */
+    static Block fastGetBlockChunk(Chunk c, int cx, int cy, int cz)
+    {
+        Block block = Blocks.air;
+
+        if (cy >> 4 < c.getBlockStorageArray().length)
+        {
+            ExtendedBlockStorage extendedblockstorage = c.getBlockStorageArray()[cy >> 4];
+
+            if (extendedblockstorage != null)
+            {
+//                try
+                {
+                    block = extendedblockstorage.getBlockByExtId(cx, cy & 15, cz);
+                }
+//                catch (Throwable throwable)
+//                {
+//                    CrashReport crashreport = CrashReport.makeCrashReport(throwable, "Getting block");
+//                    CrashReportCategory crashreportcategory = crashreport.makeCategory("Block being got");
+//                    crashreportcategory.addCrashSectionCallable("Location", new Callable()
+//                    {
+//                        private static final String __OBFID = "CL_00000374";
+//                        public String call()
+//                        {
+//                            return CrashReportCategory.getLocationInfo(p_150810_1_, p_150810_2_, p_150810_3_);
+//                        }
+//                    });
+//                    throw new ReportedException(crashreport);
+//                }
+            }
+        }
+
+        return block;
+    }
+
+    static int yOfTopNonAir (World w, int wx, int wz)
+    {
+        int y;
+        @SuppressWarnings("unused")
+        Block b;
+        for (y=255; y > 0; y--)
+        {
+            b=w.getBlock(wx, y, wz);
+            if (!w.isAirBlock(wx, y, wz))
+                return y;
+        }
+        return 0;
+    }
+
+    private static void doRainOnce (ChunkData data, boolean isHighPriority)
+    {
+        // Get a position (x/z) in the chunk to test
+        final int cx = data.w.rand.nextInt(16);
+        final int cz = data.w.rand.nextInt(16);
+        final int wx = cx + (data.c.xPosition << 4);
+        final int wz = cz + (data.c.zPosition << 4);
+        // This call lets mod dimensions lie (Mystcraft, RfTools).
+        final BiomeGenBase biome = data.w.provider.getBiomeGenForCoords(wx, wz);
+        // Test for Base height below or equal 0
+        if (biome.rootHeight > 0)
+            return;
+        // Test for top block less than sea level
+        final int wy=yOfTopNonAir(data.w, wx, wz); // Where the top block is
+        final int rainY = wy+1;                     // Where the rain would go
+        //
+        // Overworld: gAGL returns 64. Water is in block 62. So:
+        //  IF wy == gAGL - 2, and is material water,
+        //     OR, if wy < gAGL-2
+        //  THEN rain in wy+1
+        final int gAGL = data.w.provider.getAverageGroundLevel();
+        if (gAGL <= rainY) // If the rain would be too high regardless
+            return;
+        // Complicated: The Y 63 block gets rain only if Y62 is water and not full.
+        // So, water and not full negates to !water or full
+        // Remember, we are writing negated tests because we are writing the abort/return cases
+        if (gAGL-1 == rainY // The y=63 block gets rain only if
+                && ( data.c.getBlock(cx, wy, cz).getMaterial() != Material.water  // Y=62 is water
+                        || data.c.getBlockMetadata(cx, wy, cz) ==0                // and it is not full
+                   )
+            )
+            return;
+        // Test for biome permits rain
+        if (0 >= biome.rainfall)
+            return;
+        if (data.w.canSnowAtBody(wz, wy, wz, false))
+            return;     // No rain in the frozen snow area!
+        // Action: Plop down water, amount based on biome humidity
+        data.w.setBlock(wx, rainY, wz, Blocks.flowing_water); // This line may be unnecessary.
+        FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz,
+                (int) (biome.rainfall*RealisticFluids.MAX_FLUID/RealisticFluids.RAINSPEED), true);
+    }
+
+    // This is unused old code.
     public static void doWaterFun(final ChunkData data, final Block b, final int x, final int y, final int z)
     {
         if (data.c.canBlockSeeTheSky(x, y, z))
@@ -495,7 +640,7 @@ public class FluidManager
             if (yRain > 0 && data.c.getHeightValue(x, z) <= yRain)
             {
                 final int wx = x + (data.c.xPosition << 4);
-                final int wz = x + (data.c.zPosition << 4);
+                final int wz = z + (data.c.zPosition << 4);
                 final BiomeGenBase biome = data.c.getBiomeGenForWorldCoords(x, z, data.w.provider.worldChunkMgr);
 
                 if (biome == BiomeGenBase.ocean || biome == BiomeGenBase.deepOcean || biome == BiomeGenBase.river)
@@ -513,7 +658,7 @@ public class FluidManager
     /**
      * Handles all the fun things that can happen when playing with water, like
      * evaporation and unicorns.
-     * 
+     *
      * @param w
      * @param c
      * @param x
@@ -529,10 +674,10 @@ public class FluidManager
 //				zz = z + (c.zPosition<<4);
 //		BiomeGenBase biome = c.getBiomeGenForWorldCoords(x, z, w.getWorldChunkManager());
 //		if (y <= 64	&& (w.isRaining() || w.isThundering())
-//				&& biome.rainfall > 0F && w.canBlockSeeTheSky(x, y, z)) 
+//				&& biome.rainfall > 0F && w.canBlockSeeTheSky(x, y, z))
 //		{
 //			System.out.println("Rain Increasing...");
-//			if (isWater) 
+//			if (isWater)
 //			{
 //				BlockFiniteFluid f = ((BlockFiniteFluid)b);
 //				int l0 = f.getLevel(w, xx, y, zz);
