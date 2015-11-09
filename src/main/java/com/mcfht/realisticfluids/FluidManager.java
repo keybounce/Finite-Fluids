@@ -577,9 +577,14 @@ public class FluidManager
     static int yOfTopNonAir (World w, int wx, int wz)
     {
         int y;
-        for (y=255; y > 0 && w.isAirBlock(wx, y, wz); y--)
-            ;
-        return y;
+        Block b;
+        for (y=255; y > 0; y--)
+        {
+            b=w.getBlock
+            if (!w.isAirBlock(wx, y, wz))
+                return y;
+        }
+        return 0;
     }
 
     private static void doRainOnce (ChunkData data, boolean isHighPriority)
