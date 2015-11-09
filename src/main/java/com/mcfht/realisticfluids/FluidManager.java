@@ -577,10 +577,11 @@ public class FluidManager
     static int yOfTopNonAir (World w, int wx, int wz)
     {
         int y;
+        @SuppressWarnings("unused")
         Block b;
         for (y=255; y > 0; y--)
         {
-            b=w.getBlock
+            b=w.getBlock(wx, y, wz);
             if (!w.isAirBlock(wx, y, wz))
                 return y;
         }
