@@ -35,7 +35,7 @@ public class CommandEnableFlow extends CommandBase implements ICommand
     @Override
     public String getCommandName()
     {
-        return "EnableFlow";
+        return "enableflow";
     }
 
     /* (non-Javadoc)
@@ -45,7 +45,7 @@ public class CommandEnableFlow extends CommandBase implements ICommand
     public String getCommandUsage(ICommandSender p_71518_1_)
     {
         // Fixme needs localizaion
-        return "EnableFlow <true|false>";
+        return "enableflow <true|anything else>";
     }
 
     /* (non-Javadoc)
@@ -84,7 +84,7 @@ public class CommandEnableFlow extends CommandBase implements ICommand
             System.out.println("Processing on Server side");
             if(args.length != 1)
             {
-                sender.addChatMessage(new ChatComponentText("Usage: EnableFlow <true|false>"));
+                sender.addChatMessage(new ChatComponentText("Usage: enableflow <true|false>"));
                 return;
             }
             FluidManager.FlowEnabled = Boolean.parseBoolean(args[0]);
