@@ -11,7 +11,7 @@ import cpw.mods.fml.relauncher.IFMLLoadingPlugin.MCVersion;
  * @author FHT
  */
 @MCVersion(value = "1.7.10")
-@IFMLLoadingPlugin.SortingIndex(1002)
+@IFMLLoadingPlugin.SortingIndex(1012) // Must be after 1001, after CofhCore. Room for someone else as well.
 
 public class ModLaunchWrapper implements cpw.mods.fml.relauncher.IFMLLoadingPlugin{
     public static final String MODID = FluidModInfo.MODID;
