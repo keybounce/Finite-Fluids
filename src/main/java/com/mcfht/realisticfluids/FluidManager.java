@@ -627,7 +627,8 @@ public class FluidManager
             return;     // No rain in the frozen snow area!
         // Action: Plop down water, amount based on biome humidity
         data.w.setBlock(wx, rainY, wz, Blocks.flowing_water); // This line may be unnecessary.
-        FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz, (int) (biome.rainfall*RealisticFluids.MAX_FLUID), true);
+        FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz,
+                (int) (biome.rainfall*RealisticFluids.MAX_FLUID/RealisticFluids.RAINSPEED), true);
     }
 
     // This is unused old code.
