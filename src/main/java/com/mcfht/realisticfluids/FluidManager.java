@@ -577,9 +577,15 @@ public class FluidManager
     static int yOfTopNonAir (World w, int wx, int wz)
     {
         int y;
-        for (y=255; y > 0 && w.isAirBlock(wx, y, wz); y--)
-            ;
-        return y;
+        @SuppressWarnings("unused")
+        Block b;
+        for (y=255; y > 0; y--)
+        {
+            b=w.getBlock(wx, y, wz);
+            if (!w.isAirBlock(wx, y, wz))
+                return y;
+        }
+        return 0;
     }
 
     private static void doRainOnce (ChunkData data, boolean isHighPriority)
@@ -621,7 +627,8 @@ public class FluidManager
             return;     // No rain in the frozen snow area!
         // Action: Plop down water, amount based on biome humidity
         data.w.setBlock(wx, rainY, wz, Blocks.flowing_water); // This line may be unnecessary.
-        FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz, (int) (biome.rainfall*RealisticFluids.MAX_FLUID), true);
+        FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz,
+                (int) (biome.rainfall*RealisticFluids.MAX_FLUID/RealisticFluids.RAINSPEED), true);
     }
 
     // This is unused old code.
