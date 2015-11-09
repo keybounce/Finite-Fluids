@@ -579,7 +579,7 @@ public class FluidManager
         int y;
         @SuppressWarnings("unused")
         Block b;
-        for (y=66; y > 0; y--)
+        for (y=67; y > 0; y--)
         {
             b=w.getBlock(wx, y, wz);
             if (!w.isAirBlock(wx, y, wz))
@@ -627,7 +627,8 @@ public class FluidManager
             return;     // No rain in the frozen snow area!
         // Action: Plop down water, amount based on biome humidity
         data.w.setBlock(wx, rainY, wz, Blocks.flowing_water); // This line may be unnecessary.
-        FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz, (int) (biome.rainfall*RealisticFluids.MAX_FLUID/20), true);
+        FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz,
+                (int) (biome.rainfall*RealisticFluids.MAX_FLUID/RealisticFluids.RAINSPEED), true);
     }
 
     // This is unused old code.

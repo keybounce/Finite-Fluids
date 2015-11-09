@@ -168,6 +168,7 @@ public class RealisticFluids extends DummyModContainer
     public enum RainType {NONE, SIMPLE};
 
     public static RainType RAINTYPE        = RainType.SIMPLE;
+    public static int RAINSPEED;
 	/** Returns the current tick-time of this instance */
 	public static int tickCounter()
 	{
