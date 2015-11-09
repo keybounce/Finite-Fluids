@@ -578,7 +578,7 @@ public class FluidManager
     {
         int y;
         Block b;
-        for (y=255; y > 0; y--)
+        for (y=70; y > 0; y--)
         {
             b=w.getBlock
             if (!w.isAirBlock(wx, y, wz))
