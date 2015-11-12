@@ -1,0 +1,15 @@
+Alpha 4.1
+- Config file now uses 0 or null (strings) to indicate "use the default"; this permits defaults
+to be changed in-code, and still let user preferences work.
+
+
+Alpha 4.0
+Introduce rainfall. 
+"SIMPLE" means if the biome's root height is 0 or less (includes some beaches), then low spots will get water.
+For this to work, "getAverageGroundLevel()" (which actually returns the minimum spawn height)
+must be two blocks or more above the water level. This matches the vanilla overworld -- spawn height 64,
+and water at 62.
+
+This model does not have evaporation, and will not refill (most) surface lakes
+
+
