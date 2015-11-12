@@ -488,7 +488,7 @@ public class RealisticFluids extends DummyModContainer
 	@SubscribeEvent
 	public void serverTick(final ServerTickEvent event)
 	{
-	    // FIXME
+	    // FIXME this.theProfiler.startSection("Flowing Fluids");
 	    if (FluidManager.FlowEnabled) // NOTE! There is a small segment at the end that happens anyways
 	    {
 	        if (event.phase == Phase.START)
