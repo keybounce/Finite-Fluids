@@ -386,7 +386,8 @@ public class RealisticFluids extends DummyModContainer
 			return;
 		if (Blocks.air == b)
 		    return;
-		throw new RuntimeException("Bad/unknown case in validateModWater! Aborting to prevent world damage");
+		throw new RuntimeException("Bad/unknown case in validateModWater! Aborting to prevent world damage. x/y/z: " 
+		    + x + y + z + "New block is " + b.getLocalizedName() + "Old block is " + old.getLocalizedName());
 	}
 
 	public static void setBlockMetadata(final World world, final int x, final int y, final int z, final int meta, final int flag)
@@ -459,18 +460,39 @@ public class RealisticFluids extends DummyModContainer
 		}
 	}
 
-	/**
-	 * Clean up after ourselves when a chunk is unloaded.
-	 *
-	 * @param event
-	 */
-	@SubscribeEvent
-	public void chunkUnload(final ChunkEvent.Unload event)
-	{
-		if (FluidData.worldCache.get(event.world) != null)
-			FluidData.worldCache.get(event.world).chunks.remove(event.getChunk());
-	}
-	/**
+    /**
+     * Clean up after ourselves when a chunk is unloaded.
+     *
+     * @param event
+     */
+    @SubscribeEvent
+    public void chunkUnload(final ChunkEvent.Unload event)
+    {
+        System.out.println("Unloading chunk " + event.getChunk().xPosition + ", " + event.getChunk().zPosition);
+        if (FluidData.worldCache.get(event.world) != null)
+            FluidData.worldCache.get(event.world).chunks.remove(event.getChunk());
+    }
+
+    /**
+     * debug tracking of chunk loads.
+     *
+     * @param event
+     */
+    @SubscribeEvent
+    public void chunkLoad(final ChunkEvent.Load event)
+    {
+        Chunk c=event.getChunk();
+        int x=c.xPosition;
+        int z=c.zPosition;
+        
+        System.out.println("Loading chunk " + x + ", " + z);
+        if (0 == x && 0 == z)
+        {
+            x = 0; // Breakpoint here
+        }
+    }
+
+    /**
 	 * Clean up after ourselves when a world is unloaded
 	 *
 	 * @param event

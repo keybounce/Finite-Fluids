@@ -484,10 +484,10 @@ public class FluidManager
                 }
                 // Benefit large bodies of water by trying to find surface
                 // blocks
-                for (int j = 0; y < 255 && j < 8 && data.w.getBlock(x, y + 1, z) instanceof BlockFiniteFluid; j++)
+                for (int j = 0; y < 255 && j < 8 && data.c.getBlock(x, y + 1, z) instanceof BlockFiniteFluid; j++)
                     y++;
 
-                if (data.w.getBlock(x, y + 1, z) != Blocks.air)
+                if (data.c.getBlock(x, y + 1, z) != Blocks.air)
                     continue;
 
                 final int level = data.getLevel(x, y, z);

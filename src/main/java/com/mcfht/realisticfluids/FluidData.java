@@ -366,15 +366,28 @@ public class FluidData
             // Guaranteed: fluidArray[] has valid data at this point,
             // without itself needing to be volatile.
 
-            int level = getFluid (cx, cy, cz);
-            int meta=c.getBlockMetadata(cx, cy, cz);
             Block b0=c.getBlock(cx, cy, cz);
+            int meta=c.getBlockMetadata(cx, cy, cz);
+            int level = getFluid (cx, cy, cz);
+            int old8th = getFluid8th (cx, cy, cz);
+            int old8AsMeta = 8-old8th;
             if (b0 instanceof BlockFiniteFluid)
             {
                 // Case 1: Test for fluid block, and 0 level.
                 // Set level based on block.
                 if (0 == level)
                 {
+                    int eights=8 - meta; // Normal 0=full, and 7=tiny
+                    if (meta > 7)   // Exception is falling liquid
+                        eights=8;    // they are treated as full
+                    setFluid8th(cx, cy, cz, eights);
+                    sanitySyncFlush();
+                }
+                else if (meta != old8AsMeta)
+                {
+                    System.out.println("Block metadata does not match fluid data! Assuming fluid"
+                        + "data is wrong. X/y/z: " + worldFromChunk(this.c.xPosition, cx) + ", "
+                        + cy + ", " + worldFromChunk(this.c.zPosition, cz));
                     int eights=8 - meta; // Normal 0=full, and 7=tiny
                     if (meta > 7)   // Exception is falling liquid
                         eights=8;    // they are treated as full
@@ -390,6 +403,11 @@ public class FluidData
             }
         }
 
+
+        private int worldFromChunk(int chunk, int offset)
+        {
+            return chunk*16 + offset;
+        }
 
         /**
          * Marks update in cx, cy, cz
