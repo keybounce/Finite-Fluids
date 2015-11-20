@@ -7,6 +7,7 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
@@ -34,6 +35,7 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.gameevent.TickEvent.Phase;
 import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
 
@@ -160,6 +162,16 @@ public class RealisticFluids extends DummyModContainer
         evt.registerServerCommand(new CommandEnableFlow());
         System.out.println("*** Deflood COMMAND ***");
         evt.registerServerCommand(new CommandDeflood());
+    }
+
+    @SubscribeEvent
+    public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
+        if (FluidManager.FlowEnabled)
+            event.player.addChatComponentMessage(new ChatComponentText(event.player.getDisplayName()
+                    + " Water and Lava flow is on. Use '/enableflow false' to turn it off"));
+        else
+            event.player.addChatComponentMessage(new ChatComponentText(event.player.getDisplayName()
+                    + " Water and Lava flow is off. Use '/enableflow true' to turn it on"));
     }
 
     /** Hidden internal tick counter */
