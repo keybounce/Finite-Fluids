@@ -302,21 +302,24 @@ public class FluidData
         public int getFluid8th(final int cx, final int cy, final int cz)
         {
             int fluid = getFluid(cx, cy, cz);
-            if (0 == fluid)
-                return 0;   // Technically, this isn't needed :-).
-            int wholePart = (fluid-1) * 8 / RealisticFluids.MAX_FLUID; // -1 gets rounding correct; 
-                                                       // consider fluid of exactly 1/8th.
-            return 1+wholePart;
+            return Util.fluidTo8th(fluid);
         }
 
         /*
          * Warning: Call sanity first!
          * Takes a level from 0 to 8; caller must change block if set to 0
-         * DANGER! Might not ever adjust block meta-data to match
+         * DANGER! Caller must adjust block meta-data to match
          */
         public void setFluid8th (final int cx, final int cy, final int cz, final int level8)
         {
-            setFluid (cx, cy, cz, level8 * (RealisticFluids.MAX_FLUID >> 3));
+         // Sadly, this gave infinite flood. 
+         //   setFluid (cx, cy, cz, level8 * RealisticFluids.MAX_FLUID/8);
+         // So let use a smaller level of fluid.
+            if (level8 > 1)
+                setFluid (cx, cy, cz, (int) ((1.0625 * (level8 - 1) + 0.3125) * RealisticFluids.MAX_FLUID/8));
+            else /* level of 0 or 1 */
+                // Deilberately set fluid for a 1/8th block to a tiny sliver
+                setFluid(cx, cy, cz, (int) (0.1 * RealisticFluids.MAX_FLUID/8) * level8);
         }
 
 /*
@@ -366,36 +369,50 @@ public class FluidData
             // Guaranteed: fluidArray[] has valid data at this point,
             // without itself needing to be volatile.
 
-            Block b0=c.getBlock(cx, cy, cz);
+            Block block=c.getBlock(cx, cy, cz);
             int meta=c.getBlockMetadata(cx, cy, cz);
-            int level = getFluid (cx, cy, cz);
+            int eights= 8 - meta; // Normal 0=full, and 7=tiny
+            if (meta > 7)   // Exception is falling liquid
+                eights=8;    // they are treated as full
+            int oldLevel = getFluid (cx, cy, cz);
             int old8th = getFluid8th (cx, cy, cz);
             int old8AsMeta = 8-old8th;
-            if (b0 instanceof BlockFiniteFluid)
+            if (block instanceof BlockFiniteFluid)
             {
                 // Case 1: Test for fluid block, and 0 level.
                 // Set level based on block.
-                if (0 == level)
+                if (0 == oldLevel)
                 {
-                    int eights=8 - meta; // Normal 0=full, and 7=tiny
-                    if (meta > 7)   // Exception is falling liquid
-                        eights=8;    // they are treated as full
                     setFluid8th(cx, cy, cz, eights);
                     sanitySyncFlush();
+//                    System.out.println("x/y/z "
+//                            + worldFromChunk(this.c.xPosition, cx) + ", "
+//                            + cy + ", " + worldFromChunk(this.c.zPosition, cz)
+//                            + " Setting fluid 8ths " + eights);
                 }
                 else if (meta != old8AsMeta)
                 {
-                    System.out.println("Block metadata does not match fluid data! Assuming fluid"
-                        + "data is wrong. X/y/z: " + worldFromChunk(this.c.xPosition, cx) + ", "
-                        + cy + ", " + worldFromChunk(this.c.zPosition, cz));
-                    int eights=8 - meta; // Normal 0=full, and 7=tiny
-                    if (meta > 7)   // Exception is falling liquid
-                        eights=8;    // they are treated as full
                     setFluid8th(cx, cy, cz, eights);
                     sanitySyncFlush();
+                    System.out.println("x/y/z "
+                            + worldFromChunk(this.c.xPosition, cx) + ", "
+                            + cy + ", " + worldFromChunk(this.c.zPosition, cz)
+                            + " Mismatch meta. Old/level " + old8th + " new/meta " + eights);
+                    meta = meta;
+                }
+//                else
+//                    System.out.println("x/y/z "
+//                            + worldFromChunk(this.c.xPosition, cx) + ", "
+//                            + cy + ", " + worldFromChunk(this.c.zPosition, cz)
+//                            + " Good match. Old/level " + old8th + " new/meta " + eights);
+
+                int newvalue=getFluid8th(cx, cy, cz);
+                if (newvalue != eights)
+                {
+                    throw new RuntimeException("Aha! Stupid math bug");
                 }
             } else {    // Case 2: Not a BlockFiniteFluid; force level to be zero
-                if (0 != level)
+                if (0 != oldLevel)
                 {
                     setFluid(cx, cy, cz, 0);
                     sanitySyncFlush();
