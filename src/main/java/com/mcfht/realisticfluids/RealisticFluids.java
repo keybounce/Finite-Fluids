@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.block.Block;
+import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
+import net.minecraft.profiler.Profiler;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
@@ -119,11 +121,13 @@ public class RealisticFluids extends DummyModContainer
 	public static boolean	ASM_DOOR			= true;
 	
 	int countSinceTickRan                       = 0;
+    public Profiler profiler;
 
 	public RealisticFluids()
 	{
-		super(new ModMetadata());
-		FluidModInfo.get(this.getMetadata());
+        super(new ModMetadata());
+        FluidModInfo.get(this.getMetadata());
+        profiler=Minecraft.getMinecraft().mcProfiler;
 	}
 
 	@Override
