@@ -113,9 +113,19 @@ public class Util
 		return out + "]";
 	}
 
+    public static int fluidTo8th(int fluid)
+    {
+        if (0 == fluid)
+            return 0;   // Technically, this isn't needed :-).
+        int wholePart = (fluid-1) * 8 / RealisticFluids.MAX_FLUID; // -1 gets rounding correct;
+        // consider fluid of exactly 1/8th.
+        return 1+wholePart;
+    }
+
 	public static int getMetaFromLevel(final int l)
 	{
-		return Math.max(0, 7 - (l / (RealisticFluids.MAX_FLUID >> 3)));
+	//	return Math.max(0, 7 - (l / (RealisticFluids.MAX_FLUID >> 3)));
+	    return 8-fluidTo8th(l);
 	}
 
 	public static int getRotationFromEntity(final World w, final int x, final int y, final int z, final EntityLivingBase placer)
