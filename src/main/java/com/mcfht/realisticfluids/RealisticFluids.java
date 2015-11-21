@@ -7,6 +7,7 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
@@ -34,6 +35,7 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
+import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.gameevent.TickEvent.Phase;
 import cpw.mods.fml.common.gameevent.TickEvent.ServerTickEvent;
 
@@ -160,6 +162,16 @@ public class RealisticFluids extends DummyModContainer
         evt.registerServerCommand(new CommandEnableFlow());
         System.out.println("*** Deflood COMMAND ***");
         evt.registerServerCommand(new CommandDeflood());
+    }
+
+    @SubscribeEvent
+    public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
+        if (FluidManager.FlowEnabled)
+            event.player.addChatComponentMessage(new ChatComponentText(event.player.getDisplayName()
+                    + " Water and Lava flow is on. Use '/enableflow false' to turn it off"));
+        else
+            event.player.addChatComponentMessage(new ChatComponentText(event.player.getDisplayName()
+                    + " Water and Lava flow is off. Use '/enableflow true' to turn it on"));
     }
 
     /** Hidden internal tick counter */
@@ -386,7 +398,8 @@ public class RealisticFluids extends DummyModContainer
 			return;
 		if (Blocks.air == b)
 		    return;
-		throw new RuntimeException("Bad/unknown case in validateModWater! Aborting to prevent world damage");
+		throw new RuntimeException("Bad/unknown case in validateModWater! Aborting to prevent world damage. x/y/z: " 
+		    + x + y + z + "New block is " + b.getLocalizedName() + "Old block is " + old.getLocalizedName());
 	}
 
 	public static void setBlockMetadata(final World world, final int x, final int y, final int z, final int meta, final int flag)
@@ -459,18 +472,39 @@ public class RealisticFluids extends DummyModContainer
 		}
 	}
 
-	/**
-	 * Clean up after ourselves when a chunk is unloaded.
-	 *
-	 * @param event
-	 */
-	@SubscribeEvent
-	public void chunkUnload(final ChunkEvent.Unload event)
-	{
-		if (FluidData.worldCache.get(event.world) != null)
-			FluidData.worldCache.get(event.world).chunks.remove(event.getChunk());
-	}
-	/**
+    /**
+     * Clean up after ourselves when a chunk is unloaded.
+     *
+     * @param event
+     */
+    @SubscribeEvent
+    public void chunkUnload(final ChunkEvent.Unload event)
+    {
+        System.out.println("Unloading chunk " + event.getChunk().xPosition + ", " + event.getChunk().zPosition);
+        if (FluidData.worldCache.get(event.world) != null)
+            FluidData.worldCache.get(event.world).chunks.remove(event.getChunk());
+    }
+
+    /**
+     * debug tracking of chunk loads.
+     *
+     * @param event
+     */
+    @SubscribeEvent
+    public void chunkLoad(final ChunkEvent.Load event)
+    {
+        Chunk c=event.getChunk();
+        int x=c.xPosition;
+        int z=c.zPosition;
+        
+        System.out.println("Loading chunk " + x + ", " + z);
+        if (0 == x && 0 == z)
+        {
+            x = 0; // Breakpoint here
+        }
+    }
+
+    /**
 	 * Clean up after ourselves when a world is unloaded
 	 *
 	 * @param event
