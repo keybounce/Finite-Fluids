@@ -62,7 +62,7 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
         this.viscosity = (RealisticFluids.MAX_FLUID >> runniness);
         this.setTickRandomly(true); // Because who cares, you know?
         this.flowRate = flowRate;
-        this.canBlockGrass = false;
+        this.canBlockGrass = true; // 4Head had this false, so grass was growing under water
     }
 
     @Override
