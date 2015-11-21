@@ -394,11 +394,11 @@ public class FluidData
                 {
                     setFluid8th(cx, cy, cz, eights);
                     sanitySyncFlush();
-                    System.out.println("x/y/z "
-                            + worldFromChunk(this.c.xPosition, cx) + ", "
-                            + cy + ", " + worldFromChunk(this.c.zPosition, cz)
-                            + " Mismatch meta. Old/level " + old8th + " new/meta " + eights);
-                    meta = meta;
+//                    System.out.println("x/y/z "
+//                            + worldFromChunk(this.c.xPosition, cx) + ", "
+//                            + cy + ", " + worldFromChunk(this.c.zPosition, cz)
+//                            + " Mismatch meta. Old/level " + old8th + " new/meta " + eights);
+//                    meta = meta;
                 }
 //                else
 //                    System.out.println("x/y/z "
