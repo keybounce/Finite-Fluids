@@ -4,7 +4,7 @@ import cpw.mods.fml.common.ModMetadata;
 public class FluidModInfo {
 
     public static final String MODID = "finitewater";
-    public static final String VERSION = "0.4.1";
+    public static final String VERSION = "0.4.2";
     public static final String AUTHOR = "FHT";
 	
 	public static void get(ModMetadata meta)
