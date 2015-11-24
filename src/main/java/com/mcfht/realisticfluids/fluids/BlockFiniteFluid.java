@@ -329,8 +329,8 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
             test = test;    // TODO mark eclipse for breakpoint
         if (test > currentMin)
             return currentMin + 1;
-        System.out.println("Min: " + string + " old " + currentMin + " new " + test +
-                " Divisor: " + String.valueOf((float)RealisticFluids.MAX_FLUID / test));
+//        System.out.println("Min: " + string + " old " + currentMin + " new " + test +
+//                " Divisor: " + String.valueOf((float)RealisticFluids.MAX_FLUID / test));
         return Math.min(currentMin + 50, (int)(test + 50));    // Does not give "min", but some fluctuation. Testing.
     }
 
@@ -365,7 +365,7 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
                     && (FluidData.getLevelWorld(data, this, x0, y0, z0) < RealisticFluids.ABSORB)
            )
         {
-            System.out.println("Absorbing fluid in mod liquid at " + x0 + ", " + y0 + ", " + z0);
+//            System.out.println("Absorbing fluid in mod liquid at " + x0 + ", " + y0 + ", " + z0);
             return 1;
         }
             // TODO: Need to test ledges. We have access to the dynamic adjustments, use them.
