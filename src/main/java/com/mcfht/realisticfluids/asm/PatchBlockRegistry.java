@@ -71,7 +71,7 @@ public class PatchBlockRegistry implements ASMPatchTask{
 						((MethodInsnNode)m.instructions.get(startIndex+4)).owner = "com/mcfht/realisticfluids/fluids/BlockFiniteWater";
 						((MethodInsnNode)m.instructions.get(startIndex+6)).owner = "com/mcfht/realisticfluids/fluids/BlockFiniteWater";
 						//Patch the opacity because be can
-						m.instructions.set(m.instructions.get(startIndex+7), new InsnNode(Opcodes.ICONST_1));
+						// m.instructions.set(m.instructions.get(startIndex+7), new InsnNode(Opcodes.ICONST_1));
 						++counter;
 					}
 					
