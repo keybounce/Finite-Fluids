@@ -81,12 +81,14 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
         // If so, then we can do our stuff.
 
         super.onBlockAdded(w, x, y, z);
-        final Block b1 = w.getBlock(x, y, z);
+        Block b1 = w.getBlock(x, y, z);
         if (b1 == this)
         {
+            // Make sure it's the non-flowing version
+            b1 = FluidData.convertFlowingStill(b1, RealisticFluids.MAX_FLUID);
             RealisticFluids.markBlockForUpdate(w, x, y, z);
             FluidData.setLevelWorld(FluidData.getChunkData(w.getChunkFromChunkCoords(x >> 4, z >> 4)),
-                                this, x, y, z, RealisticFluids.MAX_FLUID, true);
+                                (BlockFiniteFluid) b1, x, y, z, RealisticFluids.MAX_FLUID, true);
         }
 
     }
