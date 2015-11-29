@@ -749,18 +749,22 @@ public class FluidData
                     //  be solid 9's. I don't know why.
                     //if (b0.isAir(data.w, x, y, z) || b0 instanceof BlockFiniteFluid) // Second place
                     {
-                        RealisticFluids.setBlock(data.w, x, y, z, f1, m1, 2, true); // that clobbers mod stuff
+                        RealisticFluids.setBlock(data.w, x, y, z, f1, m1, 3, true); // that clobbers mod stuff
                     }
-                    return l0;
+                    return l1;
                 } else {
                     // Both realistic, same fluid, different meta, same block.
-                    RealisticFluids.setBlock(data.w, x, y, z, null, m1, -2, true);
-                    return l0;
+                    RealisticFluids.setBlock(data.w, x, y, z, null, m1, 3, true);
+                    return l1;
                 }
             } else {
             // Both realistic, same material, same meta.
-            // Do nothing
-                 return l0;
+            // ACK! But block may differ -- a water bucket places block 8 that now needs to be changed to 9.
+                 if (b0 != f1)
+                 {
+                     RealisticFluids.setBlock(data.w, x, y, z, f1, m1, 3, true);
+                 }
+                 return l1;
             }
         }
         // If we are here, then we are putting finite fluid into a block that does not have the same
@@ -771,9 +775,9 @@ public class FluidData
         //
         // New: By now, we should not have a non-finite fluid. Still can be air.
         {
-            RealisticFluids.setBlock(data.w, x, y, z, f1, m1, 2); //!! This is where mod liquids are wrecked!
+            RealisticFluids.setBlock(data.w, x, y, z, f1, m1, 3); //!! This is where mod liquids are wrecked!
         }
-        return l0;
+        return l1;
     }
 
     /**
