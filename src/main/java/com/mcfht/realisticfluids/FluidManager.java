@@ -1,21 +1,16 @@
 package com.mcfht.realisticfluids;
 
 import java.util.ArrayList;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
-import net.minecraft.crash.CrashReport;
-import net.minecraft.crash.CrashReportCategory;
 import net.minecraft.init.Blocks;
-import net.minecraft.util.ReportedException;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
-import net.minecraftforge.common.BiomeManager;
 
 import com.mcfht.realisticfluids.FluidData.ChunkCache;
 import com.mcfht.realisticfluids.FluidData.ChunkData;
@@ -77,6 +72,7 @@ public class FluidManager
 
         public void performTasks()
         {
+            RealisticFluids.startProfileSection("Perform tasks");
             // Ensure we have adequate threads
             int missing = this.threads - this.threadPool.size();
             for (int i = 0; i < missing; i++)
@@ -107,6 +103,7 @@ public class FluidManager
                 if (chunks == null)
                     continue;
 
+                RealisticFluids.startProfileSection("Near Chunks Prep");
                 for (final Chunk c : chunks.priority)
                 {
                     final ChunkData data = chunks.chunks.get(c);
@@ -126,6 +123,7 @@ public class FluidManager
                     // wt.worker.tasks.poll();
                 }
                 chunks.priority.clear();
+                RealisticFluids.endStartSection("Distant Chunk Prep");
 
                 // Now do thingimy stuffs...
                 while (chunks.distant.size() > 0)
@@ -142,6 +140,7 @@ public class FluidManager
                 }
 
                 this.threadIndex = (this.threadIndex + 1) % (this.threads / 2);
+                RealisticFluids.endProfileSection();
             }
 
             this.sweepCost.set(0);
@@ -184,6 +183,7 @@ public class FluidManager
 
 
             }
+            RealisticFluids.endProfileSection();
         }
     }
 
@@ -211,6 +211,7 @@ public class FluidManager
         @Override
         public void run()
         {
+            RealisticFluids.startProfileSection("Fluid Worker");
             // System.out.println("Fluid Worker -> " + this.tasks.size() + ", " + this.forceQuit);
 
             while (this.tasks.size() > 0 && !this.forceQuit)
@@ -250,6 +251,7 @@ public class FluidManager
             }
             this.running = false;
             this.forceQuit = false;
+            RealisticFluids.endProfileSection();
         }
     }
     /**
@@ -268,6 +270,7 @@ public class FluidManager
         @Override
         public void run()
         {
+            RealisticFluids.startProfileSection("Priority Worker");
 
             for (final World world : this.worlds)
             {
@@ -293,6 +296,7 @@ public class FluidManager
                 map.priority.clear();
 
             }
+            RealisticFluids.endProfileSection();
         }
     }
 
@@ -311,6 +315,7 @@ public class FluidManager
         @Override
         public void run()
         {
+            RealisticFluids.startProfileSection("Trivial Worker");
             // System.err.println("Running trivial updater!");
             for (final World world : this.worlds)
             {
@@ -349,6 +354,7 @@ public class FluidManager
                             map.distant.size());
                 }
             }
+            RealisticFluids.endProfileSection();
         }
     }
 
@@ -364,6 +370,7 @@ public class FluidManager
      */
     public static int doTask(final ChunkData data, final boolean isHighPriority, final int startTime)
     {
+        RealisticFluids.startProfileSection("DoTask");
         final int interval = (startTime % RealisticFluids.GLOBAL_RATE);
         int cost = 0;
         int x, y, z;
@@ -429,6 +436,7 @@ public class FluidManager
         }
 
         // TODO: Make distant chunks re-render
+        RealisticFluids.endProfileSection();
         return cost;
     }
 
@@ -445,63 +453,67 @@ public class FluidManager
      */
     public static void doRandomMinichunkTicks(final ChunkData data, final int ebsY, final int number, final boolean isHighPriority)
     {
-        if (!FlowEnabled)
-            return;     // Nothing happens if fluid flow is off.
-        int equalizationQuota = isHighPriority ? RealisticFluids.EQUALIZE_NEAR : RealisticFluids.EQUALIZE_FAR;
-        for (int i = 0; i < number; i++)
-        {
-
-            final int x = data.w.rand.nextInt(16);
-            int y = data.w.rand.nextInt(16) + (ebsY << 4);
-            final int z = data.w.rand.nextInt(16);
-
-            final Block b = data.c.getBlock(x, y, z);
-            // w.markBlockRangeForRenderUpdate(p_147458_1_, p_147458_2_,
-            // p_147458_3_, p_147458_4_, p_147458_5_, p_147458_6_);
-            // Do rainfall and evaporation
-            // First, try to move up a few blocks (aka to the top of stuff)
-/*              // OLD CODE, disabled, reformatted.
-            if (c.heightMap != null && c.heightMap[x + (z << 4)] < y + 16
-                    && c.heightMap[x + (z << 4)] < 255)
+        RealisticFluids.startProfileSection("Minichunk ticks");
+    mayBreakOut: {
+            if (!FlowEnabled)
+                break mayBreakOut;     // Nothing happens if fluid flow is off.
+            int equalizationQuota = isHighPriority ? RealisticFluids.EQUALIZE_NEAR : RealisticFluids.EQUALIZE_FAR;
+            for (int i = 0; i < number; i++)
             {
-                Block b1 = c.getBlock(x, c.heightMap[x + (z << 4)] + 1, y);
-                if (b == RealisticFluids.finiteWater || b == Blocks.air)
-                    doWaterFun(w, c, x, c.heightMap[x + (z << 4)] + 1, z, b);
-            }
-*/
-            // doWaterFun(data, b, x, y, z);
-            // Only bother doing the next part with fluids
-            if (b instanceof BlockFiniteFluid && FluidEqualizer.tasks.size() < RealisticFluids.EQUALIZE_GLOBAL)
-            {
-                // Make sure we don't overstep the equalization quota, Trivial
-                // unless QUOTAS are set low
-                if (equalizationQuota-- <= 0)
+
+                final int x = data.w.rand.nextInt(16);
+                int y = data.w.rand.nextInt(16) + (ebsY << 4);
+                final int z = data.w.rand.nextInt(16);
+
+                final Block b = data.c.getBlock(x, y, z);
+                // w.markBlockRangeForRenderUpdate(p_147458_1_, p_147458_2_,
+                // p_147458_3_, p_147458_4_, p_147458_5_, p_147458_6_);
+                // Do rainfall and evaporation
+                // First, try to move up a few blocks (aka to the top of stuff)
+    /*              // OLD CODE, disabled, reformatted.
+                if (c.heightMap != null && c.heightMap[x + (z << 4)] < y + 16
+                        && c.heightMap[x + (z << 4)] < 255)
                 {
-                    // System.out.printf("BlockTicks hit equalization quota and aborted! ");
-                    // System.out.printf("ChunkX %d, Chunk Z %d, ", data.c.xPosition, data.c.zPosition);
-                    // System.out.printf((isHighPriority ? "*HIGH* priority\n" : "Low priority\n"));
-                    continue;
+                    Block b1 = c.getBlock(x, c.heightMap[x + (z << 4)] + 1, y);
+                    if (b == RealisticFluids.finiteWater || b == Blocks.air)
+                        doWaterFun(w, c, x, c.heightMap[x + (z << 4)] + 1, z, b);
                 }
-                // Benefit large bodies of water by trying to find surface
-                // blocks
-                for (int j = 0; y < 255 && j < 8 && data.c.getBlock(x, y + 1, z) instanceof BlockFiniteFluid; j++)
-                    y++;
+    */
+                // doWaterFun(data, b, x, y, z);
+                // Only bother doing the next part with fluids
+                if (b instanceof BlockFiniteFluid && FluidEqualizer.tasks.size() < RealisticFluids.EQUALIZE_GLOBAL)
+                {
+                    // Make sure we don't overstep the equalization quota, Trivial
+                    // unless QUOTAS are set low
+                    if (equalizationQuota-- <= 0)
+                    {
+                        // System.out.printf("BlockTicks hit equalization quota and aborted! ");
+                        // System.out.printf("ChunkX %d, Chunk Z %d, ", data.c.xPosition, data.c.zPosition);
+                        // System.out.printf((isHighPriority ? "*HIGH* priority\n" : "Low priority\n"));
+                        continue;
+                    }
+                    // Benefit large bodies of water by trying to find surface
+                    // blocks
+                    for (int j = 0; y < 255 && j < 8 && data.c.getBlock(x, y + 1, z) instanceof BlockFiniteFluid; j++)
+                        y++;
 
-                if (data.c.getBlock(x, y + 1, z) != Blocks.air)
-                    continue;
+                    if (data.c.getBlock(x, y + 1, z) != Blocks.air)
+                        continue;
 
-                final int level = data.getLevel(x, y, z);
-                // Prevent spamming on flat ocean areas
-                if (level < RealisticFluids.MAX_FLUID - (RealisticFluids.MAX_FLUID / 16))
-                    if (data.w.rand.nextInt(5) == 0)
-                        // System.out.println("Smoothing...");
-                        FluidEqualizer.addSmoothTask(data.w, (data.c.xPosition << 4) + x, y, (data.c.zPosition << 4) + z,
-                                (BlockFiniteFluid) b, RealisticFluids.MAX_FLUID >> 1, 8);
-                    else
-                        FluidEqualizer.addLinearTask(data.w, (data.c.xPosition << 4) + x, y, (data.c.zPosition << 4) + z,
-                                (BlockFiniteFluid) b, isHighPriority ? RealisticFluids.EQUALIZE_NEAR_R : RealisticFluids.EQUALIZE_FAR_R, 3);
+                    final int level = data.getLevel(x, y, z);
+                    // Prevent spamming on flat ocean areas
+                    if (level < RealisticFluids.MAX_FLUID - (RealisticFluids.MAX_FLUID / 16))
+                        if (data.w.rand.nextInt(5) == 0)
+                            // System.out.println("Smoothing...");
+                            FluidEqualizer.addSmoothTask(data.w, (data.c.xPosition << 4) + x, y, (data.c.zPosition << 4) + z,
+                                    (BlockFiniteFluid) b, RealisticFluids.MAX_FLUID >> 1, 8);
+                        else
+                            FluidEqualizer.addLinearTask(data.w, (data.c.xPosition << 4) + x, y, (data.c.zPosition << 4) + z,
+                                    (BlockFiniteFluid) b, isHighPriority ? RealisticFluids.EQUALIZE_NEAR_R : RealisticFluids.EQUALIZE_FAR_R, 3);
+                }
             }
         }
+        RealisticFluids.endProfileSection();
     }
 
 /*
@@ -522,15 +534,19 @@ public class FluidManager
  */
     private static void doChunkRainfall(ChunkData data, int count, boolean isHighPriority)
     {
+        RealisticFluids.startProfileSection("Chunk Rainfall");
+    mayBreakOut: {
         // Test for simple config
         if (RealisticFluids.RAINTYPE == RainType.NONE)
-            return;
+            break mayBreakOut;
         // Test for raining
         if (! data.w.isRaining())
-            return;
+            break mayBreakOut;
         // Loop count times
         for (int i=0; i<count; i++)
             doRainOnce(data, isHighPriority);
+        }
+        RealisticFluids.endProfileSection();
     }
 
     /*
@@ -542,6 +558,7 @@ public class FluidManager
      */
     static Block fastGetBlockChunk(Chunk c, int cx, int cy, int cz)
     {
+        RealisticFluids.startProfileSection("fastGetBlock");
         Block block = Blocks.air;
 
         if (cy >> 4 < c.getBlockStorageArray().length)
@@ -571,25 +588,31 @@ public class FluidManager
             }
         }
 
+        RealisticFluids.endProfileSection();
         return block;
     }
 
     static int yOfTopNonAir (World w, int wx, int wz)
     {
-        int y;
-        @SuppressWarnings("unused")
-        Block b;
-        for (y=255; y > 0; y--)
-        {
-            b=w.getBlock(wx, y, wz);
-            if (!w.isAirBlock(wx, y, wz))
-                return y;
+        RealisticFluids.startProfileSection("yOfTopNonAir");
+        int y=0;
+    mayBreakOut: {
+            @SuppressWarnings("unused")
+            Block b;
+            for (y=255; y > 0; y--)
+            {
+                b=w.getBlock(wx, y, wz);
+                if (!w.isAirBlock(wx, y, wz))
+                    break mayBreakOut;
+            }
         }
-        return 0;
+        RealisticFluids.endProfileSection();
+        return y;
     }
 
     private static void doRainOnce (ChunkData data, boolean isHighPriority)
     {
+        RealisticFluids.startProfileSection("Rain Once");
         // Get a position (x/z) in the chunk to test
         final int cx = data.w.rand.nextInt(16);
         final int cz = data.w.rand.nextInt(16);
@@ -597,38 +620,48 @@ public class FluidManager
         final int wz = cz + (data.c.zPosition << 4);
         // This call lets mod dimensions lie (Mystcraft, RfTools).
         final BiomeGenBase biome = data.w.provider.getBiomeGenForCoords(wx, wz);
-        // Test for Base height below or equal 0
-        if (biome.rootHeight > 0)
-            return;
-        // Test for top block less than sea level
-        final int wy=yOfTopNonAir(data.w, wx, wz); // Where the top block is
-        final int rainY = wy+1;                     // Where the rain would go
-        //
-        // Overworld: gAGL returns 64. Water is in block 62. So:
-        //  IF wy == gAGL - 2, and is material water,
-        //     OR, if wy < gAGL-2
-        //  THEN rain in wy+1
-        final int gAGL = data.w.provider.getAverageGroundLevel();
-        if (gAGL <= rainY) // If the rain would be too high regardless
-            return;
-        // Complicated: The Y 63 block gets rain only if Y62 is water and not full.
-        // So, water and not full negates to !water or full
-        // Remember, we are writing negated tests because we are writing the abort/return cases
-        if (gAGL-1 == rainY // The y=63 block gets rain only if
-                && ( data.c.getBlock(cx, wy, cz).getMaterial() != Material.water  // Y=62 is water
-                        || data.c.getBlockMetadata(cx, wy, cz) ==0                // and it is not full
-                   )
-            )
-            return;
-        // Test for biome permits rain
-        if (0 >= biome.rainfall)
-            return;
-        if (data.w.canSnowAtBody(wz, wy, wz, false))
-            return;     // No rain in the frozen snow area!
-        // Action: Plop down water, amount based on biome humidity
-        data.w.setBlock(wx, rainY, wz, Blocks.flowing_water); // This line may be unnecessary.
-        FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz,
-                (int) (biome.rainfall*RealisticFluids.MAX_FLUID/RealisticFluids.RAINSPEED), true);
+    mayBreakOut: {
+            // Test for Base height below or equal 0
+            if (biome.rootHeight > 0)
+                break mayBreakOut;
+            // Test for top block less than sea level
+            final int wy=yOfTopNonAir(data.w, wx, wz); // Where the top block is
+            final int rainY = wy+1;                     // Where the rain would go
+            //
+            // UPDATE (TODO): This is too complicated. Have a routine that returns water level.
+            // That routine can do things like special-case dimension 7 vs cave worlds vs end words etc.
+            //
+            // This has the flaw that the overworld's sea level is 1.1 less than gAGL, and almost everything else
+            // has a sea level that is 0.1 less than gAGL. Except that TF has *two* different sea levels (swamps).
+            //
+            // Docs for current (needs rewrite) routine:
+            // Overworld: gAGL returns 64. Water is in block 62. So:
+            //  IF wy == gAGL - 2, and is material water,
+            //     OR, if wy < gAGL-2
+            //  THEN rain in wy+1
+            final int gAGL = data.w.provider.getAverageGroundLevel();
+            if (gAGL <= rainY) // If the rain would be too high regardless
+                break mayBreakOut;
+            // Complicated: The Y 63 block gets rain only if Y62 is water and not full.
+            // So, water and not full negates to !water or full
+            // Remember, we are writing negated tests because we are writing the abort/return cases
+            if (gAGL-1 == rainY // The y=63 block gets rain only if
+                    && ( data.c.getBlock(cx, wy, cz).getMaterial() != Material.water  // Y=62 is water
+                            || data.c.getBlockMetadata(cx, wy, cz) ==0                // and it is not full
+                       )
+                )
+                break mayBreakOut;
+            // Test for biome permits rain
+            if (0 >= biome.rainfall)
+                break mayBreakOut;
+            if (data.w.canSnowAtBody(wz, wy, wz, false))
+                break mayBreakOut;     // No rain in the frozen snow area!
+            // Action: Plop down water, amount based on biome humidity
+            data.w.setBlock(wx, rainY, wz, Blocks.flowing_water); // This line may be unnecessary.
+            FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz,
+                    (int) (biome.rainfall*RealisticFluids.MAX_FLUID/RealisticFluids.RAINSPEED), true);
+            }   // mayBreakOut
+        RealisticFluids.endProfileSection();
     }
 
     // This is unused old code.
