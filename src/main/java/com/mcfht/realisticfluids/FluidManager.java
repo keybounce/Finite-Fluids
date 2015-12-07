@@ -370,7 +370,7 @@ public class FluidManager
      */
     public static int doTask(final ChunkData data, final boolean isHighPriority, final int startTime)
     {
-        RealisticFluids.startProfileSection("DoTask");
+     //   RealisticFluids.startProfileSection("DoTask");
         final int interval = (startTime % RealisticFluids.GLOBAL_RATE);
         int cost = 0;
         int x, y, z;
@@ -436,7 +436,7 @@ public class FluidManager
         }
 
         // TODO: Make distant chunks re-render
-        RealisticFluids.endProfileSection();
+     //   RealisticFluids.endProfileSection();
         return cost;
     }
 
@@ -453,7 +453,7 @@ public class FluidManager
      */
     public static void doRandomMinichunkTicks(final ChunkData data, final int ebsY, final int number, final boolean isHighPriority)
     {
-        RealisticFluids.startProfileSection("Minichunk ticks");
+     //   RealisticFluids.startProfileSection("Minichunk ticks");
     mayBreakOut: {
             if (!FlowEnabled)
                 break mayBreakOut;     // Nothing happens if fluid flow is off.
@@ -513,7 +513,7 @@ public class FluidManager
                 }
             }
         }
-        RealisticFluids.endProfileSection();
+     //   RealisticFluids.endProfileSection();
     }
 
 /*
@@ -534,7 +534,7 @@ public class FluidManager
  */
     private static void doChunkRainfall(ChunkData data, int count, boolean isHighPriority)
     {
-        RealisticFluids.startProfileSection("Chunk Rainfall");
+     //   RealisticFluids.startProfileSection("Chunk Rainfall");
     mayBreakOut: {
         // Test for simple config
         if (RealisticFluids.RAINTYPE == RainType.NONE)
@@ -546,7 +546,7 @@ public class FluidManager
         for (int i=0; i<count; i++)
             doRainOnce(data, isHighPriority);
         }
-        RealisticFluids.endProfileSection();
+     //   RealisticFluids.endProfileSection();
     }
 
     /*

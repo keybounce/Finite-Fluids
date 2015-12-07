@@ -532,7 +532,7 @@ public class RealisticFluids extends DummyModContainer
 	    {
 	        if (event.phase == Phase.START)
 	        {
-                RealisticFluids.startProfileSection("Tick Start");
+            //    RealisticFluids.startProfileSection("Tick Start");
 	            _tickCounter += 1;
 	            countSinceTickRan++;
 	            final long timeCost = System.currentTimeMillis() - this.lastTime;
@@ -542,7 +542,7 @@ public class RealisticFluids extends DummyModContainer
 	                else if (timeCost < 40 && (_tickCounter % GLOBAL_RATE) == 1)
 	                    GLOBAL_RATE = Math.max(--GLOBAL_RATE, GLOBAL_RATE_AIM);
 	            this.lastTime = System.currentTimeMillis();
-                RealisticFluids.endProfileSection();
+           //     RealisticFluids.endProfileSection();
 	        }
 	        
 	        // System.out.println("Doing tick");
