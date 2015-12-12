@@ -17,7 +17,7 @@ buildscript {
 
 apply plugin: 'forge'
 
-version = "Alpha4.1-RainfallSimple"
+version = "Broken-crashesWhenProfiling"
 group= "com.mcfht.realisticfluids" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "RealisticFluids"
 
