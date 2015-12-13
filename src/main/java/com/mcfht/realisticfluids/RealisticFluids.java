@@ -526,7 +526,7 @@ public class RealisticFluids extends DummyModContainer
 	@SubscribeEvent
 	public void serverTick(final ServerTickEvent event)
 	{
-	 // TODO:   RealisticFluids.startProfileSection("serverTick");
+	    RealisticFluids.startProfileSection("serverTick");
 	    // FIXME
 	    if (FluidManager.FlowEnabled) // NOTE! There is a small segment at the end that happens anyways
 	    {
@@ -581,7 +581,7 @@ public class RealisticFluids extends DummyModContainer
 	    while (System.currentTimeMillis() - this.lastTime < 10 && BlockTask.blockTasks.size() > 0)
 	        for (int i = 0; i < Math.min(toPerform, BlockTask.blockTasks.size()); i++)
 	            BlockTask.blockTasks.remove().set();
-	 // TODO:      RealisticFluids.endProfileSection();
+	    RealisticFluids.endProfileSection();
 	}
 
     public static void tickChunks() // Called from command Deflood
