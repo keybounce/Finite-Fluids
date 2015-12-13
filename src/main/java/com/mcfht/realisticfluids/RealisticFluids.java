@@ -618,7 +618,7 @@ public class RealisticFluids extends DummyModContainer
             }
         }
         
-        RealisticFluids.endStartSection("tickPerform");
+     // TODO:  RealisticFluids.endStartSection("tickPerform");
         FluidManager.delegator.myStartTick = tickCounter();
         FluidManager.delegator.worlds = MinecraftServer.getServer().worldServers.clone();
         FluidManager.delegator.performTasks();
