@@ -1,5 +1,7 @@
 package com.mcfht.realisticfluids;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.block.Block;
@@ -626,19 +628,33 @@ public class RealisticFluids extends DummyModContainer
      // TODO:   RealisticFluids.endProfileSection();
     }
 
+    static Deque<String> profileTrace = new ArrayDeque<String>();
+
+    // Renaming
+
+    static void push(String s) { profileTrace.addLast(s); }
+    static String peek() {return profileTrace.peekLast(); }
+    static String pop() {return profileTrace.removeLast(); }
+    
     public static void startProfileSection(String sectionName)
     {
         Minecraft.getMinecraft().mcProfiler.startSection(sectionName);
+        push(sectionName);
     }
 
-    public static void endProfileSection()
+    public static void endProfileSection(String sectionName)
     {
+        String old = pop();
+        if (! sectionName.equals(old))
+            throw new RuntimeException("Profile mismatch!");
         Minecraft.getMinecraft().mcProfiler.endSection();
     }
 
     public static void endStartSection(String sectionName)
     {
+        pop();
         Minecraft.getMinecraft().mcProfiler.endStartSection(sectionName);
+        push(sectionName);
     }
 
 }
