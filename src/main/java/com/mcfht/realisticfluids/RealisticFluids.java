@@ -482,11 +482,11 @@ public class RealisticFluids extends DummyModContainer
     @SubscribeEvent
     public void chunkUnload(final ChunkEvent.Unload event)
     {
-     // TODO:   RealisticFluids.startProfileSection("chunkUnload");
+        RealisticFluids.startProfileSection("chunkUnload");
         System.out.println("Unloading chunk " + event.getChunk().xPosition + ", " + event.getChunk().zPosition);
         if (FluidData.worldCache.get(event.world) != null)
             FluidData.worldCache.get(event.world).chunks.remove(event.getChunk());
-     // TODO:   RealisticFluids.endProfileSection();
+        RealisticFluids.endProfileSection("chunkUnload");
     }
 
     /**
