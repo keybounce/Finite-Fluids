@@ -1,0 +1,32 @@
+
+This still crashes.
+
+One enabled profiling call.
+My calls to the profiler are double-checked to make sure I pop what I push.
+I am only profiling on chunk unload
+
+Here was the crash tail:
+
+[20:40:12] [Server thread/INFO] [STDOUT]: [com.mcfht.realisticfluids.RealisticFluids:chunkUnload:486]: Unloading chunk -24, 19
+[20:40:12] [Server thread/INFO] [STDOUT]: [com.mcfht.realisticfluids.RealisticFluids:chunkUnload:486]: Unloading chunk -24, 25
+[20:40:12] [Server thread/INFO] [STDOUT]: [com.mcfht.realisticfluids.RealisticFluids:chunkUnload:486]: Unloading chunk -24, 8
+[20:40:12] [Server thread/INFO] [STDOUT]: [com.mcfht.realisticfluids.RealisticFluids:chunkUnload:486]: Unloading chunk -24, 20
+[20:40:12] [Server thread/INFO] [STDOUT]: [com.mcfht.realisticfluids.RealisticFluids:chunkLoad:505]: Loading chunk -24, 19
+[20:40:12] [Server thread/INFO] [STDOUT]: [com.mcfht.realisticfluids.RealisticFluids:chunkLoad:505]: Loading chunk -24, 16
+[20:40:12] [Server thread/INFO] [STDOUT]: [com.mcfht.realisticfluids.RealisticFluids:chunkLoad:505]: Loading chunk -24, 24
+[20:40:12] [Server thread/INFO]: Stopping server
+[20:40:12] [Server thread/INFO]: Saving players
+...
+
+[20:40:13] [Client thread/FATAL]: Unreported exception thrown!
+java.lang.NullPointerException
+	at net.minecraft.profiler.Profiler.endSection(Profiler.java:65) ~[Profiler.class:?]
+	at net.minecraft.world.World.updateEntities(World.java:2128) ~[World.class:?]
+	at net.minecraft.client.Minecraft.runTick(Minecraft.java:2097) ~[Minecraft.class:?]
+	at net.minecraft.client.Minecraft.runGameLoop(Minecraft.java:1039) ~[Minecraft.class:?]
+	at net.minecraft.client.Minecraft.run(Minecraft.java:962) [Minecraft.class:?]
+...
+
+So this is after the unloads finish, after chunks load, in the entity code where no unload is anywhere.
+
+This makes no sense. None at all.
