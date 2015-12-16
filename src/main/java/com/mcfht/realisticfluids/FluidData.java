@@ -206,8 +206,6 @@ public class FluidData
             this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = l;
         }
 
-// diff-mark fluid-level
-
         /**
          * Gets post-sanity level in cx cy cz
          * 
