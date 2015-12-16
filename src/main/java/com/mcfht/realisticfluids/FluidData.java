@@ -177,6 +177,8 @@ public class FluidData
          */
         public int getFluid(final int cx, final int cy, final int cz)
         {
+            if (w.isRemote)
+                System.out.println("getFluid in client");
 //            Block b0=c.getBlock(cx, cy, cz);
 //            if (b0 instanceof BlockFiniteFluid)
                 return this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)];
@@ -199,6 +201,8 @@ public class FluidData
          */
         public void setFluid(final int cx, final int cy, final int cz,  int l)
         {
+            if (w.isRemote)
+                System.out.println("setFluid on client");
             if (l < 0)  // FIXME Breakpoint
             {
                 l=l;
@@ -218,6 +222,8 @@ public class FluidData
          */
         public int getLevel(final int cx, final int cy, final int cz)
         {
+            if (w.isRemote)
+                System.out.println("getLevel on client");
             sanityLevelBlock(cx, cy, cz);
             return getFluid(cx, cy, cz);
         }
@@ -242,6 +248,8 @@ public class FluidData
             //
             // Sadface. That isn't accurate. We can flow out across chunk lines. Sadface.
             //
+            if (w.isRemote)
+                System.out.println("setLevel on client");
             sanityLevelBlock(cx, cy, cz);
             setFluid(cx, cy, cz, l);
             // if (0 == l)
@@ -350,6 +358,8 @@ public class FluidData
             // Therefore, full synchronization (double-checked locking) is needed.
             //
             @SuppressWarnings("unused")
+            if (w.isRemote)
+                System.out.println("sanityLevel on client");
             boolean junk = fluidGuard[cy >> 4].value; // Read from a volatile
             if (this.fluidArray[cy >> 4] == null)
             {
@@ -545,6 +555,8 @@ public class FluidData
     public static ChunkData getChunkData(final Chunk c)
     {
         final World w = c.worldObj;
+        if (w.isRemote)
+            System.out.println("getChunkData on client");
         ChunkCache cache = worldCache.get(w);
         ChunkData data;
         if (cache == null)
@@ -634,6 +646,8 @@ public class FluidData
     {
         final Block b0 = data.c.getBlock(cx, cy, cz);
         int a = data.getLevel(cx, cy, cz);
+        if (data.w.isRemote)
+            System.out.println("getLevel on client");
         if (a == 0 && Util.isSameFluid(f0, b0))
         {
             a = data.c.getBlockMetadata(cx, cy, cz);
@@ -699,8 +713,12 @@ public class FluidData
             return 0;
         }
 
-        if (l1 > RealisticFluids.MAX_FLUID)
+        if (l1 >= RealisticFluids.MAX_FLUID)
             l1 = RealisticFluids.MAX_FLUID;
+        else
+            if (data.w.isRemote)
+                System.out.println("setLevel, for non-air, non-full, on client");
+
 
         f1 = convertFlowingStill(f1, l1);
         final Block b0 = data.c.getBlock(cx, y, cz);
