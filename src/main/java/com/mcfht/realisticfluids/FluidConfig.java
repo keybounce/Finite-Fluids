@@ -17,8 +17,10 @@ public class FluidConfig
         String RAINFALL =  "4 - Rainfall and Evaporation";
         
 		// /////////////// GENERAL STUFZ ////////////////
-		RealisticFluids.UPDATE_RANGE_FAR = config.getInt("UpdateRangeFar", "1 - General", 8, 1, 32, "Distant update range (in chunks)");
-		RealisticFluids.UPDATE_RANGE = config.getInt("UpdateRangeNear", "1 - General", 4, 1, 32, "High priority update range (in chunks)");
+		RealisticFluids.UPDATE_RANGE_FAR = config.getInt("UpdateRangeFar", "1 - General", 3, 1, 32,
+		        "Distant update range (in chunks) *SAME AS NEAR*");
+		RealisticFluids.UPDATE_RANGE = config.getInt("UpdateRangeNear", "1 - General", 3, 1, 32,
+		        "High priority update range (in chunks)");
 		// Convert to euc dist to save doing it later
         // Nope, we now do square/minecraft distance
 		// RealisticFluids.UPDATE_RANGE *= RealisticFluids.UPDATE_RANGE;
@@ -52,9 +54,9 @@ public class FluidConfig
 
         // /////////////// Absorpotion / Evaporation / Rainfall //////
         RealisticFluids.ABSORB = config.getInt("AbsorptionThreshold", "1 - General",
-                RealisticFluids.MAX_FLUID/15, 0, RealisticFluids.MAX_FLUID,
+                RealisticFluids.MAX_FLUID/12, 0, RealisticFluids.MAX_FLUID,
                     "Level at which flowing water will be absorbed by mod water.\n"
-                    + "For Streams, 1/15*MAX will prevent almost all floods.\n"
+                    + "For Streams, 1/12*MAX will prevent almost all floods.\n"
                     + "Smaller values (try around 1/20th max) will permit extra watergen for steam engines/etc.\n"
                     + "1/4th max will effectively squash worldgen floods; smaller will put some worldgen excess into oceans\n"
                     + "Occasionally a stream will have an infinite gen spot; try 1/6th to 1/2 max to keep that under control.\n"
@@ -70,7 +72,7 @@ public class FluidConfig
                         + "mod dimensions are _hopefully_ supported well enough not to break badly\n")
                         .toUpperCase());
         RealisticFluids.RAINSPEED = config.getInt("RainSpeed", RAINFALL, 20, 1, 1000,
-                "Rainfall speed, lower is faster. 1 is very fast; sane maybe 10-30.");
+                "Rainfall speed, lower is faster. 1 is very fast; sane may be 10-30.");
 		config.save();
 	}
 
