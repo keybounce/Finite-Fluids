@@ -87,7 +87,7 @@ public class FluidData
     /* Helper class. */
 
     public static class VolatileBool{
-        public volatile boolean value;
+        public /* volatile */ boolean value;
 
         public static VolatileBool[] create(int size)
         {
@@ -374,7 +374,7 @@ public class FluidData
             if (meta > 7)   // Exception is falling liquid
                 eights=8;    // they are treated as full
             int oldLevel = getFluid (cx, cy, cz);
-            int old8th = getFluid8th (cx, cy, cz);
+            int old8th = Util.fluidTo8th (oldLevel);
             int old8AsMeta = 8-old8th;
             
             // meta = block meta-value
