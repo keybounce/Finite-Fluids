@@ -67,20 +67,21 @@ public class FluidData
     public static ConcurrentHashMap<World, ChunkCache>	worldCache	= new ConcurrentHashMap<World, ChunkCache>(16);
 
     /* Volatile variable just for forcing threaded memory flushing. */
-    public static volatile int sanityFlush=0;
+    public static /* volatile */ int sanityFlush=0;
 
     /* Just to make sure that threads have a chance to flush memory. */
     public static void sanitySyncFlush()
     {
                         // Technically, this could just be a write, no read. 
-        sanityFlush++;  // It is not necessary that this have any value. 
+    //    sanityFlush++;  // It is not necessary that this have any value. 
+        // Disabling -- this won't be multithreaded, and the volitiles are actually costing.
     }
 
     /* Refresh read caches; do not need to flush write caches */
     public static int sanitySyncRead()
     {
-        int x=sanityFlush;
-        return x;
+        // int x=sanityFlush;   // Disabling -- this won't be multithreaded.
+        return 0;
     }
 
     /* Helper class. */
@@ -375,6 +376,14 @@ public class FluidData
             int oldLevel = getFluid (cx, cy, cz);
             int old8th = getFluid8th (cx, cy, cz);
             int old8AsMeta = 8-old8th;
+            
+            // meta = block meta-value
+            // eights = block height, 8 for a full block, 1 for a sliver
+            //
+            // oldLevel = stored fluid data, may be 0 if chunk is fresh off disk
+            // old8th = fluid level meta-value
+            // old8AsMeta = Fluid level height, 8 for a full block
+            
             if (block instanceof BlockFiniteFluid)
             {
                 // Case 1: Test for fluid block, and 0 level.
@@ -395,7 +404,9 @@ public class FluidData
                     System.out.println("x/y/z "
                             + worldFromChunk(this.c.xPosition, cx) + ", "
                             + cy + ", " + worldFromChunk(this.c.zPosition, cz)
-                            + " Mismatch meta. Old/level " + old8th + " new/meta " + eights);
+                            + " Mismatch meta. Old/level 8th " + old8th + " new level " + eights
+                            + " Triggered by old block meta " + meta + " old fluid claimed meta "
+                            + old8AsMeta);
                     meta = meta;
                 }
 //                else
@@ -404,11 +415,11 @@ public class FluidData
 //                            + cy + ", " + worldFromChunk(this.c.zPosition, cz)
 //                            + " Good match. Old/level " + old8th + " new/meta " + eights);
 
-                int newvalue=getFluid8th(cx, cy, cz);
-                if (newvalue != eights)
-                {
-                    throw new RuntimeException("Aha! Stupid math bug");
-                }
+//                int newvalue=getFluid8th(cx, cy, cz);
+//                if (newvalue != eights)
+//                {
+//                    throw new RuntimeException("Aha! Stupid math bug");
+//                }
             } else {    // Case 2: Not a BlockFiniteFluid; force level to be zero
                 if (0 != oldLevel)
                 {
@@ -597,22 +608,22 @@ public class FluidData
      */
     public static ChunkData forceCurrentChunkData(final ChunkData data0, final int x1, final int z1)
     {
-        try
+//        try
         {
             Chunk cOut = data0.w.getChunkFromChunkCoords(x1 >> 4, z1 >> 4);
-            if (!cOut.isChunkLoaded)
-                ;
-            {
-                // Or should this be load chunk?
-                cOut = data0.w.getChunkProvider().provideChunk(x1 >> 4, z1 >> 4);
-            }
+//            if (!cOut.isChunkLoaded)
+//                ;
+//            {
+//                // Or should this be load chunk?
+//                cOut = data0.w.getChunkProvider().provideChunk(x1 >> 4, z1 >> 4);
+//            }
             if (cOut.xPosition != data0.c.xPosition || cOut.zPosition != data0.c.zPosition)
                 return getChunkData(cOut);
             return data0;
-        } catch (final Exception e)
-        {
-            System.err.println(e.getMessage());
-            return data0;
+//        } catch (final Exception e)
+//        {
+//            System.err.println(e.getMessage());
+//            return data0;
         }
 
     }
