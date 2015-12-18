@@ -226,12 +226,12 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
                     {
                         // Pull the water down
                         FluidData.setLevel(data, this, x0 & 0xF, z0 & 0xF, x0, y0 + k, z0, l1, true);
-                        FluidData.setLevelWorld(data, this, x0, y1, z0, RealisticFluids.MAX_FLUID, true);
+                        FluidData.setLevel(data, this, x0 & 0xF, z0 & 0xF, x0, y1,     z0, RealisticFluids.MAX_FLUID, true);
                     } else
                     {
                         // Flow down
                         l0 = l0 + l1 - RealisticFluids.MAX_FLUID;
-                        FluidData.setLevelWorld(data, this, x0, y1, z0, _l0 + l1, true);
+                        FluidData.setLevel(data, this, x0 & 0xF, z0 & 0xF, x0, y1, z0, _l0 + l1, true);
                     }
 
                 }
