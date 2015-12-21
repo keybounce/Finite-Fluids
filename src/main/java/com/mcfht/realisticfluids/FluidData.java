@@ -204,7 +204,8 @@ public class FluidData
             {
                 l=l;
             }
-            this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = l;
+            int idx=cx + (cz << 4) + ((cy & 0xF) << 8);
+            this.fluidArray[cy >> 4][idx] = l;
         }
 
         /**
@@ -461,7 +462,8 @@ public class FluidData
                 }
             }
             this.updateCounter[cy >> 4] = true;
-            this.updateFlags[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)] = true;
+            int idx=cx + (cz << 4) + ((cy & 0xF) << 8);
+            this.updateFlags[cy >> 4][idx] = true;
             // System.out.println("***********DONE************");
         }
 
@@ -511,14 +513,19 @@ public class FluidData
             data.markUpdateImmediate(x & 0xF, y + 1, z & 0xF);
         if (y > 0)
             data.markUpdate(x & 0xF, y - 1, z & 0xF);
+        markNeighborsHorizontal(data, x, y, z);
 
+    }
+
+    public static void markNeighborsHorizontal(ChunkData data,
+            final int x, final int y, final int z)
+    {
         for (int i = 0; i < 4; i++)
         {
             final int x1 = (x + Util.cardinalX(i)), z1 = (z + Util.cardinalZ(i));
             data = FluidData.forceCurrentChunkData(data, x1, z1);
             data.markUpdate(x1 & 0xF, y, z1 & 0xF);
         }
-
     }
 
     /**

@@ -30,6 +30,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  */
 public class BlockFiniteFluid extends BlockDynamicLiquid
 {
+    public static final int FLOW_THRESHOLD = 8;
     /** Tendency of this liquid to flow */
     public final int	viscosity;
     /** Rate at which this liquid flows */
@@ -239,6 +240,9 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
 
             if (l0 <= 0)
             {
+                // This is: we just set ourselves to air. SetLevel has notified 6 neighbors.
+                // Do we need to notify the diagonals as well? For now, it's not going to make
+                // a large effect, so leave it.
                 FluidData.markNeighborsDiagonal(data, x0, y0, z0);
                 return;
             }
@@ -285,7 +289,7 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
                             int flow = (l0 - l1) / 2;
                             if (diag)
                                 flow -= flow / 3;
-                            if (flow >= 4 && l0 - flow >= efVisc && l1 + flow >= efVisc)
+                            if (flow >= FLOW_THRESHOLD && l0 - flow >= efVisc && l1 + flow >= efVisc)
                             {
                                 l0 -= flow;
                                 FluidData.setLevel(data, this, x1 & 0xF, z1 & 0xF, x1, y0, z1, l1 + flow, true);
