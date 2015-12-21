@@ -214,7 +214,6 @@ public class FluidManager
             if (this.tasks.size() == 0)
                 return;
             // System.out.println("Fluid Worker -> " + this.tasks.size() + ", " + this.forceQuit);
-            int blockCount=0;
 
             while (this.tasks.size() > 0 && !this.forceQuit)
             {
@@ -243,17 +242,16 @@ public class FluidManager
 
                 int thisCost = doTask(task.data, task.isHighPriority, task.myStartTick);
                 int adjCost = thisCost;
-                blockCount += thisCost;
 
-                if (task.isHighPriority)
-                {
-                    adjCost = thisCost >> 2;
-                }
+//                if (task.isHighPriority)
+//                {
+//                    adjCost = thisCost >> 2;
+//                }
                 @SuppressWarnings("unused")
                 int totalCost = delegator.sweepCost.addAndGet(adjCost);
             }
-            if (blockCount > 35500)
-                System.out.println("Too many liquid blocks; total blocks " + blockCount);
+            if (delegator.sweepCost.get() > 35500)
+                System.out.println("Too many liquid blocks; total blocks " + delegator.sweepCost.get());
             this.running = false;
             this.forceQuit = false;
         }
