@@ -17,16 +17,16 @@ public class FluidConfig
         String RAINFALL =  "4 - Rainfall and Evaporation";
         
 		// /////////////// GENERAL STUFZ ////////////////
-		RealisticFluids.UPDATE_RANGE_FAR = config.getInt("UpdateRangeFar", "1 - General", 3, 1, 32,
+		RealisticFluids.UPDATE_RANGE_FAR = config.getInt("UpdateRangeFar", "1 - General", 4, 1, 32,
 		        "Distant update range (in chunks) *SAME AS NEAR*");
-		RealisticFluids.UPDATE_RANGE = config.getInt("UpdateRangeNear", "1 - General", 3, 1, 32,
+		RealisticFluids.UPDATE_RANGE = config.getInt("UpdateRangeNear", "1 - General", 2, 1, 32,
 		        "High priority update range (in chunks)");
 		// Convert to euc dist to save doing it later
         // Nope, we now do square/minecraft distance
 		// RealisticFluids.UPDATE_RANGE *= RealisticFluids.UPDATE_RANGE;
 		// RealisticFluids.UPDATE_RANGE_FAR *= RealisticFluids.UPDATE_RANGE_FAR;
 
-		RealisticFluids.FAR_UPDATES = config.getInt("globalFarUpdates", "1 - General", 2048, 0, 10000000,
+		RealisticFluids.FAR_UPDATES = config.getInt("globalFarUpdates", "1 - General", 30000, 0, 10000000,
 				"Estimate of max number of distant block updates");
 		RealisticFluids.MAX_UPDATES = config.getInt("globalNearUpdates", "1 - General", 1024, 0, 10000000,
 				"Immediate update Factor. WIP! Currently not implemented at all");
