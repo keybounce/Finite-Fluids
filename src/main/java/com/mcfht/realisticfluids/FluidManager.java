@@ -214,7 +214,6 @@ public class FluidManager
             if (this.tasks.size() == 0)
                 return;
             // System.out.println("Fluid Worker -> " + this.tasks.size() + ", " + this.forceQuit);
-            int blockCount=0;
 
             while (this.tasks.size() > 0 && !this.forceQuit)
             {
@@ -243,15 +242,16 @@ public class FluidManager
 
                 int thisCost = doTask(task.data, task.isHighPriority, task.myStartTick);
                 int adjCost = thisCost;
-                blockCount += thisCost;
 
-                if (task.isHighPriority)
-                {
-                    adjCost = thisCost >> 2;
-                }
+//                if (task.isHighPriority)
+//                {
+//                    adjCost = thisCost >> 2;
+//                }
                 @SuppressWarnings("unused")
                 int totalCost = delegator.sweepCost.addAndGet(adjCost);
             }
+            if (delegator.sweepCost.get() > 35500)
+                System.out.println("Too many liquid blocks; total blocks " + delegator.sweepCost.get());
             this.running = false;
             this.forceQuit = false;
         }
@@ -400,6 +400,10 @@ public class FluidManager
             }
             data.updateFlags[i] = new boolean[4096];	// Yes, this is GC churn. These will still get set, just ignored.
 
+            // cost += Math.max(16, t.updateCounter[i] >> 6); //Moved this to
+            // the end
+
+            // ///////////////////////////////////////////////////////////////////////////////////
             if (FlowEnabled)
             {
                 for (int j = 0; j < 4096; j++)
