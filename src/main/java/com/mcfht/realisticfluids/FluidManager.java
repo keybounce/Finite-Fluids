@@ -230,8 +230,9 @@ public class FluidManager
 
                 if (!task.isHighPriority && delegator.sweepCost.get() > RealisticFluids.FAR_UPDATES)
                 {
-                    // System.out.printf("Fluid Worker aborting low priority queue! Sweep cost %d, Far Updates %d\n",
-                    //         delegator.sweepCost.get(), RealisticFluids.FAR_UPDATES);
+                    System.out.println("Fluid Worker aborting low priority queue! Sweep cost "
+                            + delegator.sweepCost.get()
+                            + " Far Updates " + RealisticFluids.FAR_UPDATES);
                 
                     break;
                 }
@@ -272,7 +273,7 @@ public class FluidManager
         @Override
         public void run()
         {
-
+            System.out.println("Worker Priority");
             for (final World world : this.worlds)
             {
                 // There are no players, so there is no point
@@ -315,7 +316,7 @@ public class FluidManager
         @Override
         public void run()
         {
-            // System.err.println("Running trivial updater!");
+            System.out.println("Running trivial updater!");
             for (final World world : this.worlds)
             {
                 // There are no players, so there is no point
@@ -372,6 +373,10 @@ public class FluidManager
         int cost = 0;
         int x, y, z;
 
+        // Debugging 
+        if (-33 == data.c.xPosition && -30 == data.c.zPosition)
+            cost = 0;   // breakpoint!
+        
         // Iterate over each
         for (int i = 0; i < 16; i++)
         {
@@ -400,10 +405,6 @@ public class FluidManager
             }
             data.updateFlags[i] = new boolean[4096];	// Yes, this is GC churn. These will still get set, just ignored.
 
-            // cost += Math.max(16, t.updateCounter[i] >> 6); //Moved this to
-            // the end
-
-            // ///////////////////////////////////////////////////////////////////////////////////
             if (FlowEnabled)
             {
                 for (int j = 0; j < 4096; j++)
