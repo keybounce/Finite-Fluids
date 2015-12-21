@@ -292,7 +292,10 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
                             if (flow >= FLOW_THRESHOLD && l0 - flow >= efVisc && l1 + flow >= efVisc)
                             {
                                 l0 -= flow;
-                                FluidData.setLevel(data, this, x1 & 0xF, z1 & 0xF, x1, y0, z1, l1 + flow, true);
+                                // This is update reduction number 1. set Level would normally mark all neighbors.
+                                // We don't want to notify the block under us.
+                                FluidData.setLevel(data, this, x1 & 0xF, z1 & 0xF, x1, y0, z1, l1 + flow, false);
+                                FluidData.markNeighborsHorizontal(data, x1, y0, z1);
                                 if (l0 < (efVisc >> 2))
                                 {
                                     data = FluidData.forceCurrentChunkData(data, x0, z0);
