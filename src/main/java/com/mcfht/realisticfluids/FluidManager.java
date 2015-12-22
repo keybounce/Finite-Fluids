@@ -211,6 +211,7 @@ public class FluidManager
         @Override
         public void run()
         {
+            int totalCost = 0;
             if (this.tasks.size() == 0)
                 return;
             // System.out.println("Fluid Worker -> " + this.tasks.size() + ", " + this.forceQuit);
@@ -247,11 +248,10 @@ public class FluidManager
 //                {
 //                    adjCost = thisCost >> 2;
 //                }
-                @SuppressWarnings("unused")
-                int totalCost = delegator.sweepCost.addAndGet(adjCost);
+                totalCost = delegator.sweepCost.addAndGet(adjCost);
             }
-            if (delegator.sweepCost.get() > 35500)
-                System.out.println("Too many liquid blocks; total blocks " + delegator.sweepCost.get());
+            if (totalCost > 27000)
+                System.out.println("Too many liquid blocks; total blocks " + totalCost);
             this.running = false;
             this.forceQuit = false;
         }
