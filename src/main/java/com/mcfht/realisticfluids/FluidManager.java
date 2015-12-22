@@ -155,9 +155,9 @@ public class FluidManager
             // write and the server to read, otherwise there is no proper transmission
             // of data to the server thread.
             //
-            // That will be alpha 4; alpha 3 is just fixing streams compatibility and
-            // lets see if there's a reasonable set of rainfall/evaporation.
-            // Also: No drain out the void!
+            // Current status: The volatile stuff is there, but disabled. None of the
+            // signalling/control is there. Ultimately, I'd want a single queue of work
+            // that is read by all the threads.
 
             for (final WorkerThread wt : this.threadPool)
             {
