@@ -155,9 +155,9 @@ public class FluidManager
             // write and the server to read, otherwise there is no proper transmission
             // of data to the server thread.
             //
-            // That will be alpha 4; alpha 3 is just fixing streams compatibility and
-            // lets see if there's a reasonable set of rainfall/evaporation.
-            // Also: No drain out the void!
+            // Current status: The volatile stuff is there, but disabled. None of the
+            // signalling/control is there. Ultimately, I'd want a single queue of work
+            // that is read by all the threads.
 
             for (WorkerThread wt: this.threadPool)
             {
@@ -217,6 +217,7 @@ public class FluidManager
         @Override
         public void run()
         {
+            int totalCost = 0;
             if (this.tasks.size() == 0)
                 return;
             // System.out.println("Fluid Worker -> " + this.tasks.size() + ", " + this.forceQuit);
@@ -254,11 +255,10 @@ public class FluidManager
 //                {
 //                    adjCost = thisCost >> 2;
 //                }
-                @SuppressWarnings("unused")
-                int totalCost = delegator.sweepCost.addAndGet(adjCost);
+                totalCost = delegator.sweepCost.addAndGet(adjCost);
             }
-            if (delegator.sweepCost.get() > 35500)
-                System.out.println("Too many liquid blocks; total blocks " + delegator.sweepCost.get());
+            if (totalCost > 27000)
+                System.out.println("Too many liquid blocks; total blocks " + totalCost);
             this.running = false;
             this.forceQuit = false;
         }
