@@ -159,6 +159,12 @@ public class FluidManager
             // lets see if there's a reasonable set of rainfall/evaporation.
             // Also: No drain out the void!
 
+            for (WorkerThread wt: this.threadPool)
+            {
+                System.out.printf("%d ", wt.worker.tasks.size());
+            }
+            System.out.printf("\n");
+            
             for (final WorkerThread wt : this.threadPool)
             {
                 // if (wt.worker.tasks.size() > 0 && !wt.worker.running)
