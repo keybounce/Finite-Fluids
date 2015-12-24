@@ -200,9 +200,9 @@ public class FluidData
          */
         public void setFluid(final int cx, final int cy, final int cz,  int l)
         {
-            if (l < 0)  // FIXME Breakpoint
+            if (l < 0)
             {
-                l=l;
+                l=l;  // BREAKPOINT:
             }
             int idx=cx + (cz << 4) + ((cy & 0xF) << 8);
             this.fluidArray[cy >> 4][idx] = l;

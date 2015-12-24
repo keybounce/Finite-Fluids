@@ -1,22 +1,19 @@
 package com.mcfht.realisticfluids;
 
 import java.util.ArrayList;
-import java.util.concurrent.Callable;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
-import net.minecraft.crash.CrashReport;
-import net.minecraft.crash.CrashReportCategory;
 import net.minecraft.init.Blocks;
-import net.minecraft.util.ReportedException;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
-import net.minecraftforge.common.BiomeManager;
-
 import com.mcfht.realisticfluids.FluidData.ChunkCache;
 import com.mcfht.realisticfluids.FluidData.ChunkData;
 import com.mcfht.realisticfluids.RealisticFluids.RainType;
@@ -51,6 +48,23 @@ public class FluidManager
             this.thread = new Thread(worker);
             this.worker = worker;
         }
+    }
+
+    public static Object peek(Collection<?> set)
+    {
+        Iterator<?> i = set.iterator();
+        if (i.hasNext())
+            return i.next();
+        return null;
+    }
+
+    public static Object pop(Collection<?> set)
+    {
+        Object e;
+        Iterator<?> i = set.iterator();
+        e = i.next();   // ** Throws! if empty!
+        set.remove(e);
+        return e;
     }
 
     /**
