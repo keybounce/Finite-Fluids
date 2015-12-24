@@ -79,8 +79,15 @@ public class FluidManager
         public int						myStartTick;
         public World[]					worlds;
 
-        // Dun saturate
-        public final int				threads		= Math.max(2, (RealisticFluids.CORES - 2) >> 1 << 1);
+        // Don't saturate
+        // public final int				threads		= Math.max(2, (RealisticFluids.CORES - 2) >> 1 << 1);
+        // Officially saying "don't pretend to be multitasking" anymore.
+        public final int                threads     = 2;    // Code has separate NEAR and FAR queues.
+        public final int                NEAR_THREAD = 0;
+        public final int                FAR_THREAD  = 1;
+
+        public LinkedHashSet<Chunk>            nearChunkSet = new LinkedHashSet<Chunk>();
+        public LinkedHashSet<Chunk>            farChunkSet = new LinkedHashSet<Chunk>();
 
         // Cycle through the available threads
         public int						threadIndex	= 0;
@@ -133,7 +140,11 @@ public class FluidManager
 
                     wt = this.threadPool.get(this.threadIndex);
                     wt.worker.tasks.add(new Task(data, true, this.myStartTick));
+                    nearChunkSet.add(c);    // Always track this as a near chunk
+                    farChunkSet.remove(c);  // Whether it was in far before or not, it's not now.
 
+                    // FIXME("Need to remove that task from the far thread's task list");
+                    
                     // attempt to prevent task queue flooding
                     // if (wt.worker.tasks.size() > 320)
                     // for (int i = 0; i < 8; i++)
@@ -144,13 +155,16 @@ public class FluidManager
                 // Now do thingimy stuffs...
                 while (chunks.distant.size() > 0)
                 {
-                    final Chunk c = chunks.distant.poll();
+                    final Chunk c = (Chunk) pop(chunks.distant);
 
+                    if (nearChunkSet.contains(c) || farChunkSet.contains(c))
+                        continue;
+                    
                     final ChunkData data = chunks.chunks.get(c);
                     if (data == null || !c.isChunkLoaded)
                         continue;
 
-                    
+                    farChunkSet.add(c);
                     final WorkerThread wt = this.threadPool.get(this.threadIndex + this.threads / 2);
                     wt.worker.tasks.add(new Task(data, false, this.myStartTick));
                 }
@@ -255,6 +269,10 @@ public class FluidManager
                 // this.cost = 32 + doTask(task.data, task.isHighPriority,
                 // task.myStartTick);
 
+                // remove this chunk from the tracking sets, so it can be done again in the future
+                delegator.nearChunkSet.remove(task.data.c);
+                delegator.farChunkSet.remove(task.data.c);
+                
                 int thisCost = doTask(task.data, task.isHighPriority, task.myStartTick);
                 int adjCost = thisCost;
 
@@ -352,7 +370,7 @@ public class FluidManager
                 {
                     // Select a random distant chunk
                     // int i = world.rand.nextInt(map.distant.size());
-                    final Chunk c = map.distant.poll(); // can we just do 0?
+                    final Chunk c = (Chunk) pop(map.distant); // can we just do 0?
                     // map.distant.remove(c);
 
                     final ChunkData data = map.chunks.get(c);
