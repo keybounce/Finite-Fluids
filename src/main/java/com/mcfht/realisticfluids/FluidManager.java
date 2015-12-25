@@ -1,22 +1,19 @@
 package com.mcfht.realisticfluids;
 
 import java.util.ArrayList;
-import java.util.concurrent.Callable;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
-import net.minecraft.crash.CrashReport;
-import net.minecraft.crash.CrashReportCategory;
 import net.minecraft.init.Blocks;
-import net.minecraft.util.ReportedException;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
-import net.minecraftforge.common.BiomeManager;
-
 import com.mcfht.realisticfluids.FluidData.ChunkCache;
 import com.mcfht.realisticfluids.FluidData.ChunkData;
 import com.mcfht.realisticfluids.RealisticFluids.RainType;
@@ -53,6 +50,23 @@ public class FluidManager
         }
     }
 
+    public static Object peek(Collection<?> set)
+    {
+        Iterator<?> i = set.iterator();
+        if (i.hasNext())
+            return i.next();
+        return null;
+    }
+
+    public static Object pop(Collection<?> set)
+    {
+        Object e;
+        Iterator<?> i = set.iterator();
+        e = i.next();   // ** Throws! if empty!
+        set.remove(e);
+        return e;
+    }
+
     /**
      * Delegates tasks to different threads
      *
@@ -65,8 +79,15 @@ public class FluidManager
         public int						myStartTick;
         public World[]					worlds;
 
-        // Dun saturate
-        public final int				threads		= Math.max(2, (RealisticFluids.CORES - 2) >> 1 << 1);
+        // Don't saturate
+        // public final int				threads		= Math.max(2, (RealisticFluids.CORES - 2) >> 1 << 1);
+        // Officially saying "don't pretend to be multitasking" anymore.
+        public final int                threads     = 2;    // Code has separate NEAR and FAR queues.
+        public final int                NEAR_THREAD = 0;
+        public final int                FAR_THREAD  = 1;
+
+        public LinkedHashSet<Chunk>            nearChunkSet = new LinkedHashSet<Chunk>();
+        public LinkedHashSet<Chunk>            farChunkSet = new LinkedHashSet<Chunk>();
 
         // Cycle through the available threads
         public int						threadIndex	= 0;
@@ -119,7 +140,11 @@ public class FluidManager
 
                     wt = this.threadPool.get(this.threadIndex);
                     wt.worker.tasks.add(new Task(data, true, this.myStartTick));
+                    nearChunkSet.add(c);    // Always track this as a near chunk
+                    farChunkSet.remove(c);  // Whether it was in far before or not, it's not now.
 
+                    // FIXME("Need to remove that task from the far thread's task list");
+                    
                     // attempt to prevent task queue flooding
                     // if (wt.worker.tasks.size() > 320)
                     // for (int i = 0; i < 8; i++)
@@ -130,13 +155,16 @@ public class FluidManager
                 // Now do thingimy stuffs...
                 while (chunks.distant.size() > 0)
                 {
-                    final Chunk c = chunks.distant.poll();
+                    final Chunk c = (Chunk) pop(chunks.distant);
 
+                    if (nearChunkSet.contains(c) || farChunkSet.contains(c))
+                        continue;
+                    
                     final ChunkData data = chunks.chunks.get(c);
                     if (data == null || !c.isChunkLoaded)
                         continue;
 
-                    
+                    farChunkSet.add(c);
                     final WorkerThread wt = this.threadPool.get(this.threadIndex + this.threads / 2);
                     wt.worker.tasks.add(new Task(data, false, this.myStartTick));
                 }
@@ -159,6 +187,12 @@ public class FluidManager
             // signalling/control is there. Ultimately, I'd want a single queue of work
             // that is read by all the threads.
 
+            for (WorkerThread wt: this.threadPool)
+            {
+                System.out.printf("%d ", wt.worker.tasks.size());
+            }
+            System.out.printf("\n");
+            
             for (final WorkerThread wt : this.threadPool)
             {
                 // if (wt.worker.tasks.size() > 0 && !wt.worker.running)
@@ -221,7 +255,7 @@ public class FluidManager
                 this.running = true;
                 // System.out.println("Fluid Worker stuffing!");
 
-                final Task task = this.tasks.poll();
+                final Task task = this.tasks.peek();
 
                 if (task == null)
                     continue;
@@ -231,16 +265,22 @@ public class FluidManager
 
                 if (!task.isHighPriority && delegator.sweepCost.get() > RealisticFluids.FAR_UPDATES)
                 {
-                    // System.out.printf("Fluid Worker aborting low priority queue! Sweep cost %d, Far Updates %d\n",
-                    //         delegator.sweepCost.get(), RealisticFluids.FAR_UPDATES);
-                
+                    System.out.println("*** Fluid Worker aborting low priority queue! Sweep cost "
+                            + delegator.sweepCost.get()
+                            + " Far Updates " + RealisticFluids.FAR_UPDATES);
                     break;
                 }
+                
+                this.tasks.remove(task);
 
                 // System.out.println("Doing task!");
                 // this.cost = 32 + doTask(task.data, task.isHighPriority,
                 // task.myStartTick);
 
+                // remove this chunk from the tracking sets, so it can be done again in the future
+                delegator.nearChunkSet.remove(task.data.c);
+                delegator.farChunkSet.remove(task.data.c);
+                
                 int thisCost = doTask(task.data, task.isHighPriority, task.myStartTick);
                 int adjCost = thisCost;
 
@@ -338,7 +378,7 @@ public class FluidManager
                 {
                     // Select a random distant chunk
                     // int i = world.rand.nextInt(map.distant.size());
-                    final Chunk c = map.distant.poll(); // can we just do 0?
+                    final Chunk c = (Chunk) pop(map.distant); // can we just do 0?
                     // map.distant.remove(c);
 
                     final ChunkData data = map.chunks.get(c);

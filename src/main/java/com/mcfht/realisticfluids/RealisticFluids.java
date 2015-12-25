@@ -1,6 +1,5 @@
 package com.mcfht.realisticfluids;
 
-import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.block.Block;
@@ -480,9 +479,13 @@ public class RealisticFluids extends DummyModContainer
     @SubscribeEvent
     public void chunkUnload(final ChunkEvent.Unload event)
     {
-        System.out.println("Unloading chunk " + event.getChunk().xPosition + ", " + event.getChunk().zPosition);
+        // System.out.println("Unloading chunk " + event.getChunk().xPosition + ", " + event.getChunk().zPosition);
         if (FluidData.worldCache.get(event.world) != null)
             FluidData.worldCache.get(event.world).chunks.remove(event.getChunk());
+        
+        // FIXME: Have to remove from the tracking queues and the task lists.
+        // FIXME: Leaks the world otherwise?
+        // FIXME: How to track chunk x/z in dimension 0 from x/z in dimension -1?
     }
 
     /**
@@ -497,7 +500,7 @@ public class RealisticFluids extends DummyModContainer
         int x=c.xPosition;
         int z=c.zPosition;
         
-        System.out.println("Loading chunk " + x + ", " + z);
+        // System.out.println("Loading chunk " + x + ", " + z);
         if (0 == x && 0 == z)
         {
             x = 0; // Breakpoint here
@@ -522,7 +525,6 @@ public class RealisticFluids extends DummyModContainer
 	@SubscribeEvent
 	public void serverTick(final ServerTickEvent event)
 	{
-	    // FIXME
 	    if (FluidManager.FlowEnabled) // NOTE! There is a small segment at the end that happens anyways
 	    {
 	        if (event.phase == Phase.START)
