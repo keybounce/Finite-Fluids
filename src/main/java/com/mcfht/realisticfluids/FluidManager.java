@@ -116,6 +116,7 @@ public class FluidManager
                 FirstRunFlag = false;
             }
 
+            System.out.println("Near size" + nearChunkSet.size() + "far size" + farChunkSet.size());
             for (final World world : this.worlds)
             {
                 // There are no players, so there is no point
@@ -170,6 +171,8 @@ public class FluidManager
                 }
 
                 this.threadIndex = (this.threadIndex + 1) % (this.threads / 2);
+                if (chunks.distant.size() != 0)
+                    System.out.println("@@@@ Non-empty distant!!, size" + chunks.distant.size());
             }
 
             this.sweepCost.set(0);
