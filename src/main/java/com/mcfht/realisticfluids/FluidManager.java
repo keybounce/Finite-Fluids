@@ -187,11 +187,11 @@ public class FluidManager
             // signalling/control is there. Ultimately, I'd want a single queue of work
             // that is read by all the threads.
 
-            for (WorkerThread wt: this.threadPool)
-            {
-                System.out.printf("%d ", wt.worker.tasks.size());
-            }
-            System.out.printf("\n");
+//            for (WorkerThread wt: this.threadPool)
+//            {
+//                System.out.printf("%d ", wt.worker.tasks.size());
+//            }
+//            System.out.printf("\n");
             
             for (final WorkerThread wt : this.threadPool)
             {
