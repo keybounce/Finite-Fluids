@@ -187,6 +187,12 @@ public class FluidManager
             // signalling/control is there. Ultimately, I'd want a single queue of work
             // that is read by all the threads.
 
+            for (WorkerThread wt: this.threadPool)
+            {
+                System.out.printf("%d ", wt.worker.tasks.size());
+            }
+            System.out.printf("\n");
+            
             for (final WorkerThread wt : this.threadPool)
             {
                 // if (wt.worker.tasks.size() > 0 && !wt.worker.running)
@@ -249,7 +255,7 @@ public class FluidManager
                 this.running = true;
                 // System.out.println("Fluid Worker stuffing!");
 
-                final Task task = this.tasks.poll();
+                final Task task = this.tasks.peek();
 
                 if (task == null)
                     continue;
@@ -259,11 +265,13 @@ public class FluidManager
 
                 if (!task.isHighPriority && delegator.sweepCost.get() > RealisticFluids.FAR_UPDATES)
                 {
-                    // System.out.printf("Fluid Worker aborting low priority queue! Sweep cost %d, Far Updates %d\n",
-                    //         delegator.sweepCost.get(), RealisticFluids.FAR_UPDATES);
-                
+                    System.out.println("*** Fluid Worker aborting low priority queue! Sweep cost "
+                            + delegator.sweepCost.get()
+                            + " Far Updates " + RealisticFluids.FAR_UPDATES);
                     break;
                 }
+                
+                this.tasks.remove(task);
 
                 // System.out.println("Doing task!");
                 // this.cost = 32 + doTask(task.data, task.isHighPriority,
