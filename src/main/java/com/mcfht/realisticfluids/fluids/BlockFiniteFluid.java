@@ -190,7 +190,7 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
                         minwater = Math.min(RealisticFluids.MAX_FLUID,
                                         adjustMinFluid(minwater, "water", _l0));
                     }
-                } else { // TODO visible mark on the scrollbar
+                } else {
                     if (Material.lava == this.getMaterial())
                     {
                         minlavaledge = adjustMinFluid(minlavaledge, "lava ledge", _l0);
@@ -334,7 +334,7 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
         }
     }
 
-    private int adjustMinFluid(int currentMin, String string, int test) // FIXME Breakpoint
+    private int adjustMinFluid(int currentMin, String string, int test)
     {
         if (test < 5)
             test = test;    // TODO mark eclipse for breakpoint

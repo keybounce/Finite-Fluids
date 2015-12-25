@@ -40,6 +40,7 @@ package com.mcfht.realisticfluids;
 //      But that would require evaporation to be scheduled/dependable, not random block ticks.
 
 
+import java.util.LinkedHashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -107,12 +108,25 @@ public class FluidData
      */
     static class ChunkCache
     {
+        /*
+         *  ** CHANGE **
+         *  Old: These were ConcurrentLinkedQueue for the priority and distant.
+         *  New: They are now LinkedHashSet. If concurrency is desired, there's a concurrent wrapper
+         */
         /** A map linking chunks to their chunk data */
         public ConcurrentHashMap<Chunk, ChunkData>	chunks;
+        
+        // These two do not gain much from being uniqued. Basically, block updates can
+        // make more entries in the list before the list is processed in the server tick.
+        //
+        // Of course, if flow is off, and the ticks accumulate, then there could be a lot
+        // of duplicates. But the actual task list is controlled by the 
+        // Delegator.nearChunkSet/farChunkSet pair.
+        
         /** Set of chunk updates to be performed with PRIORITY */
-        public ConcurrentLinkedQueue<Chunk>			priority	= new ConcurrentLinkedQueue<Chunk>();
+        public LinkedHashSet<Chunk>			priority	= new LinkedHashSet<Chunk>();
         /** Set of distant chunks to be updated if we have time */
-        public ConcurrentLinkedQueue<Chunk>			distant		= new ConcurrentLinkedQueue<Chunk>();
+        public LinkedHashSet<Chunk>			distant		= new LinkedHashSet<Chunk>();
         /**
          * A cache which maps Chunk Data to each Chunk, and also contains thread
          * safe updating queues of near and distant chunks.
@@ -200,9 +214,9 @@ public class FluidData
          */
         public void setFluid(final int cx, final int cy, final int cz,  int l)
         {
-            if (l < 0)  // FIXME Breakpoint
+            if (l < 0)
             {
-                l=l;
+                l=l;  // BREAKPOINT:
             }
             int idx=cx + (cz << 4) + ((cy & 0xF) << 8);
             this.fluidArray[cy >> 4][idx] = l;
