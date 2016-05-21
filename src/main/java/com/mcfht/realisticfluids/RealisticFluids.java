@@ -418,6 +418,7 @@ public class RealisticFluids extends DummyModContainer
 	 */
 	static class QueueSet<E> extends ConcurrentLinkedQueue<E>
 	{
+	    private static final long serialVersionUID = 1L;
 		@Override
 		public boolean add(final E e)
 		{
