@@ -388,6 +388,7 @@ public class RealisticFluids extends DummyModContainer
 	 */
 	public static void validateModWater(final World w, final int x, final int y, final int z, final Block b)
 	{
+	    FIXME(": Needs to test for a block that water can replace (such as vines or circuits)");
 		Block old=w.getBlock(x, y, z);
 		if (old.isAir(w, x, y, z))
 			return;
@@ -398,7 +399,7 @@ public class RealisticFluids extends DummyModContainer
 		if (Blocks.air == b)
 		    return;
 		throw new RuntimeException("Bad/unknown case in validateModWater! Aborting to prevent world damage. x/y/z: " 
-		    + x + y + z + "New block is " + b.getLocalizedName() + "Old block is " + old.getLocalizedName());
+		    + x + " " + y + " " + z + " New block is " + b.getLocalizedName() + ", Old block is " + old.getLocalizedName());
 	}
 
 	public static void setBlockMetadata(final World world, final int x, final int y, final int z, final int meta, final int flag)
