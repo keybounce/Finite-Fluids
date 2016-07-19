@@ -25,7 +25,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * The parent class of all liquids. TODO: Make sounds work
+ * The parent class of all liquids.
  * 
  * @author FHT
  */
@@ -439,6 +439,8 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
     
     // Non-private version of Mojang's code.
     // Not marked as @override because original is private.
+    // Tests for fluid breaking an object; true if not lava, not the same fluid,
+    // and not a "blocking movement" material (see below).
     boolean func_149809_q(World w, int x, int y, int z)
     {
         Material material = w.getBlock(x, y, z).getMaterial();
@@ -449,6 +451,8 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
     
     // Non-private version of Mojang's code; uses getMaterial() accessor.
     // Not marked as @override because original is private.
+    // Returns true if (approx) is a portal or blocks movement
+    // Returns true if block cannot be broken by fluids.
     boolean func_149807_p(World w, int x, int y, int z)
     {
         Block block = w.getBlock(x, y, z);
