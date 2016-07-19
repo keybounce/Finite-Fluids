@@ -13,6 +13,11 @@ import net.minecraft.world.World;
 
 public final class BlockFiniteWater extends BlockFiniteFluid {
 
+    public BlockFiniteWater()
+    {
+        this(Material.water);
+    }
+    
 	public BlockFiniteWater(Material material) {
 		super(material, RealisticFluids.waterVisc, RealisticFluids.WATER_UPDATE);
 		//this.setLightOpacity(1);

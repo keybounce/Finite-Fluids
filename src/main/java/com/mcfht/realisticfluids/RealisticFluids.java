@@ -23,6 +23,7 @@ import com.mcfht.realisticfluids.asm.PatchBlockRegistry;
 import com.mcfht.realisticfluids.commands.CommandDeflood;
 import com.mcfht.realisticfluids.commands.CommandEnableFlow;
 import com.mcfht.realisticfluids.fluids.BlockFiniteFluid;
+import com.mcfht.realisticfluids.fluids.BlockFiniteWater;
 
 import cpw.mods.fml.common.DummyModContainer;
 import cpw.mods.fml.common.FMLCommonHandler;
@@ -388,7 +389,6 @@ public class RealisticFluids extends DummyModContainer
 	 */
 	public static void validateModWater(final World w, final int x, final int y, final int z, final Block b)
 	{
-	    FIXME(": Needs to test for a block that water can replace (such as vines or circuits)");
 		Block old=w.getBlock(x, y, z);
 		if (old.isAir(w, x, y, z))
 			return;
@@ -398,11 +398,18 @@ public class RealisticFluids extends DummyModContainer
 			return;
 		if (Blocks.air == b)
 		    return;
+		// This is a "should never happen" case. If the destination block is a block that can be broken by flowing water,
+		// then it should already be converted to air. But in at least one instance I've seen a vine block here.
+		//
+		// Test for this case -- a block that water should have already broken but did not -- and if so, don't complain
+		if ((new BlockFiniteWater()).canBreak(w, x, y, z))
+		    return;
+		// Something is seriously wrong -- getting here means we've got a serious problem. Abort the game to avoid more damage.
 		throw new RuntimeException("Bad/unknown case in validateModWater! Aborting to prevent world damage. x/y/z: " 
 		    + x + " " + y + " " + z + " New block is " + b.getLocalizedName() + ", Old block is " + old.getLocalizedName());
 	}
 
-	public static void setBlockMetadata(final World world, final int x, final int y, final int z, final int meta, final int flag)
+    public static void setBlockMetadata(final World world, final int x, final int y, final int z, final int meta, final int flag)
 	{
 		setBlock(world, x, y, z, null, meta, flag, true);
 	}
@@ -467,7 +474,6 @@ public class RealisticFluids extends DummyModContainer
 		/** Perform this block task. Thread Safe. */
 		public boolean set()
 		{
-			validateModWater(w, x, y, z, b);
 			setBlock(this.w, this.c, this.ebs, this.x, this.y, this.z, this.b, this.m, this.f);
 			return true;
 		}
