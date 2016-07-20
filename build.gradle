@@ -17,6 +17,8 @@ buildscript {
 
 apply plugin: 'forge'
 
+def versionNum  = "1.0.0"
+
 version = "master-branch-test-compile"
 group= "com.mcfht.realisticfluids" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "RealisticFluids"
@@ -25,6 +27,7 @@ minecraft {
 //    version = "1.7.10-10.13.2.1352-1.7.10"
     version = "1.7.10-10.13.4.1492-1.7.10"
     runDir = "eclipse"
+    replace "{@version:fluids-master}":versionNum
 //    mappings = "stable_12"
 }
 
