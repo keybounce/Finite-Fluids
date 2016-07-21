@@ -118,9 +118,10 @@ public class FluidManager
 
             for (final World world : this.worlds)
             {
-                // There are no players, so there is no point
-                if (world.playerEntities == null || world.playerEntities.size() == 0)
-                    continue;
+//                // There are no players, so there is no point
+                // Change! Will still flow water / clean things up in loaded chunks. I hope.
+//                if (world.playerEntities == null || world.playerEntities.size() == 0)
+//                    continue;
 
                 // First, iterate over near chunks
                 final ChunkCache chunks = FluidData.worldCache.get(world);
@@ -187,11 +188,11 @@ public class FluidManager
             // signalling/control is there. Ultimately, I'd want a single queue of work
             // that is read by all the threads.
 
-            for (WorkerThread wt: this.threadPool)
-            {
-                System.out.printf("%d ", wt.worker.tasks.size());
-            }
-            System.out.printf("\n");
+//            for (WorkerThread wt: this.threadPool)
+//            {
+//                System.out.printf("%d ", wt.worker.tasks.size());
+//            }
+//            System.out.printf("\n");
             
             for (final WorkerThread wt : this.threadPool)
             {
@@ -639,8 +640,9 @@ public class FluidManager
         final int cz = data.w.rand.nextInt(16);
         final int wx = cx + (data.c.xPosition << 4);
         final int wz = cz + (data.c.zPosition << 4);
-        // This call lets mod dimensions lie (Mystcraft, RfTools).
-        final BiomeGenBase biome = data.w.provider.getBiomeGenForCoords(wx, wz);
+        // World's current implementation of "getBiomeGenForCoords" goes though WorldProvider,
+        // so this is valid for mystcraft/RfTools/etc that alter biome information.
+        final BiomeGenBase biome = data.w.getBiomeGenForCoords(wx, wz);
         // Test for Base height below or equal 0
         if (biome.rootHeight > 0)
             return;
