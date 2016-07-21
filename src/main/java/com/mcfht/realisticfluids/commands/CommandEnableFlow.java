@@ -4,7 +4,8 @@
 package com.mcfht.realisticfluids.commands;
 
 import com.google.common.eventbus.Subscribe;
-import com.mcfht.realisticfluids.FluidManager;
+import com.mcfht.realisticfluids.FluidConfig;
+import com.mcfht.realisticfluids.RealisticFluids;
 
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.event.FMLServerStartingEvent;
@@ -13,6 +14,7 @@ import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.world.World;
+import net.minecraftforge.common.config.Property;
 
 /**
  * @author Keybounce
@@ -87,11 +89,16 @@ public class CommandEnableFlow extends CommandBase implements ICommand
                 sender.addChatMessage(new ChatComponentText("Usage: enableflow <true|false>"));
                 return;
             }
-            FluidManager.FlowEnabled = Boolean.parseBoolean(args[0]);
+            RealisticFluids.FlowEnabled = Boolean.parseBoolean(args[0]);
             sender.addChatMessage(new ChatComponentText(args.toString()));
-            sender.addChatMessage(new ChatComponentText("Liquid flow set to" + FluidManager.FlowEnabled));
-            FluidManager.delegator.nearChunkSet.clear();
-            FluidManager.delegator.farChunkSet.clear();
+            sender.addChatMessage(new ChatComponentText("Liquid flow set to" + RealisticFluids.FlowEnabled));
+            // Do I want these two? Not sure what I was thinking when I wrote them.
+            // FluidManager.delegator.nearChunkSet.clear();
+            // FluidManager.delegator.farChunkSet.clear();
+
+            Property p = FluidConfig.config.get(FluidConfig.GENERAL, "FlowEnabled", RealisticFluids.FlowEnabled);
+            p.set(RealisticFluids.FlowEnabled);
+            FluidConfig.config.save();
         }
     }
 }

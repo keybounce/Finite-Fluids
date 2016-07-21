@@ -36,8 +36,6 @@ public class FluidManager
     public static WorkerTrivial		TWorker		= new WorkerTrivial();
     public static Thread			TRIVIAL		= new Thread(TWorker);
 
-    public static boolean			FlowEnabled	= false;
-
     public static class WorkerThread
     {
         Thread		thread	= null;
@@ -422,7 +420,7 @@ public class FluidManager
 
             // First of all, let's perform our own random ticks (more control)
             // do evaporation, seeping, refilling in rain, and so on.
-            if (FlowEnabled)
+            if (RealisticFluids.FlowEnabled)
             {
                 doRandomMinichunkTicks(data, i, 3, isHighPriority);
             }
@@ -433,7 +431,7 @@ public class FluidManager
             // Reset the cube flag
             data.updateCounter[i] = false;
 
-            if (FlowEnabled)
+            if (RealisticFluids.FlowEnabled)
             {
                 data.workingUpdate[i] = new boolean[4096];
                 System.arraycopy(data.updateFlags[i], 0, data.workingUpdate[i], 0, 4096);
@@ -444,7 +442,7 @@ public class FluidManager
             // the end
 
             // ///////////////////////////////////////////////////////////////////////////////////
-            if (FlowEnabled)
+            if (RealisticFluids.FlowEnabled)
             {
                 for (int j = 0; j < 4096; j++)
                     if (data.workingUpdate[i][j])
@@ -467,7 +465,7 @@ public class FluidManager
             }
         }
         // Finally, overall rainfall. This is per-chunk, not per-mini chunk, so it must be outside that loop
-        if (FlowEnabled)
+        if (RealisticFluids.FlowEnabled)
         {
             doChunkRainfall(data, 3, isHighPriority);
         }
@@ -489,7 +487,7 @@ public class FluidManager
      */
     public static void doRandomMinichunkTicks(final ChunkData data, final int ebsY, final int number, final boolean isHighPriority)
     {
-        if (!FlowEnabled)
+        if (!RealisticFluids.FlowEnabled)
             return;     // Nothing happens if fluid flow is off.
         int equalizationQuota = isHighPriority ? RealisticFluids.EQUALIZE_NEAR : RealisticFluids.EQUALIZE_FAR;
         for (int i = 0; i < number; i++)

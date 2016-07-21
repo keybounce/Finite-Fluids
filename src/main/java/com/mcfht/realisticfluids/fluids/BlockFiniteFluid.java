@@ -17,7 +17,6 @@ import net.minecraft.world.chunk.Chunk;
 
 import com.mcfht.realisticfluids.FluidData;
 import com.mcfht.realisticfluids.FluidData.ChunkData;
-import com.mcfht.realisticfluids.FluidManager;
 import com.mcfht.realisticfluids.RealisticFluids;
 import com.mcfht.realisticfluids.Util;
 
@@ -132,7 +131,7 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
     @Override
     public void updateTick(final World w, final int x, final int y, final int z, final Random rand)
     {
-        if (FluidManager.FlowEnabled)
+        if (RealisticFluids.FlowEnabled)
             RealisticFluids.markBlockForUpdate(w, x, y, z);
     }
 
