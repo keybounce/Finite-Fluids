@@ -566,6 +566,9 @@ public class FluidManager
  */
     private static void doChunkRainfall(ChunkData data, int count, boolean isHighPriority)
     {
+        // At some point, we need lavafall in the nether.
+        // Where do we test for that?
+        
         // Test for simple config
         if (RealisticFluids.RAINTYPE == RainType.NONE)
             return;
@@ -653,12 +656,15 @@ public class FluidManager
         //     OR, if wy < gAGL-2
         //  THEN rain in wy+1
         final int gAGL = data.w.provider.getAverageGroundLevel();
-        if (gAGL <= rainY) // If the rain would be too high regardless
+        final int seaLevel = aglToSeaLevel(data.w, gAGL);
+        if (seaLevel == -1)
+            return;
+        if (seaLevel+1 < rainY) // If the rain would be too high regardless
             return;
         // Complicated: The Y 63 block gets rain only if Y62 is water and not full.
         // So, water and not full negates to !water or full
         // Remember, we are writing negated tests because we are writing the abort/return cases
-        if (gAGL-1 == rainY // The y=63 block gets rain only if
+        if (seaLevel+1 == rainY // The y=63 block gets rain only if
                 && ( data.c.getBlock(cx, wy, cz).getMaterial() != Material.water  // Y=62 is water
                         || data.c.getBlockMetadata(cx, wy, cz) ==0                // and it is not full
                    )
@@ -670,9 +676,37 @@ public class FluidManager
         if (data.w.canSnowAtBody(wz, wy, wz, false))
             return;     // No rain in the frozen snow area!
         // Action: Plop down water, amount based on biome humidity
-        data.w.setBlock(wx, rainY, wz, Blocks.flowing_water); // This line may be unnecessary.
-        FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz,
+        // data.w.setBlock(wx, rainY, wz, Blocks.flowing_water); // This line may be unnecessary.
+                        // Actually, I think it triggers a bug -- fluid level / meta level mismatch
+        // For debugging and visual testing: Put the rain a little bit in the air (+2)
+        FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY+2, wz,
                 (int) (biome.rainfall*RealisticFluids.MAX_FLUID/RealisticFluids.RAINSPEED), true);
+    }
+
+    private static int aglToSeaLevel(World w, int gAGL)
+    {
+        // Forge issue: "getAverageGroundLevel" is actually "getMinimumSpawnHeight".
+        // There is no actual "sea level", but generally, minimum spawn height is close.
+        // The problem: Some mods actually consider that "gAGL" is actually what it says.
+        // It isn't.
+        
+        // Things to consider: Overworld, and TF, want gAGL-2
+        // Most other dimensions want gAGL-1
+        // TF only wants gAGL-2 because it's swamps have two different water heights,
+        // and gAGL-1 will break half of the swamps.
+        
+        // NB: I have not tested RfTool's dimensions.
+        // Nor have I tested recent Mystcraft dimensions (they used to have sea level at 63).
+        
+        int dim=w.provider.dimensionId;
+        boolean cantRain=w.provider.hasNoSky;
+        
+        if (cantRain)
+            return -1;
+        int seaLevel = gAGL-1;
+        if (0 == dim || 7 == dim || -7 == dim) // Overworld, or most common Twilight Forest id's
+            seaLevel--;
+        return seaLevel;
     }
 
     // This is unused old code.

@@ -90,8 +90,8 @@ public class CommandEnableFlow extends CommandBase implements ICommand
             FluidManager.FlowEnabled = Boolean.parseBoolean(args[0]);
             sender.addChatMessage(new ChatComponentText(args.toString()));
             sender.addChatMessage(new ChatComponentText("Liquid flow set to" + FluidManager.FlowEnabled));
-            FluidManager.delegator.nearChunkSet.clear();
-            FluidManager.delegator.farChunkSet.clear();
+            // FluidManager.delegator.nearChunkSet.clear(); // These may be causing lost updates
+            // FluidManager.delegator.farChunkSet.clear(); // when flow is turned on/off
         }
     }
 }
