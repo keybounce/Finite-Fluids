@@ -117,9 +117,19 @@ public class Util
     {
         if (0 == fluid)
             return 0;   // Technically, this isn't needed :-).
+/* This doesn't work!
+ * Java actually does not round down uniformly.
+ * -8 / (1<<8) gives -1 (Expected)
+ * -8 / (1<<9) gives 0 (breaks this)
         int wholePart = (fluid-1) * 8 / RealisticFluids.MAX_FLUID; // -1 gets rounding correct;
         // consider fluid of exactly 1/8th.
         return 1+wholePart;
+*/
+        // Think of this: (Fluid-1) / Max_fluid, as a float from 0 to 1, scaled to 0-7.
+        float top = (fluid-1) * 8;
+        float div = top / RealisticFluids.MAX_FLUID;
+        int result = (int) Math.floor(div);
+        return result + 1;
     }
 
 	public static int getMetaFromLevel(final int l)
