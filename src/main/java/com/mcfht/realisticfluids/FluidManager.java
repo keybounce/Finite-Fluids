@@ -489,6 +489,11 @@ public class FluidManager
      */
     public static void doRandomMinichunkTicks(final ChunkData data, final int ebsY, final int number, final boolean isHighPriority)
     {
+        // This routine schedules equalizations. They seem to cause more harm than good.
+        // Disable for now.
+        if (FlowEnabled)
+        return;
+        
         if (!FlowEnabled)
             return;     // Nothing happens if fluid flow is off.
         int equalizationQuota = isHighPriority ? RealisticFluids.EQUALIZE_NEAR : RealisticFluids.EQUALIZE_FAR;
@@ -678,8 +683,8 @@ public class FluidManager
         // Action: Plop down water, amount based on biome humidity
         // data.w.setBlock(wx, rainY, wz, Blocks.flowing_water); // This line may be unnecessary.
                         // Actually, I think it triggers a bug -- fluid level / meta level mismatch
-        // For debugging and visual testing: Put the rain a little bit in the air (+2)
-        FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY+2, wz,
+        // For debugging and visual testing: Put the rain a little bit in the air (+10)
+        FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY+10, wz,
                 (int) (biome.rainfall*RealisticFluids.MAX_FLUID/RealisticFluids.RAINSPEED), true);
     }
 
