@@ -495,11 +495,11 @@ public class FluidManager
         for (int i = 0; i < number; i++)
         {
 
-            final int x = data.w.rand.nextInt(16);
-            int y = data.w.rand.nextInt(16) + (ebsY << 4);
-            final int z = data.w.rand.nextInt(16);
+            final int cx = data.w.rand.nextInt(16);
+            int wy = data.w.rand.nextInt(16) + (ebsY << 4);
+            final int cz = data.w.rand.nextInt(16);
 
-            final Block b = data.c.getBlock(x, y, z);
+            final Block b = data.c.getBlock(cx, wy, cz);
             // w.markBlockRangeForRenderUpdate(p_147458_1_, p_147458_2_,
             // p_147458_3_, p_147458_4_, p_147458_5_, p_147458_6_);
             // Do rainfall and evaporation
@@ -528,21 +528,21 @@ public class FluidManager
                 }
                 // Benefit large bodies of water by trying to find surface
                 // blocks
-                for (int j = 0; y < 255 && j < 8 && data.c.getBlock(x, y + 1, z) instanceof BlockFiniteFluid; j++)
-                    y++;
+                for (int j = 0; wy < 255 && j < 8 && data.c.getBlock(cx, wy + 1, cz) instanceof BlockFiniteFluid; j++)
+                    wy++;
 
-                if (data.c.getBlock(x, y + 1, z) != Blocks.air)
+                if (data.c.getBlock(cx, wy + 1, cz) != Blocks.air)
                     continue;
 
-                final int level = data.getLevel(x, y, z);
+                final int level = data.getLevel(cx, wy, cz);
                 // Prevent spamming on flat ocean areas
                 if (level < RealisticFluids.MAX_FLUID - (RealisticFluids.MAX_FLUID / 16))
                     if (data.w.rand.nextInt(5) == 0)
                         // System.out.println("Smoothing...");
-                        FluidEqualizer.addSmoothTask(data.w, (data.c.xPosition << 4) + x, y, (data.c.zPosition << 4) + z,
+                        FluidEqualizer.addSmoothTask(data.w, (data.c.xPosition << 4) + cx, wy, (data.c.zPosition << 4) + cz,
                                 (BlockFiniteFluid) b, RealisticFluids.MAX_FLUID >> 1, 8);
                     else
-                        FluidEqualizer.addLinearTask(data.w, (data.c.xPosition << 4) + x, y, (data.c.zPosition << 4) + z,
+                        FluidEqualizer.addLinearTask(data.w, (data.c.xPosition << 4) + cx, wy, (data.c.zPosition << 4) + cz,
                                 (BlockFiniteFluid) b, isHighPriority ? RealisticFluids.EQUALIZE_NEAR_R : RealisticFluids.EQUALIZE_FAR_R, 3);
             }
         }

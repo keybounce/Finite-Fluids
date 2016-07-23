@@ -181,7 +181,7 @@ public class FluidData
          * Gets level in cx cy cz
          * 
          * @param cx
-         * @param cy
+         * @param wy
          * @param cz
          * @return
          */
@@ -190,11 +190,11 @@ public class FluidData
          * Returns actual fluid level
          * Known issue: test is redundant after sanity (this is for diff-making-sense)
          */
-        public int getFluid(final int cx, final int cy, final int cz)
+        public int getFluid(final int cx, final int wy, final int cz)
         {
 //            Block b0=c.getBlock(cx, cy, cz);
 //            if (b0 instanceof BlockFiniteFluid)
-                return this.fluidArray[cy >> 4][cx + (cz << 4) + ((cy & 0xF) << 8)];
+                return this.fluidArray[wy >> 4][cx + (cz << 4) + ((wy & 0xF) << 8)];
 //            throw new RuntimeException("Sanity failure! getFluid on non-fluid block");
 // Silly me. Sanity actually calls this, and depends on getting the raw value.
         }
@@ -226,26 +226,26 @@ public class FluidData
          * Gets post-sanity level in cx cy cz
          * 
          * @param cx
-         * @param cy
+         * @param wy
          * @param cz
          * @return fluid level
          */
-        public int getLevel(final int cx, final int cy, final int cz)
+        public int getLevel(final int cx, final int wy, final int cz)
         {
-            sanityLevelBlock(cx, cy, cz);
-            return getFluid(cx, cy, cz);
+            sanityLevelBlock(cx, wy, cz);
+            return getFluid(cx, wy, cz);
         }
 
         /**
          * Set level in cx cy cz
          * 
          * @param cx
-         * @param cy
+         * @param wy
          * @param cz
          * @param l
          * @return
          */
-        public void setLevel(final int cx, final int cy, final int cz, final int l)
+        public void setLevel(final int cx, final int wy, final int cz, final int l)
         {
             // This does not need a synchronized because we don't *READ* and modify.
             // We just set a new value. Well, that's not entirely true.
@@ -256,8 +256,8 @@ public class FluidData
             //
             // Sadface. That isn't accurate. We can flow out across chunk lines. Sadface.
             //
-            sanityLevelBlock(cx, cy, cz);
-            setFluid(cx, cy, cz, l);
+            sanityLevelBlock(cx, wy, cz);
+            setFluid(cx, wy, cz, l);
             // if (0 == l)
                 // c.func_150807_a /* setBlockIDWithMetadata */(cx, cy, cz, Blocks.air, 0);
                 // System.out.printf("SetLevel to zero, should be matched with setblock for air");
@@ -269,11 +269,11 @@ public class FluidData
          * the "overflow", along with the level of the now full block.
          * 
          * @param cx
-         * @param cy
+         * @param wy
          * @param cz
          * @return
          */
-        public int[] addSetLevel(final int cx, final int cy, final int cz, final int l)
+        public int[] addSetLevel(final int cx, final int wy, final int cz, final int l)
         {
             // ** This routine is not actually used **
             // Synchronization of this routine is questionable at best.
@@ -282,7 +282,7 @@ public class FluidData
             // ** DANGER ** Does not seem to ever adjust the meta-data of the block in question!
             if (l < 0)
                 throw new RuntimeException ("Attempted to flow negative fluid into a block");
-            int oldLevel = getLevel(cx, cy, cz);    // Does a read sync
+            int oldLevel = getLevel(cx, wy, cz);    // Does a read sync
             int newLevel = oldLevel + l;
             int remainder = newLevel - RealisticFluids.MAX_FLUID;
             
@@ -291,7 +291,7 @@ public class FluidData
             if (newLevel > RealisticFluids.MAX_FLUID)
                 newLevel = RealisticFluids.MAX_FLUID;
             
-            setLevel(cx, cy, cz, newLevel);         // Does a write flush sync
+            setLevel(cx, wy, cz, newLevel);         // Does a write flush sync
             
             return new int[] {newLevel, remainder};
         /*
@@ -313,9 +313,9 @@ public class FluidData
          * Returns a value from 0 to 8; 0 implies non-fluid (not necessarily air)
          * 1 = almost empty to 1/8th; 8 = more than 7/8th up to MAX.
          */
-        public int getFluid8th(final int cx, final int cy, final int cz)
+        public int getFluid8th(final int cx, final int wy, final int cz)
         {
-            int fluid = getFluid(cx, cy, cz);
+            int fluid = getFluid(cx, wy, cz);
             return Util.fluidTo8th(fluid);
         }
 
@@ -358,24 +358,24 @@ public class FluidData
          * sanityLevelBlock does all checking for valid access.
          * Call this before any fluid level access
          */
-        public void sanityLevelBlock(final int cx, final int cy, final int cz)
+        public void sanityLevelBlock(final int cx, final int wy, final int cz)
         {
             // This can read from adjacent chunks, so it can cross chunks and cross threads.
             // Therefore, full synchronization (double-checked locking) is needed.
             //
             @SuppressWarnings("unused")
-            boolean junk = fluidGuard[cy >> 4].value; // Read from a volatile
-            if (this.fluidArray[cy >> 4] == null)
+            boolean junk = fluidGuard[wy >> 4].value; // Read from a volatile
+            if (this.fluidArray[wy >> 4] == null)
             {
                 synchronized(this)
                 {
                     // Synchronized locks code paths;
                     // Read test of flag forces updates of all data;
                     // "&&" forces testing AFTER fluidGuard is tested.
-                    if (false == fluidGuard[cy >> 4].value && this.fluidArray[cy >> 4] == null)
+                    if (false == fluidGuard[wy >> 4].value && this.fluidArray[wy >> 4] == null)
                     {
-                        this.fluidArray[cy >> 4] = new int[4096];
-                        fluidGuard[cy >> 4].value = true;
+                        this.fluidArray[wy >> 4] = new int[4096];
+                        fluidGuard[wy >> 4].value = true;
                     }
                 }
             }
@@ -383,12 +383,12 @@ public class FluidData
             // Guaranteed: fluidArray[] has valid data at this point,
             // without itself needing to be volatile.
 
-            Block block=c.getBlock(cx, cy, cz);
-            int meta=c.getBlockMetadata(cx, cy, cz);
+            Block block=c.getBlock(cx, wy, cz);
+            int meta=c.getBlockMetadata(cx, wy, cz);
             int eights= 8 - meta; // Normal 0=full, and 7=tiny
             if (meta > 7)   // Exception is falling liquid
                 eights=8;    // they are treated as full
-            int oldLevel = getFluid (cx, cy, cz);
+            int oldLevel = getFluid (cx, wy, cz);
             int old8th = Util.fluidTo8th (oldLevel);
             int old8AsMeta = 8-old8th;
             
@@ -405,7 +405,7 @@ public class FluidData
                 // Set level based on block.
                 if (0 == oldLevel)
                 {
-                    setFluid8th(cx, cy, cz, eights);
+                    setFluid8th(cx, wy, cz, eights);
                     sanitySyncFlush();
 //                    System.out.println("x/y/z "
 //                            + worldFromChunk(this.c.xPosition, cx) + ", "
@@ -414,11 +414,11 @@ public class FluidData
                 }
                 else if (meta != old8AsMeta)
                 {
-                    setFluid8th(cx, cy, cz, eights);
+                    setFluid8th(cx, wy, cz, eights);
                     sanitySyncFlush();
                     System.out.println("x/y/z "
                             + worldFromChunk(this.c.xPosition, cx) + ", "
-                            + cy + ", " + worldFromChunk(this.c.zPosition, cz)
+                            + wy + ", " + worldFromChunk(this.c.zPosition, cz)
                             + " Mismatch meta. Old/level 8th " + old8th + " new level " + eights
                             + " Triggered by old block meta " + meta + " old fluid claimed meta "
                             + old8AsMeta);
@@ -438,7 +438,7 @@ public class FluidData
             } else {    // Case 2: Not a BlockFiniteFluid; force level to be zero
                 if (0 != oldLevel)
                 {
-                    setFluid(cx, cy, cz, 0);
+                    setFluid(cx, wy, cz, 0);
                     sanitySyncFlush();
                 }
             }
