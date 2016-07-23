@@ -181,6 +181,7 @@ public class RealisticFluids extends DummyModContainer
 
     public static RainType RAINTYPE        = RainType.SIMPLE;
     public static int RAINSPEED;
+    public static int RAINHEIGHT;
 	/** Returns the current tick-time of this instance */
 	public static int tickCounter()
 	{

@@ -73,6 +73,12 @@ public class FluidConfig
                         .toUpperCase());
         RealisticFluids.RAINSPEED = config.getInt("RainSpeed", RAINFALL, 20, 1, 1000,
                 "Rainfall speed, lower is faster. 1 is very fast; sane may be 10-30.");
+        
+        RealisticFluids.RAINHEIGHT = config.getInt("RainHeight", RAINFALL, 0, 0, 160,
+                "Height offset of rain. 0 = block above the current topblock.\n"
+                        + "Higher values let the rain fall from the air above.\n"
+                        + "Higher values are useful for debugging. "
+                        + "A bug results in blocks in the air being left hanging (lost updates)");
 		config.save();
 	}
 
