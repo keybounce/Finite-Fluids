@@ -4,7 +4,7 @@ import cpw.mods.fml.common.ModMetadata;
 public class FluidModInfo {
 
     public static final String MODID = "finitewater";
-    public static final String VERSION = "A5.0-fastflow-Spammy-slowrain";
+    public static final String VERSION = "{@version:fluids-master}";
     public static final String AUTHOR = "FHT";
 	
 	public static void get(ModMetadata meta)
