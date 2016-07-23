@@ -166,7 +166,7 @@ public class RealisticFluids extends DummyModContainer
 
     @SubscribeEvent
     public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
-        if (FluidManager.FlowEnabled)
+        if (RealisticFluids.FlowEnabled)
             event.player.addChatComponentMessage(new ChatComponentText(event.player.getDisplayName()
                     + " Water and Lava flow is on. Use '/enableflow false' to turn it off"));
         else
@@ -187,6 +187,7 @@ public class RealisticFluids extends DummyModContainer
 		return _tickCounter;
 	}
 	protected long	lastTime	= 0L;
+    public static boolean			FlowEnabled	= false;
 
 	// ///////////////////////////////// BLOCK SETTING
 	// ///////////////////////////////////////////////////
@@ -533,7 +534,7 @@ public class RealisticFluids extends DummyModContainer
 	@SubscribeEvent
 	public void serverTick(final ServerTickEvent event)
 	{
-	    if (FluidManager.FlowEnabled) // NOTE! There is a small segment at the end that happens anyways
+	    if (RealisticFluids.FlowEnabled) // NOTE! There is a small segment at the end that happens anyways
 	    {
 	        if (event.phase == Phase.START)
 	        {
