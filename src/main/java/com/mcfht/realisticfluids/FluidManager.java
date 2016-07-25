@@ -655,6 +655,7 @@ public class FluidManager
         // Test for top block less than sea level
         final int wy=yOfTopNonAir(data.w, wx, wz); // Where the top block is
         final int rainHeightTest = wy+1;                     // Where the rain would go
+        final int rainAmount = (int) (biome.rainfall*RealisticFluids.MAX_FLUID/RealisticFluids.RAINSPEED);
         //
         // Overworld: gAGL returns 64. Water is in block 62. So:
         //  IF wy == gAGL - 2, and is material water,
@@ -671,7 +672,7 @@ public class FluidManager
         // Remember, we are writing negated tests because we are writing the abort/return cases
         if (seaLevel+1 == rainHeightTest // The y=63 block gets rain only if
                 && ( data.c.getBlock(cx, wy, cz).getMaterial() != Material.water  // Y=62 is water
-                        || data.getLevel(cx, wy, cz) == RealisticFluids.MAX_FLUID // and it is not full
+                   || data.getLevel(cx, wy, cz) > (RealisticFluids.MAX_FLUID-(rainAmount/1.0)) // and it has room
                    )
             )
             return;
@@ -687,8 +688,7 @@ public class FluidManager
         int rainY = rainHeightTest + RealisticFluids.RAINHEIGHT;
         if (rainY > 254)
             rainY = 254;
-        FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz,
-                (int) (biome.rainfall*RealisticFluids.MAX_FLUID/RealisticFluids.RAINSPEED), true);
+        FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz, rainAmount, true);
     }
 
     private static int aglToSeaLevel(World w, int gAGL)
