@@ -696,7 +696,7 @@ public class FluidManager
         if (rainY > 254)
             rainY = 254;
         /* Make sure it is air! */
-        if (data.w.isAirBlock(wx, wy, wx))
+        if (data.w.isAirBlock(wx, rainY, wx))
             FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz, rainAmount, true);
     }
 
