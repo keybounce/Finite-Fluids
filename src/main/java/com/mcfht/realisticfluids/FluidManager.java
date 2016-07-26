@@ -119,7 +119,7 @@ public class FluidManager
             for (final World world : this.worlds)
             {
                 // There are no players, so there is no point
-                if (world.playerEntities == null || world.playerEntities.size() == 0)
+                if (world.playerEntities == null || world.playerEntities.isEmpty())
                     continue;
 
                 // First, iterate over near chunks
@@ -153,7 +153,7 @@ public class FluidManager
                 chunks.priority.clear();
 
                 // Now do thingimy stuffs...
-                while (chunks.distant.size() > 0)
+                while (!chunks.distant.isEmpty())
                 {
                     final Chunk c = (Chunk) pop(chunks.distant);
 
@@ -246,11 +246,11 @@ public class FluidManager
         public void run()
         {
             int totalCost = 0;
-            if (this.tasks.size() == 0)
+            if (this.tasks.isEmpty())
                 return;
             // System.out.println("Fluid Worker -> " + this.tasks.size() + ", " + this.forceQuit);
 
-            while (this.tasks.size() > 0 && !this.forceQuit)
+            while (!this.tasks.isEmpty() && !this.forceQuit)
             {
                 this.running = true;
                 // System.out.println("Fluid Worker stuffing!");

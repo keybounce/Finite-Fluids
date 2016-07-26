@@ -69,7 +69,7 @@ public class FluidEqualizer
 		{
 			final long startTime = System.currentTimeMillis();
 			int i = 0;
-			while ((tasks.size() > 0 && System.currentTimeMillis() - startTime < 10) || (i < RealisticFluids.EQUALIZE_GLOBAL))
+			while ((!tasks.isEmpty() && (System.currentTimeMillis() - startTime < 10) || (i < RealisticFluids.EQUALIZE_GLOBAL)))
 				i += equalize();
 			tasks.clear();
 		}
