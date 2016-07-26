@@ -654,10 +654,14 @@ public class FluidManager
         // Test for Base height below or equal 0
         if (biome.rootHeight > 0)
             return;
+        // Test for biome permits rain
+        if (0 >= biome.rainfall)
+            return;
         // Test for top block less than sea level
         final int wy=yOfTopNonAir(data.w, wx, wz); // Where the top block is
         final int rainHeightTest = wy+1;                     // Where the rain would go
-        final int rainAmount = (int) (biome.rainfall*RealisticFluids.MAX_FLUID/RealisticFluids.RAINSPEED);
+        if (data.w.canSnowAtBody(wz, wy, wz, false))
+            return;     // No rain in the frozen snow area!
         //
         // Overworld: gAGL returns 64. Water is in block 62. So:
         //  IF wy == gAGL - 2, and is material water,
@@ -674,23 +678,26 @@ public class FluidManager
         // Remember, we are writing negated tests because we are writing the abort/return cases
         if (seaLevel+1 == rainHeightTest // The y=63 block gets rain only if
                 && ( data.c.getBlock(cx, wy, cz).getMaterial() != Material.water  // Y=62 is water
-                   || data.getLevel(cx, wy, cz) > (RealisticFluids.MAX_FLUID-(rainAmount/1.0)) // and it has room
+                   || data.getLevel(cx, wy, cz) >= (RealisticFluids.MAX_FLUID) // and it has room
                    )
             )
             return;
-        // Test for biome permits rain
-        if (0 >= biome.rainfall)
-            return;
-        if (data.w.canSnowAtBody(wz, wy, wz, false))
-            return;     // No rain in the frozen snow area!
         // Action: Plop down water, amount based on biome humidity
+        // How much rain to fall (config tunable)
+        int rainAmount = (int) (biome.rainfall*RealisticFluids.MAX_FLUID/RealisticFluids.RAINSPEED);
+        // Do not overfill the block (breaks lillies, floods banks)
+        int spaceLeft = RealisticFluids.MAX_FLUID - data.getLevel(cx, wy, cx);
+        if (rainAmount > spaceLeft)
+            rainAmount = spaceLeft;
         // data.w.setBlock(wx, rainY, wz, Blocks.flowing_water); // This line may be unnecessary.
                         // Actually, I think it triggers a bug -- fluid level / meta level mismatch
         /* Where will the rain actually go? */
         int rainY = rainHeightTest + RealisticFluids.RAINHEIGHT;
         if (rainY > 254)
             rainY = 254;
-        FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz, rainAmount, true);
+        /* Make sure it is air! */
+        if (data.w.isAirBlock(wx, wy, wx))
+            FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz, rainAmount, true);
     }
 
     private static int aglToSeaLevel(World w, int gAGL)
