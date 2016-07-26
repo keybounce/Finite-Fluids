@@ -40,12 +40,9 @@ package com.mcfht.realisticfluids;
 //      But that would require evaporation to be scheduled/dependable, not random block ticks.
 
 
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockAir;
 import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
@@ -65,7 +62,7 @@ public class FluidData
 {
 
     /** A map assigning Chunk Data to the corresponding World object */
-    public static ConcurrentHashMap<World, ChunkCache>	worldCache	= new ConcurrentHashMap<World, ChunkCache>(16);
+    public static LinkedHashMap<World, ChunkCache>	worldCache	= new LinkedHashMap<World, ChunkCache>(16);
 
     /* Volatile variable just for forcing threaded memory flushing. */
     public static /* volatile */ int sanityFlush=0;
@@ -114,7 +111,7 @@ public class FluidData
          *  New: They are now LinkedHashSet. If concurrency is desired, there's a concurrent wrapper
          */
         /** A map linking chunks to their chunk data */
-        public ConcurrentHashMap<Chunk, ChunkData>	chunks;
+        public LinkedHashMap<Chunk, ChunkData>	chunks;
         
         // These two do not gain much from being uniqued. Basically, block updates can
         // make more entries in the list before the list is processed in the server tick.
@@ -133,7 +130,7 @@ public class FluidData
          */
         public ChunkCache()
         {
-            this.chunks = new ConcurrentHashMap<Chunk, ChunkData>(1024);
+            this.chunks = new LinkedHashMap<Chunk, ChunkData>(1024);
         }
     }
 

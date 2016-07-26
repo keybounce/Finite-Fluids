@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.block.Block;
@@ -240,7 +240,7 @@ public class FluidManager
         public boolean						running		= false;
         public boolean						forceQuit	= false;
         public int							cost;
-        public ConcurrentLinkedQueue<Task>	tasks		= new ConcurrentLinkedQueue<Task>();
+        public LinkedList<Task>             tasks		= new LinkedList<Task>();
 
         @Override
         public void run()
