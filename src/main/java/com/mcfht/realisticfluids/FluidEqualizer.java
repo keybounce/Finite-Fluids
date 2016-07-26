@@ -172,7 +172,7 @@ public class FluidEqualizer
 		{
 
 			// Use negative distance to allow equalization below the surface?
-			if (y0 < 1 || y0 > 255 || (distance > 0 && data.c.getBlock(x0 & 0xF, y0 + 1, z0 & 0xF) != Blocks.air))
+			if (y0 < 1 || y0 > 255 || (distance > 0 && !data.w.isAirBlock(x0, y0, z0)))
 				return 1;
 
 			final int l0 = FluidData.getLevel(data, f0, x0 & 0xF, y0, z0 & 0xF);

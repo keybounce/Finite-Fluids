@@ -730,7 +730,7 @@ public class FluidManager
                 final BiomeGenBase biome = data.c.getBiomeGenForWorldCoords(x, z, data.w.provider.worldChunkMgr);
 
                 if (biome == BiomeGenBase.ocean || biome == BiomeGenBase.deepOcean || biome == BiomeGenBase.river)
-                    if (b == Blocks.air || b instanceof BlockFiniteWater)
+                    if (data.w.isAirBlock(wx, y, wz) || b instanceof BlockFiniteWater)
                     {
                         System.out.println("Rain is falling!");
                         FluidData.setLevelWorld(data, (BlockFiniteFluid) Blocks.water, wx, y, wz, (RealisticFluids.MAX_FLUID >> 3)

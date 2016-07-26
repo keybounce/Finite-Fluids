@@ -722,7 +722,7 @@ public class FluidData
             data.setLevel(cx, y, cz, 0);
             if (old instanceof BlockFiniteFluid || Blocks.air == f1)
                 RealisticFluids.setBlock(data.w, x, y, z, Blocks.air, 0, 2);
-            else if (old instanceof BlockAir)
+            else if (data.w.isAirBlock(x, y, z))
             	return 0;
             if (updateNeighbors)
                 markNeighbors(data, x, y, z);
