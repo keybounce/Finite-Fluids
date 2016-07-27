@@ -188,11 +188,12 @@ public class FluidManager
             // signalling/control is there. Ultimately, I'd want a single queue of work
             // that is read by all the threads.
 
-//            for (WorkerThread wt: this.threadPool)
-//            {
-//                System.out.printf("%d ", wt.worker.tasks.size());
-//            }
-//            System.out.printf("\n");
+            for (WorkerThread wt: this.threadPool)
+            {
+                System.out.printf("%d ", wt.worker.tasks.size());
+                wt.thread.run();
+            }
+            System.out.printf("\n");
             
             for (final WorkerThread wt : this.threadPool)
             {
@@ -200,7 +201,7 @@ public class FluidManager
                     // System.out.println("Restarting thread, " +
                     // wt.worker.tasks.size() + " tasks...");
                     // try {
-                        wt.thread.run();
+                     //   wt.thread.run();
                     /*} catch (final Exception e)
                     {
                         System.out.println("Error restarting thread!");
@@ -291,10 +292,12 @@ public class FluidManager
 //                }
                 totalCost = delegator.sweepCost.addAndGet(adjCost);
             }
-            if (totalCost > 27000)
-                System.out.println("Too many liquid blocks; total blocks " + totalCost);
+      //      if (totalCost > 27000)
+        //        System.out.println("Too many liquid blocks; total blocks " + totalCost);
             this.running = false;
             this.forceQuit = false;
+            System.out.printf("%d updates ", totalCost );
+
         }
     }
     /**
@@ -473,7 +476,6 @@ public class FluidManager
             doChunkRainfall(data, 3, isHighPriority);
         }
 
-        // TODO: Make distant chunks re-render
         return cost;
     }
 
