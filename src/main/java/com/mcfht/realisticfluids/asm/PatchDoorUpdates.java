@@ -17,14 +17,12 @@ public class PatchDoorUpdates implements ASMPatchTask{
 		ClassReader classReader = new ClassReader(bytes);
 		classReader.accept(classNode, 0);
 		
-		@SuppressWarnings("unchecked")
 		Iterator<MethodNode> methods = classNode.methods.iterator();
 		
 		while(methods.hasNext())
 		{
 			MethodNode m = methods.next();
 			AbstractInsnNode node0 = null;
-			@SuppressWarnings("unchecked")
 			Iterator<AbstractInsnNode> iter = m.instructions.iterator();
 			int index = -1;
 			while (iter.hasNext())
