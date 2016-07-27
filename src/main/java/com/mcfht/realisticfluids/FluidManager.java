@@ -169,7 +169,8 @@ public class FluidManager
                     wt.worker.tasks.add(new Task(data, false, this.myStartTick));
                 }
 
-                this.threadIndex = (this.threadIndex + 1) % (this.threads / 2);
+                // this.threadIndex = (this.threadIndex + 1) % (this.threads / 2);
+                // Pretty sure that messes up non-overworld priority/distant queues.
             }
 
             this.sweepCost.set(0);
