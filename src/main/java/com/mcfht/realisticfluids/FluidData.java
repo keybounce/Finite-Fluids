@@ -42,8 +42,6 @@ package com.mcfht.realisticfluids;
 
 import java.util.LinkedHashSet;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockAir;
 import net.minecraft.block.material.Material;

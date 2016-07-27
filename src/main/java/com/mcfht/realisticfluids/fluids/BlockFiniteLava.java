@@ -3,13 +3,9 @@ package com.mcfht.realisticfluids.fluids;
 import java.util.Random;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockLadder;
-import net.minecraft.block.BlockSign;
 import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
-import net.minecraftforge.common.IPlantable;
-
 import com.mcfht.realisticfluids.RealisticFluids;
 import com.mcfht.realisticfluids.Util;
 /**
