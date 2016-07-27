@@ -3,7 +3,9 @@
  */
 package com.mcfht.realisticfluids.commands;
 
+import com.mcfht.realisticfluids.FluidConfig;
 import com.mcfht.realisticfluids.FluidManager;
+import com.mcfht.realisticfluids.RealisticFluids;
 
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommand;
