@@ -1,15 +1,8 @@
 package com.mcfht.realisticfluids.fluids;
 
-import java.util.Random;
-
 import com.mcfht.realisticfluids.RealisticFluids;
 
-import cpw.mods.fml.relauncher.Side;
-import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.block.Block;
 import net.minecraft.block.material.Material;
-import net.minecraft.init.Blocks;
-import net.minecraft.world.World;
 
 public final class BlockFiniteWater extends BlockFiniteFluid {
 
