@@ -309,8 +309,8 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
                     if (FluidData.getLevel(data, this, x0 & 0xF, y0 - 1, z0 & 0xF) == 0)
                     {
                         final Block b2 = data.c.getBlock(x1 & 0xF, y0 - 1, z1 & 0xF);
-                        if ((b1 == Blocks.air || (l1 > 0 && l1 + l0 < RealisticFluids.MAX_FLUID))
-                                && (b2 == Blocks.air || b2.getMaterial() == this.blockMaterial))
+                        if ((data.w.isAirBlock(x1, y0, z1) /* b1 */ || (l1 > 0 && l1 + l0 < RealisticFluids.MAX_FLUID))
+                                && (/* b2 */ data.w.isAirBlock(x1, y0-1, z0) || b2.getMaterial() == this.blockMaterial))
                         {
                             FluidData.setLevelWorld(data, this, x1, y0, z1, l1 + l0, true);
                             FluidData.markNeighborsDiagonal(data, x1, y0, z1);
@@ -347,7 +347,7 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
     public boolean doDoubleFlow(final ChunkData data, final int x0, final int y0, final int z0, final int x1, final int y1, final int z1)
     {
         final Block b1 = data.w.getBlock(x1, y1, z1);
-        if (b1 == Blocks.air || Util.isSameFluid(this, b1))
+        if (data.w.isAirBlock(x1, y1, z1) || Util.isSameFluid(this, b1))
         {
             data.markUpdate(x0 & 0xF, y0, z0 & 0xF);
             return true;
@@ -551,7 +551,7 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
                 final int z1 = z + Util.cardinalZ(j + skew);
                 data = FluidData.forceCurrentChunkData(data, x1, z1);
                 final Block bN = data.c.getBlock(x1 & 0xF, y, z1 & 0xF);
-                if (bN == Blocks.air)
+                if (data.w.isAirBlock(x1, y, z1))
                 {
                     FluidData.setLevelWorld(data, this, x1, y, z1, l0, true);
                     l0 = 0;
