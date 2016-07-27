@@ -660,7 +660,7 @@ public class FluidManager
         // Test for top block less than sea level
         final int wy=yOfTopNonAir(data.w, wx, wz); // Where the top block is
         final int rainHeightTest = wy+1;                     // Where the rain would go
-        if (data.w.canSnowAtBody(wz, wy, wz, false))
+        if (data.w.canSnowAtBody(wx, wy, wz, false))
             return;     // No rain in the frozen snow area!
         //
         // Overworld: gAGL returns 64. Water is in block 62. So:
@@ -685,10 +685,13 @@ public class FluidManager
         // Action: Plop down water, amount based on biome humidity
         // How much rain to fall (config tunable)
         int rainAmount = (int) (biome.rainfall*RealisticFluids.MAX_FLUID/RealisticFluids.RAINSPEED);
-        // Do not overfill the block (breaks lillies, floods banks)
-        int spaceLeft = RealisticFluids.MAX_FLUID - data.getLevel(cx, wy, cx);
-        if (rainAmount > spaceLeft)
-            rainAmount = spaceLeft;
+        // Do not overfill the water (breaks lillies, floods banks)
+        if (seaLevel+1 == rainHeightTest) // if the top block is sea level water
+        {
+            int spaceLeft = RealisticFluids.MAX_FLUID - data.getLevel(cx, wy, cz);
+            if (rainAmount > spaceLeft)
+                rainAmount = spaceLeft;
+        }
         // data.w.setBlock(wx, rainY, wz, Blocks.flowing_water); // This line may be unnecessary.
                         // Actually, I think it triggers a bug -- fluid level / meta level mismatch
         /* Where will the rain actually go? */
@@ -696,7 +699,7 @@ public class FluidManager
         if (rainY > 254)
             rainY = 254;
         /* Make sure it is air! */
-        if (data.w.isAirBlock(wx, rainY, wx))
+        if (data.w.isAirBlock(wx, rainY, wz))
             FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz, rainAmount, true);
     }
 
