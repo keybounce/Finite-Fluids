@@ -326,12 +326,40 @@ public class FluidData
          // Sadly, this gave infinite flood. 
          //   setFluid (cx, cy, cz, level8 * RealisticFluids.MAX_FLUID/8);
          // So let use a smaller level of fluid.
-            if (level8 > 1)
-                setFluid (cx, cy, cz, (int) ((1.0625 * (level8 - 1) + 0.3125) * RealisticFluids.MAX_FLUID/8));
-            else /* level of 0 or 1 */
+            // if (level8 > 1)
+                setFluid (cx, cy, cz, (int) (fluidMap(level8) * RealisticFluids.MAX_FLUID));
+            //else /* level of 0 or 1 */
                 // Deilberately set fluid for a 1/8th block to a tiny sliver
-                setFluid(cx, cy, cz, (int) (0.1 * RealisticFluids.MAX_FLUID/8) * level8);
+              //  setFluid(cx, cy, cz, (int) (0.1 * RealisticFluids.MAX_FLUID/8) * level8);
         }
+        
+        /* 
+         * Takes an int from 1 to 8. Returns a number from 0 to 1.
+         * Experience shows that 8 needs to map to 1, and the average should be close to 0.5.
+         * For any n, the output needs to be between ( (n-1)/8, n/8 ]
+         * i.e -- n/8 is included, (n-1)/8 is excluded. 
+         */
+        double fluidMap(int eights)
+        {            
+            double offset = 1-singleMap(eights);
+            double top = (eights - offset); // gives from n-1 to n
+            return top/8;
+            //
+            // For comparison: old routine returned (1.0625 * (level8 - 1) + 0.3125) /8
+        }
+        
+        /*
+         * For any input, return a number from 0 to 1.
+         * 0 will turn into (n-1)/8, while 1 will turn into n/8
+         * 0.5 will be (n-(0.5))/8
+         */
+        double singleMap (int eights)
+        {
+            // Return 0.5 for 1, 1.0 for 8, as linear formula.
+            // Or, 0.5 + (n-1)/7
+            return (0.5 + (eights-1)/7.0 );
+        }
+        
 
 /*
  * New rules for access!
