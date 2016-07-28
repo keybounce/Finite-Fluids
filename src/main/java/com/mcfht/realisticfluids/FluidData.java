@@ -357,7 +357,10 @@ public class FluidData
         {
             // Return 0.5 for 1, 1.0 for 8, as linear formula.
             // Or, 0.5 + (n-1)/7
-            return (0.5 + (eights-1)/7.0 );
+            // return (0.5 + (eights-1)/7.0 );
+            // sheesh. Yes, I did that. No, that doesn't work.
+            // 0.5 + (0 to 0.5) -- or, (n-1) / 14
+            return (0.5 + (eights-1)/14.0);
         }
         
 
