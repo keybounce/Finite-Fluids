@@ -3,13 +3,16 @@
  */
 package com.mcfht.realisticfluids.commands;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.mcfht.realisticfluids.FluidConfig;
-import com.mcfht.realisticfluids.FluidManager;
 import com.mcfht.realisticfluids.RealisticFluids;
 
 import net.minecraft.command.CommandBase;
-import net.minecraft.command.ICommand;
 import net.minecraft.command.ICommandSender;
+import net.minecraft.command.WrongUsageException;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.world.World;
 import net.minecraftforge.common.config.Property;
@@ -18,8 +21,16 @@ import net.minecraftforge.common.config.Property;
  * @author Keybounce
  *
  */
-public class CommandEnableFlow extends CommandBase implements ICommand
+public class CommandEnableFlow extends CommandBase
 {
+    private List<String> aliases;
+
+    public CommandEnableFlow()
+    {
+        super();
+        aliases = new ArrayList<String>();
+        aliases.add("enableflow");
+    }
 
     /* (non-Javadoc)
      * @see net.minecraft.command.ICommand#getCommandName()
@@ -35,7 +46,7 @@ public class CommandEnableFlow extends CommandBase implements ICommand
     @Override
     public String getCommandName()
     {
-        return "enableflow";
+        return "rff-enableflow";
     }
 
     /* (non-Javadoc)
@@ -45,7 +56,17 @@ public class CommandEnableFlow extends CommandBase implements ICommand
     public String getCommandUsage(ICommandSender p_71518_1_)
     {
         // Fixme needs localizaion
-        return "enableflow <true|anything else>";
+        return "rff-enableflow <true|false>";
+    }
+
+    @Override
+    public List<String> addTabCompletionOptions(ICommandSender sender, String[] args)
+    {
+        if (1 == args.length)
+        {
+            return (List<String>) getListOfStringsMatchingLastWord(args, new String[] {"true", "false"});
+        }
+      return null;
     }
 
     /* (non-Javadoc)
@@ -75,28 +96,38 @@ public class CommandEnableFlow extends CommandBase implements ICommand
         
         World world = sender.getEntityWorld();
 
-        if (world.isRemote)
+        if (!world.isRemote)
         {
-            System.out.println("Not processing on Client side");
-        }
-        else
-        {
-            System.out.println("Processing on Server side");
             if(args.length != 1)
             {
-                sender.addChatMessage(new ChatComponentText("Usage: enableflow <true|false>"));
-                return;
+                throw new WrongUsageException("Usage: " + getCommandUsage(sender), new Object[0]);
             }
-            RealisticFluids.FlowEnabled = Boolean.parseBoolean(args[0]);
-            sender.addChatMessage(new ChatComponentText(args.toString()));
+            RealisticFluids.FlowEnabled = parseBoolean(sender, args[0]);
             sender.addChatMessage(new ChatComponentText("Liquid flow set to" + RealisticFluids.FlowEnabled));
-            // Do I want these two? Not sure what I was thinking when I wrote them.
-            // FluidManager.delegator.nearChunkSet.clear();
-            // FluidManager.delegator.farChunkSet.clear();
 
             Property p = FluidConfig.config.get(FluidConfig.GENERAL, "FlowEnabled", RealisticFluids.FlowEnabled);
             p.set(RealisticFluids.FlowEnabled);
             FluidConfig.config.save();
         }
+    }
+
+    @Override
+    public List<String> getCommandAliases()
+    {
+        return this.aliases;
+    }
+
+    @Override
+    public boolean canCommandSenderUseCommand(ICommandSender sender)
+    {
+        return MinecraftServer.getServer().isSinglePlayer() || super.canCommandSenderUseCommand(sender);
+    }
+
+    /**
+     * Return the required permission level for this command.
+     */
+    public int getRequiredPermissionLevel()
+    {
+        return 2;
     }
 }
