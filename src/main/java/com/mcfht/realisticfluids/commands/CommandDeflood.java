@@ -56,11 +56,11 @@ public class CommandDeflood extends CommandBase implements ICommand
 
         if (world.isRemote)
         {
-            System.out.println("Not processing on Client side");
+//            System.out.println("Not processing on Client side");
         }
         else
         {
-            System.out.println("Processing on Server side");
+//            System.out.println("Processing on Server side");
             if(args.length != 0)
             {
                 sender.addChatMessage(new ChatComponentText("Usage: deflood. Attempt to remove floods on top of mod fluids."));

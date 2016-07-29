@@ -190,10 +190,10 @@ public class FluidManager
 
             for (WorkerThread wt: this.threadPool)
             {
-                System.out.printf("%d ", wt.worker.tasks.size());
+//                System.out.printf("%d ", wt.worker.tasks.size());
                 wt.thread.run();
             }
-            System.out.printf("\n");
+//            System.out.printf("\n");
             
             for (final WorkerThread wt : this.threadPool)
             {
@@ -267,9 +267,9 @@ public class FluidManager
 
                 if (!task.isHighPriority && delegator.sweepCost.get() > RealisticFluids.FAR_UPDATES)
                 {
-                    System.out.println("*** Fluid Worker aborting low priority queue! Sweep cost "
-                            + delegator.sweepCost.get()
-                            + " Far Updates " + RealisticFluids.FAR_UPDATES);
+//                    System.out.println("*** Fluid Worker aborting low priority queue! Sweep cost "
+//                            + delegator.sweepCost.get()
+//                            + " Far Updates " + RealisticFluids.FAR_UPDATES);
                     break;
                 }
                 
@@ -296,7 +296,7 @@ public class FluidManager
         //        System.out.println("Too many liquid blocks; total blocks " + totalCost);
             this.running = false;
             this.forceQuit = false;
-            System.out.printf("%d updates ", totalCost );
+//            System.out.printf("%d updates ", totalCost );
 
         }
     }
