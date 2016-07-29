@@ -7,11 +7,7 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.InsnList;
-import org.objectweb.asm.tree.InsnNode;
-import org.objectweb.asm.tree.IntInsnNode;
-import org.objectweb.asm.tree.LabelNode;
 import org.objectweb.asm.tree.LdcInsnNode;
 import org.objectweb.asm.tree.MethodInsnNode;
 import org.objectweb.asm.tree.MethodNode;
@@ -38,7 +34,6 @@ public class PatchBlockRegistry implements ASMPatchTask{
 		ClassReader classReader = new ClassReader(bytes);
 		classReader.accept(classNode, 0);
 		
-		@SuppressWarnings("unchecked")
 		Iterator<MethodNode> methods = classNode.methods.iterator();
 		
 		while(methods.hasNext())
@@ -46,7 +41,6 @@ public class PatchBlockRegistry implements ASMPatchTask{
 			MethodNode m = methods.next();
 			
 			AbstractInsnNode node0 = null;
-			@SuppressWarnings("unchecked")
 			Iterator<AbstractInsnNode> iter = m.instructions.iterator();
 			int index = -1;
 			int startIndex = -1;

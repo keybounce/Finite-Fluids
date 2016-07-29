@@ -3,13 +3,9 @@ package com.mcfht.realisticfluids.fluids;
 import java.util.Random;
 
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockLadder;
-import net.minecraft.block.BlockSign;
 import net.minecraft.block.material.Material;
 import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
-import net.minecraftforge.common.IPlantable;
-
 import com.mcfht.realisticfluids.RealisticFluids;
 import com.mcfht.realisticfluids.Util;
 /**
@@ -77,7 +73,7 @@ public final class BlockFiniteLava extends BlockFiniteFluid
 			final int z1 = z + Util.cardinalZ(i + skew);
 			if (Util.isSameFluid(this, w.getBlock(x1, y, z1)))
 			{
-				if (w.getBlock(x1, y + 1, z1) == Blocks.air)
+				if (w.isAirBlock(x1, y+1, z1))
 					w.setBlock(x1, y, z1, Blocks.fire);
 				--i1;
 			}
@@ -89,7 +85,7 @@ public final class BlockFiniteLava extends BlockFiniteFluid
 			z += r.nextInt(3) - 1;
 			final Block block = w.getBlock(x, y, z);
 
-			if (block.getMaterial() == Material.air)
+			if (w.isAirBlock(x, y, z))
 			{
 				if (this.isFlammable(w, x - 1, y, z) || this.isFlammable(w, x + 1, y, z) || this.isFlammable(w, x, y, z - 1)
 						|| this.isFlammable(w, x, y, z + 1) || this.isFlammable(w, x, y - 1, z) || this.isFlammable(w, x, y + 1, z))

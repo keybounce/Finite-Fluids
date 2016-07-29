@@ -3,8 +3,8 @@ package com.mcfht.realisticfluids;
 import cpw.mods.fml.common.ModMetadata;
 public class FluidModInfo {
 
-    public static final String MODID = "finitewater";
-    public static final String VERSION = "A5.0-fastflow-Spammy-slowrain";
+    public static final String MODID = "{@modid:mod-name}";
+    public static final String VERSION = "{@version:fluids-master}";
     public static final String AUTHOR = "FHT";
 	
 	public static void get(ModMetadata meta)
@@ -15,7 +15,7 @@ public class FluidModInfo {
 		meta.credits = AUTHOR + ", Keybounce";
 		meta.authorList.add(AUTHOR);
 		meta.description= "Finite, flowing water and lava, more realistic than forge fluids";
-		meta.url = "";
+		meta.url = "http://www.minecraftforum.net/forums/mapping-and-modding/minecraft-mods/wip-mods/2158282-";
 		meta.updateUrl= "";
 		meta.screenshots= new String[0];
 		meta.logoFile = "";

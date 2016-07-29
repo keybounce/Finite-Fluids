@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.minecraft.block.Block;
@@ -14,6 +14,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
+
 import com.mcfht.realisticfluids.FluidData.ChunkCache;
 import com.mcfht.realisticfluids.FluidData.ChunkData;
 import com.mcfht.realisticfluids.RealisticFluids.RainType;
@@ -35,8 +36,6 @@ public class FluidManager
 
     public static WorkerTrivial		TWorker		= new WorkerTrivial();
     public static Thread			TRIVIAL		= new Thread(TWorker);
-
-    public static boolean			FlowEnabled	= false;
 
     public static class WorkerThread
     {
@@ -118,9 +117,10 @@ public class FluidManager
 
             for (final World world : this.worlds)
             {
-                // There are no players, so there is no point
-                if (world.playerEntities == null || world.playerEntities.size() == 0)
-                    continue;
+//                // There are no players, so there is no point
+                // Change! Will still flow water / clean things up in loaded chunks. I hope.
+//                if (world.playerEntities == null || world.playerEntities.size() == 0)
+//                    continue;
 
                 // First, iterate over near chunks
                 final ChunkCache chunks = FluidData.worldCache.get(world);
@@ -153,7 +153,7 @@ public class FluidManager
                 chunks.priority.clear();
 
                 // Now do thingimy stuffs...
-                while (chunks.distant.size() > 0)
+                while (!chunks.distant.isEmpty())
                 {
                     final Chunk c = (Chunk) pop(chunks.distant);
 
@@ -169,7 +169,8 @@ public class FluidManager
                     wt.worker.tasks.add(new Task(data, false, this.myStartTick));
                 }
 
-                this.threadIndex = (this.threadIndex + 1) % (this.threads / 2);
+                // this.threadIndex = (this.threadIndex + 1) % (this.threads / 2);
+                // Pretty sure that messes up non-overworld priority/distant queues.
             }
 
             this.sweepCost.set(0);
@@ -190,6 +191,7 @@ public class FluidManager
             for (WorkerThread wt: this.threadPool)
             {
                 System.out.printf("%d ", wt.worker.tasks.size());
+                wt.thread.run();
             }
             System.out.printf("\n");
             
@@ -199,7 +201,7 @@ public class FluidManager
                     // System.out.println("Restarting thread, " +
                     // wt.worker.tasks.size() + " tasks...");
                     // try {
-                        wt.thread.run();
+                     //   wt.thread.run();
                     /*} catch (final Exception e)
                     {
                         System.out.println("Error restarting thread!");
@@ -240,17 +242,17 @@ public class FluidManager
         public boolean						running		= false;
         public boolean						forceQuit	= false;
         public int							cost;
-        public ConcurrentLinkedQueue<Task>	tasks		= new ConcurrentLinkedQueue<Task>();
+        public LinkedList<Task>             tasks		= new LinkedList<Task>();
 
         @Override
         public void run()
         {
             int totalCost = 0;
-            if (this.tasks.size() == 0)
+            if (this.tasks.isEmpty())
                 return;
             // System.out.println("Fluid Worker -> " + this.tasks.size() + ", " + this.forceQuit);
 
-            while (this.tasks.size() > 0 && !this.forceQuit)
+            while (!this.tasks.isEmpty() && !this.forceQuit)
             {
                 this.running = true;
                 // System.out.println("Fluid Worker stuffing!");
@@ -290,10 +292,12 @@ public class FluidManager
 //                }
                 totalCost = delegator.sweepCost.addAndGet(adjCost);
             }
-            if (totalCost > 27000)
-                System.out.println("Too many liquid blocks; total blocks " + totalCost);
+      //      if (totalCost > 27000)
+        //        System.out.println("Too many liquid blocks; total blocks " + totalCost);
             this.running = false;
             this.forceQuit = false;
+            System.out.printf("%d updates ", totalCost );
+
         }
     }
     /**
@@ -422,7 +426,7 @@ public class FluidManager
 
             // First of all, let's perform our own random ticks (more control)
             // do evaporation, seeping, refilling in rain, and so on.
-            if (FlowEnabled)
+            if (RealisticFluids.FlowEnabled)
             {
                 doRandomMinichunkTicks(data, i, 3, isHighPriority);
             }
@@ -433,7 +437,7 @@ public class FluidManager
             // Reset the cube flag
             data.updateCounter[i] = false;
 
-            if (FlowEnabled)
+            if (RealisticFluids.FlowEnabled)
             {
                 data.workingUpdate[i] = new boolean[4096];
                 System.arraycopy(data.updateFlags[i], 0, data.workingUpdate[i], 0, 4096);
@@ -444,7 +448,7 @@ public class FluidManager
             // the end
 
             // ///////////////////////////////////////////////////////////////////////////////////
-            if (FlowEnabled)
+            if (RealisticFluids.FlowEnabled)
             {
                 for (int j = 0; j < 4096; j++)
                     if (data.workingUpdate[i][j])
@@ -467,12 +471,11 @@ public class FluidManager
             }
         }
         // Finally, overall rainfall. This is per-chunk, not per-mini chunk, so it must be outside that loop
-        if (FlowEnabled)
+        if (RealisticFluids.FlowEnabled)
         {
             doChunkRainfall(data, 3, isHighPriority);
         }
 
-        // TODO: Make distant chunks re-render
         return cost;
     }
 
@@ -489,17 +492,22 @@ public class FluidManager
      */
     public static void doRandomMinichunkTicks(final ChunkData data, final int ebsY, final int number, final boolean isHighPriority)
     {
-        if (!FlowEnabled)
+        // This routine schedules equalizations. They seem to cause more harm than good.
+        // Disable for now.
+        if (RealisticFluids.FlowEnabled)
+            return;
+        
+        if (!RealisticFluids.FlowEnabled)
             return;     // Nothing happens if fluid flow is off.
         int equalizationQuota = isHighPriority ? RealisticFluids.EQUALIZE_NEAR : RealisticFluids.EQUALIZE_FAR;
         for (int i = 0; i < number; i++)
         {
 
-            final int x = data.w.rand.nextInt(16);
-            int y = data.w.rand.nextInt(16) + (ebsY << 4);
-            final int z = data.w.rand.nextInt(16);
+            final int cx = data.w.rand.nextInt(16);
+            int wy = data.w.rand.nextInt(16) + (ebsY << 4);
+            final int cz = data.w.rand.nextInt(16);
 
-            final Block b = data.c.getBlock(x, y, z);
+            final Block b = data.c.getBlock(cx, wy, cz);
             // w.markBlockRangeForRenderUpdate(p_147458_1_, p_147458_2_,
             // p_147458_3_, p_147458_4_, p_147458_5_, p_147458_6_);
             // Do rainfall and evaporation
@@ -528,21 +536,23 @@ public class FluidManager
                 }
                 // Benefit large bodies of water by trying to find surface
                 // blocks
-                for (int j = 0; y < 255 && j < 8 && data.c.getBlock(x, y + 1, z) instanceof BlockFiniteFluid; j++)
-                    y++;
+                for (int j = 0; wy < 255 && j < 8 && data.c.getBlock(cx, wy + 1, cz) instanceof BlockFiniteFluid; j++)
+                    wy++;
 
-                if (data.c.getBlock(x, y + 1, z) != Blocks.air)
+                int wx=(data.c.xPosition << 4) + cx;
+                int wz=(data.c.zPosition << 4) + cz;
+                if (!data.w.isAirBlock(wx, wy, wz))
                     continue;
 
-                final int level = data.getLevel(x, y, z);
+                final int level = data.getLevel(cx, wy, cz);
                 // Prevent spamming on flat ocean areas
                 if (level < RealisticFluids.MAX_FLUID - (RealisticFluids.MAX_FLUID / 16))
                     if (data.w.rand.nextInt(5) == 0)
                         // System.out.println("Smoothing...");
-                        FluidEqualizer.addSmoothTask(data.w, (data.c.xPosition << 4) + x, y, (data.c.zPosition << 4) + z,
+                        FluidEqualizer.addSmoothTask(data.w, (data.c.xPosition << 4) + cx, wy, (data.c.zPosition << 4) + cz,
                                 (BlockFiniteFluid) b, RealisticFluids.MAX_FLUID >> 1, 8);
                     else
-                        FluidEqualizer.addLinearTask(data.w, (data.c.xPosition << 4) + x, y, (data.c.zPosition << 4) + z,
+                        FluidEqualizer.addLinearTask(data.w, (data.c.xPosition << 4) + cx, wy, (data.c.zPosition << 4) + cz,
                                 (BlockFiniteFluid) b, isHighPriority ? RealisticFluids.EQUALIZE_NEAR_R : RealisticFluids.EQUALIZE_FAR_R, 3);
             }
         }
@@ -566,6 +576,9 @@ public class FluidManager
  */
     private static void doChunkRainfall(ChunkData data, int count, boolean isHighPriority)
     {
+        // At some point, we need lavafall in the nether.
+        // Where do we test for that?
+        
         // Test for simple config
         if (RealisticFluids.RAINTYPE == RainType.NONE)
             return;
@@ -639,40 +652,85 @@ public class FluidManager
         final int cz = data.w.rand.nextInt(16);
         final int wx = cx + (data.c.xPosition << 4);
         final int wz = cz + (data.c.zPosition << 4);
-        // This call lets mod dimensions lie (Mystcraft, RfTools).
-        final BiomeGenBase biome = data.w.provider.getBiomeGenForCoords(wx, wz);
+        // World's current implementation of "getBiomeGenForCoords" goes though WorldProvider,
+        // so this is valid for mystcraft/RfTools/etc that alter biome information.
+        final BiomeGenBase biome = data.w.getBiomeGenForCoords(wx, wz);
         // Test for Base height below or equal 0
         if (biome.rootHeight > 0)
             return;
+        // Test for biome permits rain
+        if (0 >= biome.rainfall)
+            return;
         // Test for top block less than sea level
         final int wy=yOfTopNonAir(data.w, wx, wz); // Where the top block is
-        final int rainY = wy+1;                     // Where the rain would go
+        final int rainHeightTest = wy+1;                     // Where the rain would go
+        if (data.w.canSnowAtBody(wx, wy, wz, false))
+            return;     // No rain in the frozen snow area!
         //
         // Overworld: gAGL returns 64. Water is in block 62. So:
         //  IF wy == gAGL - 2, and is material water,
         //     OR, if wy < gAGL-2
         //  THEN rain in wy+1
         final int gAGL = data.w.provider.getAverageGroundLevel();
-        if (gAGL <= rainY) // If the rain would be too high regardless
+        final int seaLevel = aglToSeaLevel(data.w, gAGL);
+        if (seaLevel == -1)
+            return;
+        if (seaLevel+1 < rainHeightTest) // If the rain would be too high regardless
             return;
         // Complicated: The Y 63 block gets rain only if Y62 is water and not full.
         // So, water and not full negates to !water or full
         // Remember, we are writing negated tests because we are writing the abort/return cases
-        if (gAGL-1 == rainY // The y=63 block gets rain only if
+        if (seaLevel+1 == rainHeightTest // The y=63 block gets rain only if
                 && ( data.c.getBlock(cx, wy, cz).getMaterial() != Material.water  // Y=62 is water
-                        || data.c.getBlockMetadata(cx, wy, cz) ==0                // and it is not full
+                   || data.getLevel(cx, wy, cz) >= (RealisticFluids.MAX_FLUID) // and it has room
                    )
             )
             return;
-        // Test for biome permits rain
-        if (0 >= biome.rainfall)
-            return;
-        if (data.w.canSnowAtBody(wz, wy, wz, false))
-            return;     // No rain in the frozen snow area!
         // Action: Plop down water, amount based on biome humidity
-        data.w.setBlock(wx, rainY, wz, Blocks.flowing_water); // This line may be unnecessary.
-        FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz,
-                (int) (biome.rainfall*RealisticFluids.MAX_FLUID/RealisticFluids.RAINSPEED), true);
+        // How much rain to fall (config tunable)
+        int rainAmount = (int) (biome.rainfall*RealisticFluids.MAX_FLUID/RealisticFluids.RAINSPEED);
+        // Do not overfill the water (breaks lillies, floods banks)
+        if (seaLevel+1 == rainHeightTest) // if the top block is sea level water
+        {
+            int spaceLeft = RealisticFluids.MAX_FLUID - data.getLevel(cx, wy, cz);
+            if (rainAmount > spaceLeft)
+                rainAmount = spaceLeft;
+        }
+        // data.w.setBlock(wx, rainY, wz, Blocks.flowing_water); // This line may be unnecessary.
+                        // Actually, I think it triggers a bug -- fluid level / meta level mismatch
+        /* Where will the rain actually go? */
+        int rainY = rainHeightTest + RealisticFluids.RAINHEIGHT;
+        if (rainY > 254)
+            rainY = 254;
+        /* Make sure it is air! */
+        if (data.w.isAirBlock(wx, rainY, wz))
+            FluidData.setLevel(data, Blocks.flowing_water, cx, cz, wx, rainY, wz, rainAmount, true);
+    }
+
+    private static int aglToSeaLevel(World w, int gAGL)
+    {
+        // Forge issue: "getAverageGroundLevel" is actually "getMinimumSpawnHeight".
+        // There is no actual "sea level", but generally, minimum spawn height is close.
+        // The problem: Some mods actually consider that "gAGL" is actually what it says.
+        // It isn't.
+        
+        // Things to consider: Overworld, and TF, want gAGL-2
+        // Most other dimensions want gAGL-1
+        // TF only wants gAGL-2 because it's swamps have two different water heights,
+        // and gAGL-1 will break half of the swamps.
+        
+        // NB: I have not tested RfTool's dimensions.
+        // Nor have I tested recent Mystcraft dimensions (they used to have sea level at 63).
+        
+        int dim=w.provider.dimensionId;
+        boolean cantRain=w.provider.hasNoSky;
+        
+        if (cantRain)
+            return -1;
+        int seaLevel = gAGL-1;
+        if (0 == dim || 7 == dim || -7 == dim) // Overworld, or most common Twilight Forest id's
+            seaLevel--;
+        return seaLevel;
     }
 
     // This is unused old code.
@@ -688,7 +746,7 @@ public class FluidManager
                 final BiomeGenBase biome = data.c.getBiomeGenForWorldCoords(x, z, data.w.provider.worldChunkMgr);
 
                 if (biome == BiomeGenBase.ocean || biome == BiomeGenBase.deepOcean || biome == BiomeGenBase.river)
-                    if (b == Blocks.air || b instanceof BlockFiniteWater)
+                    if (data.w.isAirBlock(wx, y, wz) || b instanceof BlockFiniteWater)
                     {
                         System.out.println("Rain is falling!");
                         FluidData.setLevelWorld(data, (BlockFiniteFluid) Blocks.water, wx, y, wz, (RealisticFluids.MAX_FLUID >> 3)

@@ -6,10 +6,8 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.tree.AbstractInsnNode;
 import org.objectweb.asm.tree.ClassNode;
-import org.objectweb.asm.tree.FieldInsnNode;
 import org.objectweb.asm.tree.InsnNode;
 import org.objectweb.asm.tree.MethodNode;
-import org.objectweb.asm.tree.VarInsnNode;
 
 public class PatchDoorUpdates implements ASMPatchTask{
 
@@ -19,14 +17,12 @@ public class PatchDoorUpdates implements ASMPatchTask{
 		ClassReader classReader = new ClassReader(bytes);
 		classReader.accept(classNode, 0);
 		
-		@SuppressWarnings("unchecked")
 		Iterator<MethodNode> methods = classNode.methods.iterator();
 		
 		while(methods.hasNext())
 		{
 			MethodNode m = methods.next();
 			AbstractInsnNode node0 = null;
-			@SuppressWarnings("unchecked")
 			Iterator<AbstractInsnNode> iter = m.instructions.iterator();
 			int index = -1;
 			while (iter.hasNext())
