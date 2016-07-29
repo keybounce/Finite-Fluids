@@ -17,13 +17,15 @@ buildscript {
 
 apply plugin: 'forge'
 
-def versionNum  = "0.5.1"
+def versionNum  = "A5.1"
+def versionText = "rainfall-improvements"
 
-version = "master-branch-test-compile"
 group= "com.mcfht.realisticfluids" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "RealisticFluids"
 
 def modName = archivesBaseName
+
+version = versionNum + "-" + versionText
 
 minecraft {
 //    version = "1.7.10-10.13.2.1352-1.7.10"
