@@ -412,13 +412,16 @@ public class FluidData
             // without itself needing to be volatile.
 
             Block block=c.getBlock(cx, wy, cz);
-            int meta=c.getBlockMetadata(cx, wy, cz);
-            int eights= 8 - meta; // Normal 0=full, and 7=tiny
-            if (meta > 7)   // Exception is falling liquid
-                eights=8;    // they are treated as full
             int oldLevel = getFluid (cx, wy, cz);
             int old8th = Util.fluidTo8th (oldLevel);
             int old8AsMeta = 8-old8th;
+            int meta=c.getBlockMetadata(cx, wy, cz);
+            int eights= 8 - meta; // Normal 0=full, and 7=tiny
+            if (meta > 7)   // Exception is falling liquid
+            {
+                eights=8;    // they are treated as full
+                old8AsMeta=8;   // and prevent error messages
+            }
             
             // meta = block meta-value
             // eights = block height, 8 for a full block, 1 for a sliver
