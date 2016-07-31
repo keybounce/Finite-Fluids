@@ -1,5 +1,7 @@
 package com.mcfht.realisticfluids;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import net.minecraft.block.Block;
@@ -528,8 +530,11 @@ public class RealisticFluids extends DummyModContainer
 		// Just to be safe
 		PatchBlockRegistry.counter = 0;
 		if (FluidData.worldCache.get(event.world) != null)
-			for (final ChunkData c : FluidData.worldCache.get(event.world).chunks.values())
-				FluidData.worldCache.get(event.world).chunks.values().remove(c);
+		{
+		    HashMap<Chunk, ChunkData> chunkUnload = (HashMap<Chunk, ChunkData>) FluidData.worldCache.get(event.world).chunks;
+			for (final ChunkData c : chunkUnload.values())
+				chunkUnload.remove(c);
+		}
 	}
 
 	@SubscribeEvent
