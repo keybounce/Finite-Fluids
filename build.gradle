@@ -17,8 +17,8 @@ buildscript {
 
 apply plugin: 'forge'
 
-def versionNum  = "A5.1"
-def versionText = "rainfall-improvements"
+def versionNum  = "A5.2"
+def versionText = "Hotfix-concurrentError"
 
 group= "com.mcfht.realisticfluids" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "RealisticFluids"
