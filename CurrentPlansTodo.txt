@@ -1,0 +1,52 @@
+Rainfall, SIMPLE:
+0. *Fix shore overflow*. -- HARD, delay
+1. Wake all chunks topblock on load.
+2. Verify that an out-of-range chunk does not lose queued updates -- think so.
+3. Test mystcraft dims for sea level
+4. Change flow to two-pass. Pass 1: determine how much flow out is wanted. Pass 2: scale it.
+5. Eliminate diagonal flow.
+
+(next alpha release)
+
+-- Commands for setting all config values.
+-- Commands start with rfo-
+-- Rename mod to "RealisticFluids" internally
+-- Rename config file
+
+Serious improvement:
+** NETHER IS TOO SLOW **. It is unacceptably slow.
+-- see if treating nether lava as overworld water solves it.
+
+(next alpha release)
+
+Viscosity, surface tension:
+1. Needs to test in a flat world, an 8 block trench.
+2. Goal: Water is 8x1, lava is 4x2
+3. Fluid reaches LEVEL, not hill.
+NB: Current: The length is right, but there is a hill effect.
+Does not actually level out.
+
+Other:
+Verify that flow does reach "Stable", and stops updating.
+
+Features:
+1. Save full fluid level data.
+2. Save full list of blocks to tick
+
+Improvements:
+1. Per-world save files: flow state, sea level by dimensions.
+Current: Single flow state in config file, sea levels auto-determined. Barely functional.
+2. Prevent diagonal flow if both straight flows are blocked. Or: prevent diagonal flow period.
+NB: Vanilla gives the appearance of diagonal flow, but actually does not.
+3. When no players are online, process fluid in all loaded chunks.
+Optionally: Process all loaded chunks even when players are online (warning: will be slow. Will probably be unplayably flow).
+
+Rainfall, COMPLEX:
+1. Implement some sort of absorption system for tiny puddles. (idea: if the fluid level is a tiny "leftover", it goes away).
+2. Implement some sort of evaporation. (Would be used to clean up deep puddles left from rainfall. Will kill off surface lakes until the next rain.)
+3. Rainfall in all biomes, all heights.
+
+Other:
+Still need some idea for nether rainfall.
+Still need some idea for mystcraft ages/RfDims that have lava oceans.
+Heck, could use some way to detect "no seas" ...
