@@ -580,6 +580,8 @@ public class FluidData
      * @param x
      * @param y
      * @param z
+     * 
+     * ** No Longer Used! BitRot: We no longer do diagonal stuff, do not rely on this to work
      */
     public static void markNeighborsDiagonal(ChunkData data, final int x, final int y, final int z)
     {

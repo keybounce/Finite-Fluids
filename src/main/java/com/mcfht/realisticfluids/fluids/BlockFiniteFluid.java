@@ -244,7 +244,7 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
                 // This is: we just set ourselves to air. SetLevel has notified 6 neighbors.
                 // Do we need to notify the diagonals as well? For now, it's not going to make
                 // a large effect, so leave it.
-                FluidData.markNeighborsDiagonal(data, x0, y0, z0);
+                // ** A5.3: Remove diagonal effects FluidData.markNeighborsDiagonal(data, x0, y0, z0);
                 return;
             }
 
@@ -257,16 +257,18 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
 
             int dx, dz;
             int x1, z1;
-            final int skew = r.nextInt(8);
+            final int skew = r.nextInt(4);
             boolean diag = false;
 
             // Try to flow horizontally
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < 4; i++)
             {
-                dx = Util.intDirX(i + skew);
-                dz = Util.intDirZ(i + skew);
+                dx = Util.cardinalX(i + skew);
+                dz = Util.cardinalZ(i + skew);
                 diag = (dx != 0 && dz != 0);
 
+                if (true == diag)
+                    throw new RuntimeException("Diagonal flows should not happen anymore");
                 x1 = x0 + dx;
                 z1 = z0 + dz;
 
@@ -313,7 +315,7 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
                                 && (/* b2 */ data.w.isAirBlock(x1, y0-1, z0) || b2.getMaterial() == this.blockMaterial))
                         {
                             FluidData.setLevelWorld(data, this, x1, y0, z1, l1 + l0, true);
-                            FluidData.markNeighborsDiagonal(data, x1, y0, z1);
+                            FluidData.markNeighbors(data, x1, y0, z1);
                             l0 = 0;
                             return;
                         }
