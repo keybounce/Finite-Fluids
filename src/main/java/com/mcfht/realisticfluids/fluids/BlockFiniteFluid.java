@@ -374,12 +374,14 @@ public class BlockFiniteFluid extends BlockDynamicLiquid
             return 1;
         if (   this.getMaterial() == b1.getMaterial()  // New: Same type of (possibly mod) fluid.
                     && (-1 == dy)                           // and we are going down
-                    && (FluidData.getLevelWorld(data, this, x0, y0, z0) < RealisticFluids.ABSORB)
            )
-        {
-            System.out.println("Absorbing fluid in mod liquid at " + x0 + ", " + y0 + ", " + z0);
-            return 1;
-        }
+            if (                   Block.getIdFromBlock(b1) >12    // and it's a mod fluid
+                    )
+            if (FluidData.getLevelWorld(data, this, x0, y0, z0) < RealisticFluids.ABSORB)
+            {
+                System.out.println("Absorbing fluid in mod liquid at " + x0 + ", " + y0 + ", " + z0);
+                return 1;
+            }
             // TODO: Need to test ledges. We have access to the dynamic adjustments, use them.
         final int x1 = x0 + dx;
         final int y1 = y0 + dy;
