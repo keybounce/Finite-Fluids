@@ -17,8 +17,8 @@ buildscript {
 
 apply plugin: 'forge'
 
-def versionNum  = "A5.3"
-def versionText = "NoDiagonalFlow"
+def versionNum  = "A5.4"
+def versionText = "FixedWarnings"
 
 group= "com.mcfht.realisticfluids" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "RealisticFluids"
